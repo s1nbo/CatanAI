@@ -286,11 +286,10 @@ class Board:
         random.shuffle(PORTS)
         random.shuffle(NUMBERS)
 
-        # add water tiles between ports into ports list
         for i in range(9):
             PORTS.insert(i*2, WATER[i])
 
-
+        # AI CODE TO CHECK IF IT WORKS
         # Create Tiles
         for tile_id in range(19):
             resource = HEXES[tile_id]
@@ -304,6 +303,38 @@ class Board:
         for vertex_id in range(54):
             vertex = Vertex(vertex_id)
             self.vertices[vertex_id] = vertex
+        
+        # Create Edges
+        for edge_id in range(72):
+            v1_id, v2_id = EDGE_VERTEX[edge_id]
+            edge = Edge(edge_id, self.vertices[v1_id], self.vertices[v2_id])
+            self.edges[edge_id] = edge
+            self.vertices[v1_id].adjacent_roads.append(edge)
+            self.vertices[v2_id].adjacent_roads.append(edge)
+            self.vertices[v1_id].adjacent_vertices.append(self.vertices[v2_id])
+            self.vertices[v2_id].adjacent_vertices.append(self.vertices[v1_id])
+            self.vertices[v1_id].can_build_settlement = {}
+            self.vertices[v2_id].can_build_settlement = {}
+            edge.can_build_road = {}
+            edge.vertex1.can_build_settlement = {}
+            edge.vertex2.can_build_settlement = {}
+        
+        # Link Tiles with Vertices and vice versa
+        for tile_id, vertex_ids in TILE_VERTEX.items():
+            tile = self.tiles[tile_id]
+            for v_id in vertex_ids:
+                vertex = self.vertices[v_id]
+                tile.adjacent_settlements.append(vertex)
+                vertex.adjacent_tiles.append(tile)
+        
+        # Link Vertices with Tiles and vice versa
+        for vertex_id, tile_ids in VERTEX_TILE.items():
+            vertex = self.vertices[vertex_id]
+            for t_id in tile_ids:
+                tile = self.tiles[t_id]
+                vertex.adjacent_tiles.append(tile)
+                tile.adjacent_settlements.append(vertex)
+        
 
 
 
@@ -317,6 +348,8 @@ class Board:
 
     def place_ports(self) -> None:
         pass
+
+
 
 # Board Components
 class Tile:
