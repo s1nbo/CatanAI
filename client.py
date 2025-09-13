@@ -14,9 +14,9 @@ def create_game():
         return None
 
 def join_game(game_id: int):
-    response = requests.post(f"http://{BASE_URL}/join_game", json={"game_id": game_id})
+    response = requests.post(f"http://{BASE_URL}/join_game", params={"game_id": game_id})
     if response.status_code == 200:
-        return response.json()["player_id"], response.json()["game_id"]
+        return response.json()
     else:
         print("Failed to join lobby:", response.text)
         return None
@@ -49,7 +49,8 @@ async def game(game_id: int, player_id: int):
             except websockets.ConnectionClosed:
                 print("Connection closed")
                 break
-
+            
+            continue
             # GAME LOGIC
             if message["type"] == "your_turn":
                 pass
@@ -87,19 +88,20 @@ async def game(game_id: int, player_id: int):
 
     
 if __name__ == "__main__":
-    input = input("create or join game? (c/j): ").strip().lower()
-    if input == 'c':
-        game = create_game()
-    elif input == 'j':
+    action = input("create or join game? (c/j): ").strip().lower()
+    if action == 'c':
+        game_info = create_game()
+    elif action == 'j':
         game_id = int(input("Enter game ID to join: ").strip())
-        game = join_game(game_id)
+        game_info = join_game(game_id)
     else:
         print("Invalid input. Exiting.")
         exit(1)
     
-    if game:
-        game_id = game["game_id"]
-        player_id = game["player_id"]
+    print(game_info)
+    if game_info:
+        game_id = game_info["game_id"]
+        player_id = game_info["player_id"]
         print(f"Joined lobby {game_id} as player {player_id}.")
     else:
         print("Failed to create or join game. Exiting.")
@@ -120,8 +122,7 @@ if __name__ == "__main__":
         elif start == 'n':
             print("Waiting for more players...")
     '''
-
-
-    asyncio.run(game(game_id, player_id))
+    print("Waiting for game to start...")
+    asyncio.run(game(game_id=int(game_id), player_id=int(player_id)))
     
     
