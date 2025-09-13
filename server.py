@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 import asyncio
 import uvicorn
 import random
+from pydantic import BaseModel
 
 
 app = FastAPI()
@@ -10,6 +11,12 @@ app = FastAPI()
 
 BASE_URL = "localhost:8000"
 games = {} # game_id -> {"game_state": game_state, "websockets": {player_id: websocket}}
+
+class GameIdRequest(BaseModel):
+    game_id: int
+
+
+
 
 @app.post("/create_game")
 async def create_game():
@@ -25,7 +32,8 @@ async def create_game():
 
 
 @app.post("/join_game")
-async def join_game(game_id: int):
+async def join_game(req: GameIdRequest):
+    game_id = req.game_id
     if game_id not in games:
         return JSONResponse(status_code=404, content={"message": "Game not found"})
     if len(games[game_id]["websockets"]) >= 4:
@@ -44,7 +52,8 @@ async def join_game(game_id: int):
     return {"player_id": player_id, "game_id": game_id}
 
 @app.get("/game/{game_id}/players")
-async def list_players(game_id: int):
+async def list_players(req: GameIdRequest):
+    game_id = req.game_id
     if game_id not in games:
         return JSONResponse(status_code=404, content={"message": "Game not found"})
     
@@ -52,7 +61,8 @@ async def list_players(game_id: int):
     return {"players": players}
 
 @app.post("/game/{game_id}/start")
-async def start_game(game_id: int):
+async def start_game(req: GameIdRequest):
+    game_id = req.game_id
     if game_id not in games:
         return JSONResponse(status_code=404, content={"message": "Game not found"})
     if games[game_id]["game_state"]:
@@ -90,13 +100,6 @@ async def websocket_endpoint(websocket: WebSocket, game_id: int, player_id: int)
         for conn in games[game_id]["websockets"].values():
             if conn:
                 await conn.send_json({"type": "player_disconnect", "player_id": player_id})
-
-
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
-
 
 
 
