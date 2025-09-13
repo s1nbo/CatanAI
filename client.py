@@ -3,10 +3,10 @@ import websockets
 import asyncio
 import json
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "localhost:8000"
 
 def create_game():
-    response = requests.post(f"{BASE_URL}/create_lobby")
+    response = requests.post(f"http://{BASE_URL}/create_game")
     if response.status_code == 200:
         return response.json()
     else:
@@ -14,23 +14,31 @@ def create_game():
         return None
 
 def join_game(game_id: int):
-    response = requests.post(f"{BASE_URL}/join_lobby", json={"lobby_id": game_id})
+    response = requests.post(f"http://{BASE_URL}/join_game", json={"game_id": game_id})
     if response.status_code == 200:
-        return response.json()["player_id"], response.json()["lobby_id"]
+        return response.json()["player_id"], response.json()["game_id"]
     else:
         print("Failed to join lobby:", response.text)
         return None
 
 def list_players(game_id: int):
-    response = requests.get(f"{BASE_URL}/lobby/{game_id}/players")
+    response = requests.get(f"http://{BASE_URL}/game/{game_id}/players")
     if response.status_code == 200:
         return response.json()
     else:
         print("Failed to list players:", response.text)
         return None
 
+def start_game(game_id: int):
+    response = requests.post(f"http://{BASE_URL}/game/{game_id}/start")
+    if response.status_code == 200:
+        return True
+    else:
+        print("Failed to start game:", response.text)
+        return False 
+
 async def game(game_id: int, player_id: int):
-    uri = f"ws://localhost:8000/ws/{game_id}/{player_id}"
+    uri = f"ws://{BASE_URL}/ws/{game_id}/{player_id}"
     async with websockets.connect(uri) as websocket:
         print(f"Connected to game {game_id} as player {player_id}.")
 
@@ -67,7 +75,11 @@ async def game(game_id: int, player_id: int):
                 pass
             elif message["type"] == "player_disconnect":
                 pass
+            elif message["type"] == "player_joined":
+                pass
             elif message["type"] == "board_update":
+                pass
+            elif message["type"] == "game_start":
                 pass
             elif message["type"] == "game_over":
                 pass
@@ -86,7 +98,7 @@ if __name__ == "__main__":
         exit(1)
     
     if game:
-        game_id = game["lobby_id"]
+        game_id = game["game_id"]
         player_id = game["player_id"]
         print(f"Joined lobby {game_id} as player {player_id}.")
     else:
@@ -95,6 +107,20 @@ if __name__ == "__main__":
     
     players = list_players(game_id)
     print(f"Current players in lobby {game_id}: {players}")
+    
+    '''
+    while True:
+        start = input("Start game? (y/n): ").strip().lower()
+        if start == 'y':
+            if start_game(game_id):
+                print("Game started!")
+                break
+            else:
+                print("Failed to start game. Try again.")
+        elif start == 'n':
+            print("Waiting for more players...")
+    '''
+
 
     asyncio.run(game(game_id, player_id))
     

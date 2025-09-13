@@ -1,2 +1,3 @@
 test.py
 connection.txt
+__pycache__/*
