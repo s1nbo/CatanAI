@@ -56,11 +56,13 @@ class Board:
             'Ore', 'Ore', 'Ore',
             'Desert'
         ]
+        
         PORTS = [
             '3:1', '3:1', '3:1', '3:1',
             '2:1 Wool', '2:1 Grain', '2:1 Lumber', '2:1 Brick', '2:1 Ore'
-            ''
         ]
+        WATER = [ 'Water' for _ in range(9) ]
+        
         NUMBERS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
 
 
@@ -283,6 +285,10 @@ class Board:
         random.shuffle(HEXES)
         random.shuffle(PORTS)
         random.shuffle(NUMBERS)
+
+        # add water tiles between ports into ports list
+        for i in range(9):
+            PORTS.insert(i*2, WATER[i])
 
 
         # Create Tiles
