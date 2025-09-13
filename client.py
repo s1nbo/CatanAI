@@ -1,24 +1,101 @@
-import asyncio
+import requests
 import websockets
+import asyncio
 import json
 
-async def websocket_client():
-    uri = "ws://localhost:8000/ws"
+BASE_URL = "http://localhost:8000"
+
+def create_game():
+    response = requests.post(f"{BASE_URL}/create_lobby")
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print("Failed to create lobby:", response.text)
+        return None
+
+def join_game(game_id: int):
+    response = requests.post(f"{BASE_URL}/join_lobby", json={"lobby_id": game_id})
+    if response.status_code == 200:
+        return response.json()["player_id"], response.json()["lobby_id"]
+    else:
+        print("Failed to join lobby:", response.text)
+        return None
+
+def list_players(game_id: int):
+    response = requests.get(f"{BASE_URL}/lobby/{game_id}/players")
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print("Failed to list players:", response.text)
+        return None
+
+async def game(game_id: int, player_id: int):
+    uri = f"ws://localhost:8000/ws/{game_id}/{player_id}"
     async with websockets.connect(uri) as websocket:
-        # Receive lobby and player ID
-        msg = await websocket.recv()
-        info = json.loads(msg)
-        print(f"Lobby: {info['lobby_id']} Player: {info['player_id']}")
+        print(f"Connected to game {game_id} as player {player_id}.")
 
-        # Wait for game start
-        msg = await websocket.recv()
-        start_info = json.loads(msg)
-        if start_info.get("status") == "game_start":
-            print(f"Game starting in lobby: {start_info['lobby_id']} with players: {start_info['players']}")
+        while True:
+            try:
+                message = await websocket.recv()
+                print(f"Received message: {message}")
+            except websockets.ConnectionClosed:
+                print("Connection closed")
+                break
 
-        # keep client 20 sec connected then close
-        await asyncio.sleep(5)
-        await websocket.close()
+            # GAME LOGIC
+            if message["type"] == "your_turn":
+                pass
+            elif message["type"] == "roll_results":
+                pass
+            elif message["type"] == "robber_move":
+                pass
+            elif message["type"] == "build_action":
+                pass
+            elif message["type"] == "ressource_update":
+                pass
+            elif message["type"] == "development_card_buy":
+                pass
+            elif message["type"] == "development_card_play":
+                pass
+            elif message["type"] == "trade_request":
+                pass
+            elif message["type"] == "victory_point_update":
+                pass
+            elif message["type"] == "longest_road_update":
+                pass
+            elif message["type"] == "largest_army_update":
+                pass
+            elif message["type"] == "player_disconnect":
+                pass
+            elif message["type"] == "board_update":
+                pass
+            elif message["type"] == "game_over":
+                pass
+    
 
+    
+if __name__ == "__main__":
+    input = input("create or join game? (c/j): ").strip().lower()
+    if input == 'c':
+        game = create_game()
+    elif input == 'j':
+        game_id = int(input("Enter game ID to join: ").strip())
+        game = join_game(game_id)
+    else:
+        print("Invalid input. Exiting.")
+        exit(1)
+    
+    if game:
+        game_id = game["lobby_id"]
+        player_id = game["player_id"]
+        print(f"Joined lobby {game_id} as player {player_id}.")
+    else:
+        print("Failed to create or join game. Exiting.")
+        exit(1)
+    
+    players = list_players(game_id)
+    print(f"Current players in lobby {game_id}: {players}")
 
-asyncio.run(websocket_client())
+    asyncio.run(game(game_id, player_id))
+    
+    
