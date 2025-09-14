@@ -1,4 +1,4 @@
-
+import random
 class Game:
     def __init__(self, game_id):
         self.game_id = game_id
@@ -22,11 +22,15 @@ class Game:
     def process_action(self, player_id, action):
         # Logic to process a player's action (build, trade, etc.)
         pass
+    
+    def roll_dice(self) -> int:
+        return random.randint(1, 6) + random.randint(1, 6)
 
     def get_game_state(self):
-        # Return a representation of the current game state
+        # Return a representation of the current game state as a json
         return {
+            "game_id": self.game_id,
             "players": self.players,
+            "game_state": self.game_state,
             "current_turn": self.current_turn,
-            # Add other relevant game state information
         }
