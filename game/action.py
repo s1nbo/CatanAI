@@ -268,19 +268,103 @@ def can_play_monopoly(player_id: int, resource: str, players: dict) -> bool:
 
 
 # Trade Actions TODO
-def trade_offer(self, player_id: int, resource_give: dict, resource_receive: dict) -> bool:
-    pass
+def trade_possible(player_id: int, resource_0: dict, resource_1: dict, players: dict, bank: dict) -> bool: # could the trade be possible
+    if not can_do_trade_player(player_id, resource_0, players):
+        return False
+    for trader in players:
+        if trader != player_id:
+            if can_do_trade_player(trader, resource_1, players):
+               return True
+    if can_do_trade_bank(player_id, resource_0, resource_1, players, bank):
+        return True
+
+    return False
+    
+
+def can_do_trade_player(player_id: int, resource_give: dict, players: dict) -> bool:
+    for resource, amount in resource_give.items():
+        if resource not in ["wood", "brick", "sheep", "wheat", "ore"]:
+            return False
+        if amount <= 0:
+            return False
+        if resource_give[resource] > players[player_id]["hand"].get(resource, 0):
+            return False
+    return True
 
 
-def accept_trade(self, player_id: int, resource_give: dict, resource_receive: dict) -> bool:
-    pass
+def can_do_trade_bank(player_id: int, resource_give: dict, resource_receive: dict, players: dict, bank: dict) -> bool:
+    # Check what ports the player has if any
+    if players[player_id]["ports"] == []:
+        wood_ratio = 4
+        brick_ratio = 4
+        sheep_ratio = 4
+        wheat_ratio = 4
+        ore_ratio = 4
+    else:
+        for port in players[player_id]["ports"]:
+            if port == None:
+                continue
+            elif port == "3:1":
+                wood_ratio = min(wood_ratio, 3)
+                brick_ratio = min(brick_ratio, 3)
+                sheep_ratio = min(sheep_ratio, 3)
+                wheat_ratio = min(wheat_ratio, 3)
+                ore_ratio = min(ore_ratio, 3)
+            elif port == "wood":
+                wood_ratio = min(wood_ratio, 2)
+            elif port == "brick":
+                brick_ratio = min(brick_ratio, 2)
+            elif port == "sheep":
+                sheep_ratio = min(sheep_ratio, 2)
+            elif port == "wheat":
+                wheat_ratio = min(wheat_ratio, 2)
+            elif port == "ore":
+                ore_ratio = min(ore_ratio, 2)
+    
+    # check if enough resources are in the bank
+    for resource, amount in resource_receive.items():
+        if resource not in ["wood", "brick", "sheep", "wheat", "ore"]:
+            return False
+        if amount <= 0:
+            return False
+        if bank.get(resource, 0) < amount:
+            return False
+    
+    # check if player has correct ratios of resources to give
+    for resource, amount in resource_give.items():
+        if resource not in ["wood", "brick", "sheep", "wheat", "ore"]:
+            return False
+        if amount <= 0:
+            return False
+        if resource == "wood":
+            ratio = wood_ratio
+        elif resource == "brick":
+            ratio = brick_ratio
+        elif resource == "sheep":
+            ratio = sheep_ratio
+        elif resource == "wheat":
+            ratio = wheat_ratio
+        elif resource == "ore":
+            ratio = ore_ratio
+        if amount % ratio != 0:
+            return False
+        if players[player_id]["hand"].get(resource, 0) < amount:
+            return False
+    
+    return True
 
 
-def decline_trade(self, player_id: int) -> bool:
-    pass
+def complete_trade_player(player_0: int, player_1: int, resource_0: dict, resource_1: dict, players: dict) -> bool:
+    for resource, amount in resource_0.items():
+        players[player_0]["hand"][resource] -= amount
+        players[player_1]["hand"][resource] += amount
+    for resource, amount in resource_1.items():
+        players[player_1]["hand"][resource] -= amount
+        players[player_0]["hand"][resource] += amount
+    return True
 
 
-def complete_trade(self, trade_id: int) -> bool:
+def complete_trade_bank(player_id: int, resource_give: dict, resource_receive: dict, players: dict, bank: dict) -> bool:
     pass
 
 
