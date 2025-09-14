@@ -1,14 +1,13 @@
 from board import Board
 import random
 
-#longest road, stealing and can steal
-
 # Basic Actions
 def roll_dice(players, player_id: int) -> int: 
     if players[player_id]["dice_rolled"] == True or players[player_id]["current_turn"] == False:
         return False
     players[player_id]["dice_rolled"] = True
     return random.randint(1, 6) + random.randint(1, 6)
+
 
 def move_robber(board: Board , new_tile_id: int) -> bool: 
     if new_tile_id == board.robber_tile:
@@ -23,8 +22,8 @@ def move_robber(board: Board , new_tile_id: int) -> bool:
         board.vertices[vertex].blocked = True
 
     # Steal logic is handled in steal_resource function
-
     return True
+
 
 def end_turn(player_id: int, players: dict) -> bool: 
     players[player_id]["dice_rolled"] = False
@@ -58,10 +57,9 @@ def place_settlement(board, vertex_id: int, player_id: int, players: dict) -> bo
     players[player_id]["victory_points"] += 1
     board.vertices[vertex_id].owner = player_id
     board.vertices[vertex_id].building = "settlement"
-    
-
 
     return True
+
 
 def place_city(board: Board, vertex_id: int, player_id: int, players: dict) -> bool: 
     if players[player_id]["dice_rolled"] == False:
@@ -81,6 +79,7 @@ def place_city(board: Board, vertex_id: int, player_id: int, players: dict) -> b
     board.vertices[vertex_id].building = "city"
 
     return True
+
 
 def place_road(board: Board, edge_id: int, player_id: int, players: dict) -> bool: 
     if players[player_id]["dice_rolled"] == False:
@@ -116,7 +115,6 @@ def can_place_settlement(board: Board, vertex_id: int, player_id: int) -> bool:
     for neighbor in board.vertices[vertex_id].vertices:
         if board.vertices[neighbor].building != None or board.vertices[neighbor].owner != None:
             return False
-
     return True
 
 
@@ -125,6 +123,7 @@ def can_place_city(board: Board, vertex_id: int, player_id: int) -> bool:
         return True
     return False
     
+
 def can_place_road(board: Board, edge_id: int, player_id: int) -> bool: 
     if board.edges[edge_id].owner == None:
         for vertex in board.edges[edge_id].vertices:
@@ -152,6 +151,7 @@ def buy_development_card(player_id: int, development_cards: list, players: dict)
         players[player_id]["victory_points"] += 1
     return True
         
+
 def play_knight(board: Board, player_id: int, target_tile: int, players: dict) -> bool:
     if not can_play_knight(board, player_id, target_tile, players):
         return False
@@ -173,6 +173,7 @@ def play_knight(board: Board, player_id: int, target_tile: int, players: dict) -
                 break
     return True
 
+
 def play_road_building(board: Board, player_id: int, roads: list[int], players: dict) -> bool:
     if not can_play_road_building(board, player_id, roads, players):
         return False
@@ -182,6 +183,7 @@ def play_road_building(board: Board, player_id: int, roads: list[int], players: 
     players[player_id]["played_card_this_turn"] = True
     return True
 
+
 def play_year_of_plenty(player_id: int, resources: list[str], players: dict, bank: dict) -> bool:
     if not can_play_year_of_plenty(player_id, resources, players):
         return False
@@ -190,6 +192,7 @@ def play_year_of_plenty(player_id: int, resources: list[str], players: dict, ban
     players[player_id]["development_cards"]["year_of_plenty"] -= 1
     players[player_id]["played_card_this_turn"] = True
     return True
+
 
 def play_monopoly(player_id: int, resource: str, players: dict) -> bool:
     if not can_play_monopoly(player_id, resource, players):
@@ -204,6 +207,7 @@ def play_monopoly(player_id: int, resource: str, players: dict) -> bool:
     players[player_id]["played_card_this_turn"] = True
     return True
     
+
 def can_play_knight(board: Board, player_id: int, target_tile: int, players: dict) -> bool:
     if target_tile == board.robber_tile:
         return False
@@ -212,6 +216,7 @@ def can_play_knight(board: Board, player_id: int, target_tile: int, players: dic
     if players[player_id]["played_card_this_turn"] == True:
         return False
     return True
+
 
 def can_play_road_building(board: Board, player_id: int, roads: list[int], players: dict) -> bool:
     if len(roads) != 2 or len(roads) != 1:
@@ -227,6 +232,7 @@ def can_play_road_building(board: Board, player_id: int, roads: list[int], playe
     if players[player_id]["roads"] < len(roads):
         return False
     return True
+
 
 def can_play_year_of_plenty(player_id: int, resources: list[str], players: dict, bank: dict) -> bool: 
     if len(resources) != 2 or len(resources) != 1:
@@ -250,6 +256,7 @@ def can_play_year_of_plenty(player_id: int, resources: list[str], players: dict,
                 return False
     return True
 
+
 def can_play_monopoly(player_id: int, resource: str, players: dict) -> bool: 
     if resource not in ["wood", "brick", "sheep", "wheat", "ore"]:
         return False
@@ -259,19 +266,22 @@ def can_play_monopoly(player_id: int, resource: str, players: dict) -> bool:
         return False
     return True
 
+
 # Trade Actions TODO
 def trade_offer(self, player_id: int, resource_give: dict, resource_receive: dict) -> bool:
     pass
 
+
 def accept_trade(self, player_id: int, resource_give: dict, resource_receive: dict) -> bool:
     pass
+
 
 def decline_trade(self, player_id: int) -> bool:
     pass
 
+
 def complete_trade(self, trade_id: int) -> bool:
     pass
-
 
 
 # Misc Actions
@@ -304,7 +314,6 @@ def longest_road(board, player_id: int, players: dict) -> None:
     
     players[player_id]["longest_road_length"] = max_length
 
-
     # Second Part is to check if longest road needs to be updated
     if players[player_id]["longest_road_length"] >= 5:
         for opponent_id in players:
@@ -331,6 +340,7 @@ def steal_resource(board: Board, stealer_id: int, victim_id: int, players: dict)
     players[victim_id]["hand"][resource] -= 1
     players[stealer_id]["hand"][resource] += 1
     return True
+
 
 def can_steal(board: Board, stealer_id: int, victim_id: int, players: dict) -> bool: 
     # robber must be on a tile adjacent to a settlement/city of the victim
