@@ -2,11 +2,40 @@ from board import Board
 import random
 
 # Basic Actions
-def roll_dice(players, player_id: int) -> int: 
+def roll_dice(board: Board, players, player_id: int) -> int: 
     if players[player_id]["dice_rolled"] == True or players[player_id]["current_turn"] == False:
         return False
     players[player_id]["dice_rolled"] = True
-    return random.randint(1, 6) + random.randint(1, 6)
+
+    # distribute resources
+    # we have to check if there are enough resources in the bank and then distribute accordingly
+    number = random.randint(1, 6) + random.randint(1, 6)
+    total_ressource = {"wood": 0, "brick": 0, "sheep": 0, "wheat": 0, "ore": 0}
+    for tile_id, tile in board.tiles.items():
+        if tile.number == number and tile.robber_tile == False:
+            for vertex in tile.vertices:
+                if board.vertices[vertex].owner != None:
+                    if board.vertices[vertex].building == "settlement":
+                        total_ressource[tile.resource] += 1
+                    elif board.vertices[vertex].building == "city":
+                        total_ressource[tile.resource] += 2
+    
+    for resource, amount in total_ressource.items():
+        if board.bank[resource] >= amount:
+            board.bank[resource] -= amount
+            # Distribute resources to players if enough in bank
+            for _, tile in board.tiles.items():
+                if tile.number == number and tile.robber_tile == False and tile.resource == resource:
+                    for vertex in tile.vertices:
+                        if board.vertices[vertex].owner != None:
+                            owner = board.vertices[vertex].owner
+                            if board.vertices[vertex].building == "settlement":
+                                players[owner]["hand"][resource] += 1
+                            elif board.vertices[vertex].building == "city":
+                                players[owner]["hand"][resource] += 2
+    
+    # If not enough resources in bank, no resources are distributed
+    return number
 
 
 def move_robber(board: Board , new_tile_id: int) -> bool: 
@@ -267,7 +296,7 @@ def can_play_monopoly(player_id: int, resource: str, players: dict) -> bool:
     return True
 
 
-# Trade Actions TODO
+# Trade Actions
 def trade_possible(player_id: int, resource_0: dict, resource_1: dict, players: dict, bank: dict) -> bool: # could the trade be possible
     if not can_do_trade_player(player_id, resource_0, players):
         return False
@@ -365,7 +394,13 @@ def complete_trade_player(player_0: int, player_1: int, resource_0: dict, resour
 
 
 def complete_trade_bank(player_id: int, resource_give: dict, resource_receive: dict, players: dict, bank: dict) -> bool:
-    pass
+    for resource, amount in resource_give.items():
+        players[player_id]["hand"][resource] -= amount
+        bank[resource] += amount
+    for resource, amount in resource_receive.items():
+        players[player_id]["hand"][resource] += amount
+        bank[resource] -= amount
+    return True
 
 
 # Misc Actions
