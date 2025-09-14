@@ -10,6 +10,8 @@ def roll_dice(board: Board, players, player_id: int) -> int:
     # distribute resources
     # we have to check if there are enough resources in the bank and then distribute accordingly
     number = random.randint(1, 6) + random.randint(1, 6)
+    if number == 7: return 7 # Robber 
+
     total_ressource = {"wood": 0, "brick": 0, "sheep": 0, "wheat": 0, "ore": 0}
     for tile_id, tile in board.tiles.items():
         if tile.number == number and tile.robber_tile == False:
