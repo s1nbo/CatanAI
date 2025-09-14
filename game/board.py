@@ -41,6 +41,7 @@ class Board:
         self.edges = None # id -> Edge
         self.port_config = random.randint(0, 1)
         self.create_board()
+        self.robber = 0 # Tile id where the robber is located, starts on the desert tile
 
     def create_board(self) -> None:
         # Setup Board
@@ -75,6 +76,7 @@ class Board:
 
             if resource == 'Desert':
                 number = None
+                self.robber = i
             else:
                 number = NUMBERS.pop()
             
@@ -115,7 +117,7 @@ class Board:
                     self.vertices[vertex_id].port = PORTS[i]
 
     
-    def board_to_json(self):
+    def board_to_json(self) -> dict:
         return {
             "tiles": [
                 {
@@ -180,7 +182,34 @@ class Board:
             print(f"  Adjacent Vertices: {edge.vertices}")
             print(f"  Adjacent Edges: {edge.edges}")
             print()
+        
     
+    def move_robber(self, new_tile_id: int) -> dict:
+        pass
+
+    def place_settlement(self, vertex_id: int, player_id: int) -> list[str, dict]:
+        pass
+        port_type = None
+        return port_type
+
+    def place_city(self, vertex_id: int, player_id: int) -> dict:
+        pass
+
+    def place_road(self, edge_id: int, player_id: int) -> list[int, dict]:
+        self.longest_road(player_id) # TODO only call if road was placed successfully
+        pass
+
+    def can_place_settlement(self, vertex_id: int, player_id: int) -> dict:
+        pass
+    def can_place_city(self, vertex_id: int, player_id: int) -> dict:
+        pass
+    def can_place_road(self, edge_id: int, player_id: int) -> dict:
+        pass
+    
+    def longest_road(self, player_id: int) -> int:
+        pass
+        # Need to take every road of the player as a starting point and do a DFS to find the longest path
+        # Need to block paths that go through settlements of other players
 
 
 BOARD = Board()
