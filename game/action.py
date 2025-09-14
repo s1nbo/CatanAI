@@ -500,3 +500,9 @@ def can_steal(board: Board, stealer_id: int, victim_id: int, players: dict) -> b
         if board.vertices[vertex].owner == victim_id:
             return True
     return False 
+
+def get_availabe_build_locations(board: Board, player_id: int) -> dict: #TODO future implementation
+    pass
+
+def get_availabe_steal_targets(board: Board, stealer_id: int, players: dict) -> list[int]: #TODO future implementation
+    pass
