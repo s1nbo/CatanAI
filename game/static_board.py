@@ -2,35 +2,37 @@
 class Tile:
     # Tiles Represent Hexagons
     def __init__(self, resource: str, number: int, id: int) -> None:
-        self.id = id  # Unique identifier for the tile (also its position)
+        self.id = id  # Id from 0 to 18
+        
         self.resource = resource
         self.number = number
         self.has_robber = False
 
+        self.tiles = None # size 4 - 6 
         self.vertices = None # size 6
         self.edges = None # size 6
-        self.tiles = None # size 4 - 6 
+       
 
 class Vertex:
     # Vertices Represent Settlement/Cities positions
     def __init__(self, id: int) -> None:
         self.id = id # Id from 0 to 53
+        
         self.building = None  # None, 'Settlement', or 'City'
-        self.owner = None  # Player object who owns the building
+        self.player = None  # Player object who owns the building
         self.port = None  # None or Port type (e.g., '3:1', '2:1 Wool', etc.)
         self.blocked = False  # True if blocked by the distance rule for buildings
 
-        self.vertices = None # size 2 - 3
         self.tiles = None # size 1 - 3
+        self.vertices = None # size 2 - 3
         self.edges = None # size 2 - 3
         
-        
-
 class Edge:
     # Edges Represent Road positions
     def __init__(self, id: int) -> None:
         self.id = id # Id from 0 to 71
-        self.owner = None  # Player object who owns the road
+        
+        self.player = None  # Player object who owns the road
 
         self.tiles = None # size 1 - 2
         self.vertices = None # size 2
