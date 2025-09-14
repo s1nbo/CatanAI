@@ -1,6 +1,14 @@
-from board import Board
-from game_logic import Game
+#from board import Board
+from game import Board
 import random
+
+# Every Action follows this pattern
+# What Action is being attempted
+# Data needed to perform the action
+# Is Action Valid
+# Make the Action
+# Return the result of the action (success/failure and any relevant data)
+
 
 # Basic Actions
 def roll_dice(board: Board, players, player_id: int, bank: dict) -> int: 

@@ -1,5 +1,5 @@
 import random
-from board import Board
+from game import Board
 class Game:
     def __init__(self, game_id):
         self.game_id = game_id
@@ -43,14 +43,6 @@ class Game:
         # Logic to process a player's action (build, trade, etc.)
         pass
     
-    
-    
-    # Every Action follows this pattern
-    # What Action is being attempted
-    # Data needed to perform the action
-    # Is Action Valid
-    # Make the Action
-    # Return the result of the action (success/failure and any relevant data)
 
     def get_game_state(self, player_id: int):
         # Return a representation of the current game state as a json

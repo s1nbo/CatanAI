@@ -1,5 +1,5 @@
 import random
-import static_board
+from game import static_board
 import json
 '''
 Analysis:

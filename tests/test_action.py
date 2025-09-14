@@ -1,7 +1,6 @@
 import unittest
 import random
-import action as action
-from board import Board
+from game import action, Board
 
 
 class TestActions(unittest.TestCase):
