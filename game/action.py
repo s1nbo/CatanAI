@@ -4,13 +4,13 @@ import random
 #longest road, stealing and can steal
 
 # Basic Actions
-def roll_dice(players, player_id: int) -> int: # Done
+def roll_dice(players, player_id: int) -> int: 
     if players[player_id]["dice rolled"] == True or players[player_id]["current_turn"] == False:
         return False
     players[player_id]["dice rolled"] = True
     return random.randint(1, 6) + random.randint(1, 6)
 
-def move_robber(board: Board , new_tile_id: int) -> bool: # Done
+def move_robber(board: Board , new_tile_id: int) -> bool: 
     if new_tile_id == board.robber_tile:
         return False
     
@@ -26,7 +26,7 @@ def move_robber(board: Board , new_tile_id: int) -> bool: # Done
 
     return True
 
-def end_turn(player_id: int, players: dict) -> bool: # Done
+def end_turn(player_id: int, players: dict) -> bool: 
     players[player_id]["dice rolled"] = False
     players[player_id]["played_card_this_turn"] = False
     players[player_id]["current_turn"] = False
@@ -35,7 +35,7 @@ def end_turn(player_id: int, players: dict) -> bool: # Done
 
 
 # Building Actions
-def place_settlement(board, vertex_id: int, player_id: int, players: dict) -> list[str, dict]: # Done
+def place_settlement(board, vertex_id: int, player_id: int, players: dict) -> list[str, dict]: 
     if players[player_id]["dice rolled"] == False:
         return False
     if players[player_id]["settlements"] <= 0:
@@ -60,7 +60,7 @@ def place_settlement(board, vertex_id: int, player_id: int, players: dict) -> li
 
     return [port_type, board]
 
-def place_city(board: Board, vertex_id: int, player_id: int, players: dict) -> bool: # Done
+def place_city(board: Board, vertex_id: int, player_id: int, players: dict) -> bool: 
     if players[player_id]["dice rolled"] == False:
         return False
     if players[player_id]["cities"] <= 0:
@@ -79,7 +79,7 @@ def place_city(board: Board, vertex_id: int, player_id: int, players: dict) -> b
 
     return True
 
-def place_road(board: Board, edge_id: int, player_id: int, players: dict) -> bool: # Done
+def place_road(board: Board, edge_id: int, player_id: int, players: dict) -> bool: 
     if players[player_id]["dice rolled"] == False:
         return False
     if players[player_id]["roads"] <= 0:
@@ -99,7 +99,7 @@ def place_road(board: Board, edge_id: int, player_id: int, players: dict) -> boo
     return True
     
 
-def can_place_settlement(board: Board, vertex_id: int, player_id: int) -> bool: # Done
+def can_place_settlement(board: Board, vertex_id: int, player_id: int) -> bool: 
     if board.vertices[vertex_id].owner == None and board.vertices[vertex_id].building == None and board.vertices[vertex_id].blocked == False:
         for edge in board.vertices[vertex_id].edges:
             if board.edges[edge].owner == player_id:
@@ -107,12 +107,12 @@ def can_place_settlement(board: Board, vertex_id: int, player_id: int) -> bool: 
     return False
 
 
-def can_place_city(board: Board, vertex_id: int, player_id: int) -> bool: # Done
+def can_place_city(board: Board, vertex_id: int, player_id: int) -> bool: 
     if board.vertices[vertex_id].owner == player_id and board.vertices[vertex_id].building == "settlement": 
         return True
     return False
     
-def can_place_road(board: Board, edge_id: int, player_id: int) -> bool: # Done
+def can_place_road(board: Board, edge_id: int, player_id: int) -> bool: 
     if board.edges[edge_id].owner == None:
         for vertex in board.edges[edge_id].vertices:
             if board.vertices[vertex].owner == player_id:
@@ -124,7 +124,7 @@ def can_place_road(board: Board, edge_id: int, player_id: int) -> bool: # Done
 
 
 # Development Card Actions
-def buy_development_card(player_id: int, development_cards: list, players: dict) -> bool: # Done
+def buy_development_card(player_id: int, development_cards: list, players: dict) -> bool: 
     if players[player_id]["hand"]["sheep"] < 1 or players[player_id]["hand"]["wheat"] < 1 or players[player_id]["hand"]["ore"] < 1:
         return False
     if len(development_cards) == 0:
@@ -244,7 +244,7 @@ def can_play_road_building(board: Board, player_id: int, roads: list[int], playe
         return False
     return True
 
-def can_play_year_of_plenty(player_id: int, resources: list[str], players: dict, bank: dict) -> bool:
+def can_play_year_of_plenty(player_id: int, resources: list[str], players: dict, bank: dict) -> bool: 
     if len(resources) != 2 or len(resources) != 1:
         return False
     if players[player_id]["development_cards"]["year_of_plenty"] <= 0:
@@ -266,7 +266,7 @@ def can_play_year_of_plenty(player_id: int, resources: list[str], players: dict,
                 return False
     return True
 
-def can_play_monopoly(player_id: int, resource: str, players: dict) -> bool:
+def can_play_monopoly(player_id: int, resource: str, players: dict) -> bool: 
     if resource not in ["wood", "brick", "sheep", "wheat", "ore"]:
         return False
     if players[player_id]["development_cards"]["monopoly"] <= 0:
@@ -275,7 +275,7 @@ def can_play_monopoly(player_id: int, resource: str, players: dict) -> bool:
         return False
     return True
 
-# Trade Actions
+# Trade Actions TODO
 def trade_offer(self, player_id: int, resource_give: dict, resource_receive: dict) -> bool:
     pass
 
@@ -294,29 +294,30 @@ def complete_trade(self, trade_id: int) -> bool:
 def longest_road(board, player_id: int, players: dict) -> None: 
     # First Part is caluclate longest road of current player DFS
     # Need to block paths that go through settlements of other players
-    def dfs(current_edge: int, visited: list = [], stack: list = []): #TODO
-        visited.append(current_edge)
-        stack.append(current_edge)
-        max_length = 1
-        while(stack):
-            edge = stack.pop()
-            for vertex in board.edges[edge].vertices:
-                # Vertex is blocked by other player's settlement/city
-                if board.vertices[vertex].owner != None and board.vertices[vertex].owner != player_id: 
-                    continue
-                for next_edge in board.vertices[vertex].edges:
-                    if next_edge not in visited and board.edges[next_edge].owner == player_id:
-                        visited.append(next_edge)
-                        stack.append(next_edge)
-                        max_length = 
-        return max_length
 
-    # Need to take every road of the player as a starting point and do a DFS to find the longest path
     max_length = 0
+    
     for edge_id, edge in board.edges.items():
-        if edge.owner == player_id:
-            max_length = max(max_length, dfs(edge_id))
+        if edge.owner != player_id:
+            continue
 
+        stack = [(edge_id, {edge_id}, 1)]  # (current_edge, visited_edges, current_length)
+
+        while stack:
+            current_edge, visited, length = stack.pop()
+            max_length = max(max_length, length)
+
+            for vertex_id in board.edges[current_edge].vertices:
+                # Vertex is blocked by other player's settlement/city
+                if board.vertices[vertex_id].owner not in (None, player_id):
+                    continue
+
+                for next_edge in board.vertices[vertex_id].edges:
+                    if board.edges[next_edge].owner == player_id and next_edge not in visited:
+                        new_visited = visited | {next_edge}
+                        stack.append((next_edge, new_visited, length + 1))
+                
+    
     players[player_id]["longest_road_length"] = max_length
 
 
@@ -332,7 +333,7 @@ def longest_road(board, player_id: int, players: dict) -> None:
                 break
 
 
-def steal_resource(board: Board, stealer_id: int, victim_id: int, players: dict) -> bool: # Done
+def steal_resource(board: Board, stealer_id: int, victim_id: int, players: dict) -> bool: 
     if not can_steal(board, stealer_id, victim_id, players):
         return False
     if sum(players[victim_id]["hand"].values()) == 0: # No resources to steal
@@ -347,7 +348,7 @@ def steal_resource(board: Board, stealer_id: int, victim_id: int, players: dict)
     players[stealer_id]["hand"][resource] += 1
     return True
 
-def can_steal(board: Board, stealer_id: int, victim_id: int, players: dict) -> bool: # Done
+def can_steal(board: Board, stealer_id: int, victim_id: int, players: dict) -> bool: 
     # robber must be on a tile adjacent to a settlement/city of the victim
     if stealer_id == victim_id:
         return False
