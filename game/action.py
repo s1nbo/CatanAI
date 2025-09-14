@@ -40,6 +40,21 @@ def roll_dice(board: Board, players, player_id: int) -> int:
     return number
 
 
+def amount_lose_resource(player_id: int, players: dict) -> int: 
+    total_cards = sum(players[player_id]["hand"].values())
+    if total_cards <= 7: return 0
+    return total_cards // 2
+
+
+def remove_resources(player_id: int, players: dict, resources: dict) -> bool:
+    for resource, amount in resources.items():
+        if players[player_id]["hand"].get(resource, 0) < amount:
+            return False
+    for resource, amount in resources.items():
+        players[player_id]["hand"][resource] -= amount
+    return True
+ 
+
 def move_robber(board: Board , new_tile_id: int) -> bool: 
     if new_tile_id == board.robber_tile:
         return False
