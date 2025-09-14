@@ -5,9 +5,9 @@ import random
 
 # Basic Actions
 def roll_dice(players, player_id: int) -> int: 
-    if players[player_id]["dice rolled"] == True or players[player_id]["current_turn"] == False:
+    if players[player_id]["dice_rolled"] == True or players[player_id]["current_turn"] == False:
         return False
-    players[player_id]["dice rolled"] = True
+    players[player_id]["dice_rolled"] = True
     return random.randint(1, 6) + random.randint(1, 6)
 
 def move_robber(board: Board , new_tile_id: int) -> bool: 
@@ -27,7 +27,7 @@ def move_robber(board: Board , new_tile_id: int) -> bool:
     return True
 
 def end_turn(player_id: int, players: dict) -> bool: 
-    players[player_id]["dice rolled"] = False
+    players[player_id]["dice_rolled"] = False
     players[player_id]["played_card_this_turn"] = False
     players[player_id]["current_turn"] = False
     players[(player_id + 1) % len(players)]["current_turn"] = True
@@ -35,8 +35,8 @@ def end_turn(player_id: int, players: dict) -> bool:
 
 
 # Building Actions
-def place_settlement(board, vertex_id: int, player_id: int, players: dict) -> list[str, dict]: 
-    if players[player_id]["dice rolled"] == False:
+def place_settlement(board, vertex_id: int, player_id: int, players: dict) -> bool: 
+    if players[player_id]["dice_rolled"] == False:
         return False
     if players[player_id]["settlements"] <= 0:
         return False
@@ -48,6 +48,7 @@ def place_settlement(board, vertex_id: int, player_id: int, players: dict) -> li
     port_type = None
     if board.vertices[vertex_id].port != None:
         port_type = board.vertices[vertex_id].port
+    players[player_id]["ports"].append(port_type)
 
     players[player_id]["settlements"] -= 1
     players[player_id]["hand"]["brick"] -= 1
@@ -57,11 +58,13 @@ def place_settlement(board, vertex_id: int, player_id: int, players: dict) -> li
     players[player_id]["victory_points"] += 1
     board.vertices[vertex_id].owner = player_id
     board.vertices[vertex_id].building = "settlement"
+    
 
-    return [port_type, board]
+
+    return True
 
 def place_city(board: Board, vertex_id: int, player_id: int, players: dict) -> bool: 
-    if players[player_id]["dice rolled"] == False:
+    if players[player_id]["dice_rolled"] == False:
         return False
     if players[player_id]["cities"] <= 0:
         return False
@@ -80,7 +83,7 @@ def place_city(board: Board, vertex_id: int, player_id: int, players: dict) -> b
     return True
 
 def place_road(board: Board, edge_id: int, player_id: int, players: dict) -> bool: 
-    if players[player_id]["dice rolled"] == False:
+    if players[player_id]["dice_rolled"] == False:
         return False
     if players[player_id]["roads"] <= 0:
         return False
@@ -100,11 +103,21 @@ def place_road(board: Board, edge_id: int, player_id: int, players: dict) -> boo
     
 
 def can_place_settlement(board: Board, vertex_id: int, player_id: int) -> bool: 
-    if board.vertices[vertex_id].owner == None and board.vertices[vertex_id].building == None and board.vertices[vertex_id].blocked == False:
-        for edge in board.vertices[vertex_id].edges:
-            if board.edges[edge].owner == player_id:
-                return True
-    return False
+    if board.vertices[vertex_id].owner != None and board.vertices[vertex_id].building != None:
+        return False
+    has_connection = False
+    for edge in board.vertices[vertex_id].edges:
+        if board.edges[edge].owner == player_id:
+                has_connection = True
+                break
+    if not has_connection:
+        return False
+    # Blocked by distance rule
+    for neighbor in board.vertices[vertex_id].vertices:
+        if board.vertices[neighbor].building != None or board.vertices[neighbor].owner != None:
+            return False
+
+    return True
 
 
 def can_place_city(board: Board, vertex_id: int, player_id: int) -> bool: 
@@ -138,36 +151,7 @@ def buy_development_card(player_id: int, development_cards: list, players: dict)
     if card == "victory_point":
         players[player_id]["victory_points"] += 1
     return True
-    
-'''
-def can_play_development_card(player_id: int, card_type: str, players: dict, ) -> bool:
-    if card_type == "victory_point" or card_type not in players[player_id]["development_cards"]:
-        return False
-    if players[player_id]["played_card_this_turn"] == True:
-        return False
-    if players[player_id]["development_cards"][card_type] <= 0:
-        return False
-    return True
-
-def play_development_card(, card_type: str, players: dict) -> bool:
-    if not can_play_development_card(player_id, card_type, players):
-        return False
-    players[player_id]["development_cards"][card_type] -= 1
-    players[player_id]["played_card_this_turn"] = True
-
-    if card_type == "knight":
-        players[player_id]["played_knights"] += 1
-    elif card_type == "monopoly":
-        pass
-    elif card_type == "road_building":
-        pass
-    elif card_type == "year_of_plenty":
-        pass
-
-    return True
-'''
-
-    
+        
 def play_knight(board: Board, player_id: int, target_tile: int, players: dict) -> bool:
     if not can_play_knight(board, player_id, target_tile, players):
         return False

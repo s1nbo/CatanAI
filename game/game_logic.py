@@ -27,7 +27,7 @@ class Game:
                 "longest_road": False,
                 "largest_army": False,
                 "played_card_this_turn": False,
-                "dice rolled": False,
+                "dice_rolled": False,
                 "current_turn": False
             }
 
