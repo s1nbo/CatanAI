@@ -18,7 +18,7 @@ class Game:
                 "hand": {"wood": 0, "brick": 0, "sheep": 0, "wheat": 0, "ore": 0},
                 "development_cards": {"knight": 0, "victory_point": 0, "road_building": 0, "year_of_plenty": 0, "monopoly": 0},
                 "played_knights": 0,
-                "longest_road": 0,
+                "longest_road_length": 0,
                 "victory_points": 0,
                 "settlements": 5,
                 "cities": 4,
@@ -33,6 +33,10 @@ class Game:
 
     def start_game(self):
         self.current_turn = random.choice(list(self.players.keys()))
+        pass
+
+    def seven_rolled(self):
+        # Logic for when a 7 is rolled (robber movement, discarding cards, etc.)
         pass
 
     def process_action(self, player_id, action):
