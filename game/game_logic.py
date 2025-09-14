@@ -23,7 +23,12 @@ class Game:
                 "settlements": 5,
                 "cities": 4,
                 "roads": 15,
-                "ports": []
+                "ports": [],
+                "longest_road": False,
+                "largest_army": False,
+                "played_card_this_turn": False,
+                "dice rolled": False,
+                "current_turn": False
             }
 
     def start_game(self):
@@ -34,8 +39,14 @@ class Game:
         # Logic to process a player's action (build, trade, etc.)
         pass
     
-    def roll_dice(self) -> int:
-        return random.randint(1, 6) + random.randint(1, 6)
+    
+    
+    # Every Action follows this pattern
+    # What Action is being attempted
+    # Data needed to perform the action
+    # Is Action Valid
+    # Make the Action
+    # Return the result of the action (success/failure and any relevant data)
 
     def get_game_state(self):
         # Return a representation of the current game state as a json

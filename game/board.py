@@ -117,6 +117,7 @@ class Board:
                     self.vertices[vertex_id].port = PORTS[i]
 
     
+    # Just for Network Transmission
     def board_to_json(self) -> dict:
         return {
             "tiles": [
@@ -182,38 +183,14 @@ class Board:
             print(f"  Adjacent Vertices: {edge.vertices}")
             print(f"  Adjacent Edges: {edge.edges}")
             print()
-        
     
-    def move_robber(self, new_tile_id: int) -> dict:
+    # convert board to vector representation for AI input
+    def board_to_vector(self):
         pass
 
-    def place_settlement(self, vertex_id: int, player_id: int) -> list[str, dict]:
-        pass
-        port_type = None
-        return port_type
-
-    def place_city(self, vertex_id: int, player_id: int) -> dict:
-        pass
-
-    def place_road(self, edge_id: int, player_id: int) -> list[int, dict]:
-        self.longest_road(player_id) # TODO only call if road was placed successfully
-        pass
-
-    def can_place_settlement(self, vertex_id: int, player_id: int) -> dict:
-        pass
-    def can_place_city(self, vertex_id: int, player_id: int) -> dict:
-        pass
-    def can_place_road(self, edge_id: int, player_id: int) -> dict:
-        pass
-    
-    def longest_road(self, player_id: int) -> int:
-        pass
-        # Need to take every road of the player as a starting point and do a DFS to find the longest path
-        # Need to block paths that go through settlements of other players
-
-
-BOARD = Board()
-BOARD.print_board()
-# test the json safe it to a file
-with open("board.json", "w") as f:
-    json.dump(BOARD.board_to_json(), f, indent=4)
+if __name__ == "__main__":
+    BOARD = Board()
+    BOARD.print_board()
+    # test the json safe it to a file
+    with open("board.json", "w") as f:
+        json.dump(BOARD.board_to_json(), f, indent=4)
