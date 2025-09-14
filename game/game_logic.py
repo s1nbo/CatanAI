@@ -52,7 +52,7 @@ class Game:
     # Make the Action
     # Return the result of the action (success/failure and any relevant data)
 
-    def get_game_state(self):
+    def get_game_state(self, player_id: int):
         # Return a representation of the current game state as a json
         return {
             "game_id": self.game_id,

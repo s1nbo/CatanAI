@@ -7,9 +7,9 @@ class Tile:
         self.resource = resource
         self.number = number
         if resource == 'Desert':
-            self.has_robber = True
+            self.robber = True
         else:
-            self.has_robber = False
+            self.robber = False
 
         self.tiles = None # size 4 - 6 
         self.vertices = None # size 6
@@ -22,7 +22,7 @@ class Vertex:
         self.id = id # Id from 0 to 53
         
         self.building = None  # None, 'Settlement', or 'City'
-        self.player = None  # Player object who owns the building
+        self.owner = None  # Player object who owns the building
         self.port = None  # None or Port type (e.g., '3:1', '2:1 Wool', etc.)
         self.blocked = False  # True if blocked by the distance rule for buildings
 
@@ -35,7 +35,7 @@ class Edge:
     def __init__(self, id: int) -> None:
         self.id = id # Id from 0 to 71
         
-        self.player = None  # Player object who owns the road
+        self.owner = None  # Player object who owns the road
 
         self.tiles = None # size 1 - 2
         self.vertices = None # size 2

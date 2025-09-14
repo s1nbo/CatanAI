@@ -40,9 +40,9 @@ class Board:
         self.vertices = None # id -> Vertex
         self.edges = None # id -> Edge
         self.port_config = random.randint(0, 1)
+        self.robber_tile = 0 # Tile id where the robber is located, starts on the desert tile
         self.create_board()
-        self.robber = 0 # Tile id where the robber is located, starts on the desert tile
-
+       
     def create_board(self) -> None:
         # Setup Board
 
@@ -76,7 +76,7 @@ class Board:
 
             if resource == 'Desert':
                 number = None
-                self.robber = i
+                self.robber_tile = i
             else:
                 number = NUMBERS.pop()
             
@@ -125,7 +125,7 @@ class Board:
                     "id": tile.id,
                     "resource": tile.resource,
                     "number": tile.number,
-                    "has_robber": tile.has_robber,
+                    "robber": tile.robber,
                     "tiles": tile.tiles,
                     "vertices": tile.vertices,
                     "edges": tile.edges
@@ -136,7 +136,7 @@ class Board:
                 {
                     "id": vertex.id,
                     "building": vertex.building,
-                    "player": vertex.player,
+                    "player": vertex.owner,
                     "port": vertex.port,
                     "tiles": vertex.tiles,
                     "vertices": vertex.vertices,
@@ -147,7 +147,7 @@ class Board:
             "edges": [
                 {
                     "id": edge.id,
-                    "player": edge.player,
+                    "player": edge.owner,
                     "tiles": edge.tiles,
                     "vertices": edge.vertices,
                     "edges": edge.edges

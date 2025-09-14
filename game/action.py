@@ -1,8 +1,9 @@
 from board import Board
+from game_logic import Game
 import random
 
 # Basic Actions
-def roll_dice(board: Board, players, player_id: int) -> int: 
+def roll_dice(board: Board, players, player_id: int, bank: dict) -> int: 
     if players[player_id]["dice_rolled"] == True or players[player_id]["current_turn"] == False:
         return False
     players[player_id]["dice_rolled"] = True
@@ -13,8 +14,8 @@ def roll_dice(board: Board, players, player_id: int) -> int:
     if number == 7: return 7 # Robber 
 
     total_ressource = {"wood": 0, "brick": 0, "sheep": 0, "wheat": 0, "ore": 0}
-    for tile_id, tile in board.tiles.items():
-        if tile.number == number and tile.robber_tile == False:
+    for tile in board.tiles:
+        if tile.number == number and tile.robber == False:
             for vertex in tile.vertices:
                 if board.vertices[vertex].owner != None:
                     if board.vertices[vertex].building == "settlement":
@@ -23,11 +24,11 @@ def roll_dice(board: Board, players, player_id: int) -> int:
                         total_ressource[tile.resource] += 2
     
     for resource, amount in total_ressource.items():
-        if board.bank[resource] >= amount:
-            board.bank[resource] -= amount
+        if bank[resource] >= amount:
+            bank[resource] -= amount
             # Distribute resources to players if enough in bank
-            for _, tile in board.tiles.items():
-                if tile.number == number and tile.robber_tile == False and tile.resource == resource:
+            for tile in board.tiles:
+                if tile.number == number and tile.robber == False and tile.resource == resource:
                     for vertex in tile.vertices:
                         if board.vertices[vertex].owner != None:
                             owner = board.vertices[vertex].owner
@@ -75,7 +76,7 @@ def end_turn(player_id: int, players: dict) -> bool:
     players[player_id]["dice_rolled"] = False
     players[player_id]["played_card_this_turn"] = False
     players[player_id]["current_turn"] = False
-    players[(player_id + 1) % len(players)]["current_turn"] = True
+    players[(player_id + 1) % len(players) + 1]["current_turn"] = True
     return True
 
 
@@ -137,7 +138,7 @@ def place_road(board: Board, edge_id: int, player_id: int, players: dict) -> boo
     if not can_place_road(board, edge_id, player_id):
         return False
     
-    longest_road(board, player_id)
+    longest_road(board, player_id, players)
     
     players[player_id]["roads"] -= 1
     players[player_id]["hand"]["brick"] -= 1
@@ -175,14 +176,16 @@ def can_place_road(board: Board, edge_id: int, player_id: int) -> bool:
         for vertex in board.edges[edge_id].vertices:
             if board.vertices[vertex].owner == player_id:
                 return True
-        for edge in board.edges[edge_id].edges:
-            if edge.owner == player_id:
+        for edge_id2 in board.edges[edge_id].edges:
+            if board.edges[edge_id2].owner == player_id:
                 return True
     return False
 
 
 # Development Card Actions
 def buy_development_card(player_id: int, development_cards: list, players: dict) -> bool: 
+    if players[player_id]["dice_rolled"] == False:
+        return False
     if players[player_id]["hand"]["sheep"] < 1 or players[player_id]["hand"]["wheat"] < 1 or players[player_id]["hand"]["ore"] < 1:
         return False
     if len(development_cards) == 0:
@@ -231,7 +234,7 @@ def play_road_building(board: Board, player_id: int, roads: list[int], players: 
 
 
 def play_year_of_plenty(player_id: int, resources: list[str], players: dict, bank: dict) -> bool:
-    if not can_play_year_of_plenty(player_id, resources, players):
+    if not can_play_year_of_plenty(player_id, resources, players, bank):
         return False
     for resource in resources:
         players[player_id]["hand"][resource] += 1
@@ -265,7 +268,7 @@ def can_play_knight(board: Board, player_id: int, target_tile: int, players: dic
 
 
 def can_play_road_building(board: Board, player_id: int, roads: list[int], players: dict) -> bool:
-    if len(roads) != 2 or len(roads) != 1:
+    if len(roads) not in [1, 2]:
         return False
     if players[player_id]["development_cards"]["road_building"] <= 0:
         return False
@@ -281,7 +284,7 @@ def can_play_road_building(board: Board, player_id: int, roads: list[int], playe
 
 
 def can_play_year_of_plenty(player_id: int, resources: list[str], players: dict, bank: dict) -> bool: 
-    if len(resources) != 2 or len(resources) != 1:
+    if len(resources) not in [1, 2]:
         return False
     if players[player_id]["development_cards"]["year_of_plenty"] <= 0:
         return False
@@ -315,6 +318,8 @@ def can_play_monopoly(player_id: int, resource: str, players: dict) -> bool:
 
 # Trade Actions
 def trade_possible(player_id: int, resource_0: dict, resource_1: dict, players: dict, bank: dict) -> bool: # could the trade be possible
+    if players[player_id]["dice_rolled"] == False:
+        return False
     if not can_do_trade_player(player_id, resource_0, players):
         return False
     for trader in players:
@@ -427,11 +432,11 @@ def longest_road(board, player_id: int, players: dict) -> None:
 
     max_length = 0
     
-    for edge_id, edge in board.edges.items():
+    for edge in board.edges:
         if edge.owner != player_id:
             continue
 
-        stack = [(edge_id, {edge_id}, 1)]  # (current_edge, visited_edges, current_length)
+        stack = [(edge.id, {edge.id}, 1)]  # (current_edge, visited_edges, current_length)
 
         while stack:
             current_edge, visited, length = stack.pop()
