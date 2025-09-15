@@ -48,31 +48,80 @@ class Game:
     def process_action(self, player_id, action):
         '''
         What can a player do?
-        - Play one Development Card 
+
         - Roll Dice -> Ressources Distribution / Robber + Steal
+        - End Turn
+
+        - Build Road
+        - Build Settlement
+        - Upgrade to City
+
+        - Play one Development Card 
 
         - Trade with Bank
         - Propose Trade with Player
         - Accept/Decline Trade with Player
         - Trade with Player (if accepted)
         
-        - Build Road
-        - Build Settlement
-        - Upgrade to City
-
-        - End Turn
-        
         - After every action check for win condition (if player has 8 victory points)
         '''
         # Validate turn and phase (Return False if not valid)
+        if player_id != self.current_turn:
+            return False
+        action_type = action.get("type")
 
         # Route action (Return False if action is invalid)
+        match action_type:
+            # General actions
+            case "roll_dice":
+                pass
+            case "end_turn":
+                pass
 
-        # Return True or False if action was successful
+            # Building actions
+            case "place_road":
+                pass
+            case "place_settlement":
+                pass
+            case "place_city":
+                pass
+            case "buy_development_card":
+                pass
 
-        # check win condition or turn/phase change
+            # Development Card actions
+            case "play_knight_card":
+                pass
+            case "play_road_building_card":
+                pass
+            case "play_year_of_plenty_card":
+                pass
+            case "play_monopoly_card":
+                pass
+        
+            # Trade actions
+            case "trade_with_bank":
+                pass
+            case "propose_trade":
+                pass
+            case "trade_response":
+                pass
+            case "accept_trade":
+                pass
+            
+            case _:
+                return False
+            
+        # check win condition
 
-        # return new game state if necessary
+        # Return win of win condition met
+        if self.players[player_id]["victory_points"] >= 10:
+            return True
+
+        # Return new game state with action applied or trade state for trade actions
+        return self.get_multiplayer_game_state(player_id)
+            
+
+
         
     
 
@@ -84,28 +133,23 @@ class Game:
         # Include board state
         # Include bank state
         # Include development card state
-        
-        return {
-            "game_id": self.game_id,
-            "players": self.players,
-            "current_turn": self.current_turn,
-            "bank": self.bank,
-            "development_cards_remaining": len(self.development_cards),
-            "board": self.board.board_to_json()
-        }
-
+        pass 
 
     def board_state(self):
+        # Return the current state of the board
         pass
     
 
     def private_player_state(self, player_id: int):
+        # Return the private state of player_id
         pass
 
 
     def public_player_state(self, player_id: int):
+        # Return the public state of all players except player_id
         pass
 
 
     def can_afford(self, player_id: int, element: int) -> list[bool]: # TODO futher implementation
+        # Return a list of booleans indicating if player_id can afford to build an element
         pass
