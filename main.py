@@ -23,4 +23,7 @@ import game.logic as logic_module
 
 
 if __name__ == "__main__":
-    print("This module is not meant to be run directly. Please run server/server.py to start the server.")
+    print("Started Server")
+    host = "127.0.0.1"
+    port = 8000
+    server.start_server(host, port)

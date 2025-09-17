@@ -102,7 +102,5 @@ async def websocket_endpoint(websocket: WebSocket, game_id: int, player_id: int)
                 await conn.send_json({"type": "player_disconnect", "player_id": player_id})
 
 
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
-
+def start_server(host, port):
+     uvicorn.run(app, host=host, port=port)
