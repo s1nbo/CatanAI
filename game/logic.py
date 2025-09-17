@@ -1,7 +1,7 @@
 import random
 import json
-from action import *
-from board import Board
+from game.action import *
+from game.board import Board
 
 # Game Logic file
 class Game:
