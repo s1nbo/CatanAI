@@ -118,6 +118,7 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
     try:
         while not GAMES[game_id]["game_state"]:
             # await ws.send_json({"status": "waiting_for_start"})
+            # Here is a BUG TODO: If a player disconnects and reconnects, they are not removed properly
             await asyncio.sleep(3)
     
         game_instance = GAMES[game_id]["game_instance"]
@@ -140,7 +141,7 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
                 for pid, conn in GAMES[game_id]["websockets"].items():
                     if conn:
                         await conn.send_json(result[pid])
-    
+    # Here is a BUG TODO: If a player disconnects and reconnects, they are not removed properly
     except WebSocketDisconnect:
         GAMES[game_id]["websockets"][player_id] = None
         for conn in GAMES[game_id]["websockets"].values():

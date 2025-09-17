@@ -160,9 +160,10 @@ class Game:
         action_type = action.get("type")
         
         # Route action (Return False if action is invalid)
+        # TODO so for the multi input actions we can have one bool that switchws between modes  (e.g. after rolling a 7, discarding resources and moving robber are the only valid actions)
         match action_type:
             # General actions
-            case "roll_dice": # TODO if seven is rolled ask for discarding ressources and move robber
+            case "roll_dice": # TODO if seven is rolled ask for discarding ressources and move robber, Game Logic has to be here not the server.
                 self.number = roll_dice(board = self.board, players = self.players, player_id = player_id, bank = self.bank)
                 if self.number is False:
                     return False
@@ -211,7 +212,7 @@ class Game:
             case "play_monopoly_card":
                 return play_monopoly(player_id = player_id, resource = action.get("resource"), players = self.players)
         
-            # Trade actions
+            # Trade actions TODO (Trades are not yet fully implemented)
             case "trade_with_bank": # Bank Trades skip other players
                 if not can_do_trade_bank(player_id = player_id, resource_give = action.get("offer", {}), resource_receive = action.get("request", {}), players = self.players, bank = self.bank):
                     return False
