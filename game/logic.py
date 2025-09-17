@@ -5,8 +5,7 @@ from game.board import Board
 
 # Game Logic file
 class Game:
-    def __init__(self, game_id):
-        self.game_id = game_id
+    def __init__(self):
         self.players = {}
         self.bank = {"wood": 19, "brick": 19, "sheep": 19, "wheat": 19, "ore": 19}
         self.development_cards = ["knight"] * 14 + ["victory_point"] * 5 + ["road_building"] * 2 + ["year_of_plenty"] * 2 + ["monopoly"] * 2
