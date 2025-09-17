@@ -501,6 +501,42 @@ def can_steal(board: Board, stealer_id: int, victim_id: int, players: dict) -> b
             return True
     return False 
 
+def inital_placement_round_one_settlement(board: Board, vertex_id: int, player_id: int, players: dict) -> bool:
+    if board.vertices[vertex_id].owner != None and board.vertices[vertex_id].building != None:
+        return False
+    for neighbor in board.vertices[vertex_id].vertices:
+        if board.vertices[neighbor].building != None or board.vertices[neighbor].owner != None:
+            return False
+    board.vertices[vertex_id].owner = player_id
+    board.vertices[vertex_id].building = "settlement"
+    players[player_id]["settlements"] -= 1
+    players[player_id]["victory_points"] += 1
+    
+    if board.vertices[vertex_id].port != None:
+        players[player_id]["ports"].append(board.vertices[vertex_id].port)
+    return True
+
+def inital_placement_round_road(board: Board, edge_id: int, player_id: int, players: dict, vertex_id: int) -> bool:
+    if board.edges[edge_id].owner != None:
+        return False
+    if vertex_id not in board.edges[edge_id].vertices:
+        return False
+    if board.vertices[vertex_id].owner != player_id:
+        return False
+    board.edges[edge_id].owner = player_id
+    players[player_id]["roads"] -= 1
+    return True
+
+def inital_placement_round_two(board: Board, vertex_id: int, player_id: int, players: dict) -> bool:
+    inital_placement_round_one_settlement(board, vertex_id, player_id, players)
+    # give resources for the settlement placed
+    for tile in board.vertices[vertex_id].tiles:
+        resource = board.tiles[tile].resource
+        if resource != "desert":
+            players[player_id]["hand"][resource] += 1
+    return True
+
+
 def get_availabe_build_locations(board: Board, player_id: int) -> dict: #TODO future implementation
     pass
 

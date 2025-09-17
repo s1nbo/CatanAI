@@ -31,19 +31,11 @@ class Game:
             }
 
     def start_game(self):
+        if len(self.players) < 3 or len(self.players) > 4:
+            return False
         self.current_turn = random.choice(list(self.players.keys()))
-        # First Player sets first settlements and road
-        # Second Player sets first settlements and road
-        # Third Player sets first settlement and road
-        # Fourth Player sets first settlement and road
-
-        # Fourth Player sets second settlement and road and gets ressources
-        # Third Player sets second settlement and road and gets ressources
-        # Second Player sets second settlement and road and gets ressources
-        # First Player sets second settlement and road and gets ressources
-
-        # First Player starts the game
-        pass
+        # The inital placement phase is done separately, since it requires player interaction
+        return self.get_start_game_state()
 
     def process_action(self, player_id, action):
         '''
@@ -115,7 +107,7 @@ class Game:
 
         # Return win of win condition met
         if self.players[player_id]["victory_points"] >= 10:
-            return True
+            return "Game Won"
 
         # Return new game state with action applied or trade state for trade actions
         return self.get_multiplayer_game_state(player_id)
@@ -123,8 +115,6 @@ class Game:
 
 
         
-    
-
     def get_multiplayer_game_state(self, player_id: int):
         # Return a representation of the current game state as a json
         # From the point of view of player_id
@@ -148,8 +138,13 @@ class Game:
     def public_player_state(self, player_id: int):
         # Return the public state of all players except player_id
         pass
+    
+    def get_start_game_state(self):
+        pass 
+
 
 
     def can_afford(self, player_id: int, element: int) -> list[bool]: # TODO futher implementation
         # Return a list of booleans indicating if player_id can afford to build an element
         pass
+
