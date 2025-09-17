@@ -12,6 +12,9 @@ class Game:
         random.shuffle(self.development_cards)
         self.number = None
         self.board = Board()
+        self.inital_placement_order = None
+        self.counter = 0
+        self.last_vertex_inital_placement = None
 
     def add_player(self, player_id):
         if player_id not in self.players:
@@ -35,18 +38,80 @@ class Game:
                 "total_development_cards": 0,  # For public state
                 "victory_points_without_vp_cards": 0  # For public state
             }
+    
+    def remove_player(self, player_id):
+        if player_id in self.players:
+            del self.players[player_id]
 
     def start_game(self):
         if len(self.players) < 3 or len(self.players) > 4:
             return False
         current_turn = random.choice(list(self.players.keys()))
         self.players[current_turn]["current_turn"] = True
-
+        # make inital placement phase pattern  (1,2,3,4,4,3,2,1) (based on player ids) (1 = current turn player)
+        self.inital_placement_order = list(range(1, len(self.players)+1))
+        self.inital_placement_order = self.inital_placement_order[current_turn-1:] + self.inital_placement_order[:current_turn-1]
+        self.inital_placement_order += self.inital_placement_order[::-1]
         # The inital placement phase is done separately, since it requires player interaction
-        return self.get_multiplayer_game_state(current_turn)
+        return self.get_multiplayer_game_state()
+    
+
+    def inital_placement_phase(self, player_id: int, action: dict) -> dict:
+
+        # check if action is from the correct player
+        if player_id != self.inital_placement_order[self.counter]:
+                return False
+                    
+        # check if action is even (settlement) or odd (road)
+        if self.counter % 2 == 0: # settlement
+            if not action.get("type") == "place_settlement":
+                return False
+            if not inital_placement_round(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players):
+                return False
+            
+            # check if second round of inital placement
+            if self.counter >= len(self.inital_placement_order)//2:
+                # give resources for the settlement placed
+                for tile in self.board.vertices[int(action.get("vertex_id"))].tiles:
+                    resource = self.board.tiles[tile].resource
+                    if resource != "Desert":
+                        self.players[player_id]["hand"][resource.lower()] += 1
+                        self.bank[resource.lower()] -= 1
+            
+            self.last_vertex_inital_placement = int(action.get("vertex_id"))
+            self.counter += 1
+            return self.get_multiplayer_game_state()
+        
+        else: # road
+            if not action.get("type") == "place_road":
+                return False
+            
+            # check if edge is connected to last placed settlement
+            if self.last_vertex_inital_placement is None:
+                return False
+            connected_edges = self.board.vertices[self.last_vertex_inital_placement].edges
+            if int(action.get("edge_id")) not in connected_edges:
+                return False
+            
+            if not inital_placement_round_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players):
+                return False
+            
+            self.last_vertex_inital_placement = None
+            self.counter += 1
+            return self.get_multiplayer_game_state()
+            
+
+ 
+
+    
     
     def call_action(self, player_id: int, action: dict) -> bool | dict:
-        success = self.process_action(player_id, action)
+        
+        if self.counter < len(self.inital_placement_order): # only allow inital placement actions
+            success = self.inital_placement_phase(player_id, action)
+        else:
+            success = self.process_action(player_id, action)
+        
         if not success:
             return False
         
@@ -54,10 +119,7 @@ class Game:
             return True
         
         # return a list of game states for all players
-        result = {}
-        for pid in self.players:
-            result[pid] = self.get_multiplayer_game_state(pid)
-        return result
+        return self.get_multiplayer_game_state()
 
 
     def process_action(self, player_id: int, action: dict) -> bool:
@@ -160,37 +222,30 @@ class Game:
             case "accept_trade": # Makes the Trade if both players agreed TODO
                 return complete_trade_player(player_id = player_id, trader = int(action.get("trader_id")), offer = action.get("offer", {}), request = action.get("request", {}), players = self.players)
 
-            # Inital Placement Phase actions, Remeber to check if road is attached to the settlement placed (second road cannot be placed next to first settlement)
-            case "place_initial_settlement_one":
-                return inital_placement_round_one(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players)
-            case "place_initial_road":
-                return inital_placement_round_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players)
-            case "place_initial_settlement_two":
-                return inital_placement_round_two(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players, bank = self.bank)
-
-
             case _:
                 return False
 
-
-    def get_multiplayer_game_state(self, player_id: int) -> dict:
+    # Update we always want the full game state for each player (since hidden info) (And send it to everyone)
+    def get_multiplayer_game_state(self) -> dict:
         # add total development cards and hand size for all players, so it can be used in public state
         for _, pdata in self.players.items():
             pdata["total_hand"] = sum(pdata["hand"].values())
             pdata["total_development_cards"] = sum(pdata["development_cards"].values())
             pdata["victory_points_without_vp_cards"] = pdata["victory_points"] - pdata["development_cards"]["victory_point"]
 
-
-        player_data = {player_id: json.dumps(self.players[player_id])}
-        public_player_data = self.public_player_state(player_id)
-        players = {**player_data, **public_player_data}
-        return {
-            "board": self.board.board_to_json(),
-            "players": players,
-            "bank": self.bank,
-            "development_cards_remaining": len(self.development_cards),
-            "current_turn": self.current_turn
-        }
+        result = {}
+        for player in self.players.keys():
+            player_data = {player: json.dumps(self.players[player])}
+            public_player_data = self.public_player_state(player)
+            players = {**player_data, **public_player_data}
+            result[player] = {
+                "board": self.board.board_to_json(),
+                "players": players,
+                "bank": self.bank,
+                "development_cards_remaining": len(self.development_cards),
+                "current_turn": self.current_turn
+            }
+        return result
 
 
     def public_player_state(self, player_id: int) -> dict:

@@ -526,7 +526,7 @@ def can_steal(board: Board, stealer_id: int, victim_id: int, players: dict) -> b
 # So we start at player x, then go to player x+1, ..., player n, then player n, ..., player x+1, player x
 
 
-def inital_placement_round_one(board: Board, vertex_id: int, player_id: int, players: dict) -> bool:
+def inital_placement_round(board: Board, vertex_id: int, player_id: int, players: dict) -> bool:
     if board.vertices[vertex_id].owner != None and board.vertices[vertex_id].building != None:
         return False
     for neighbor in board.vertices[vertex_id].vertices:
@@ -552,11 +552,4 @@ def inital_placement_round_road(board: Board, edge_id: int, player_id: int, play
     players[player_id]["roads"] -= 1
     return True
 
-def inital_placement_round_two(board: Board, vertex_id: int, player_id: int, players: dict) -> bool:
-    inital_placement_round_one(board, vertex_id, player_id, players)
-    # give resources for the settlement placed
-    for tile in board.vertices[vertex_id].tiles:
-        resource = board.tiles[tile].resource
-        if resource != "desert":
-            players[player_id]["hand"][resource] += 1
-    return True
+

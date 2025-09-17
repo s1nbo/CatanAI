@@ -98,7 +98,7 @@ async def start_game(req: GameIdRequest):
     # send initial game state to all players
     for player_id, conn in GAMES[game_id]["websockets"].items():
         if conn:
-            await conn.send_json(GAMES[game_id]['game_instance'].get_multiplayer_game_state(player_id))
+            await conn.send_json(GAMES[game_id]['game_instance'].get_multiplayer_game_state()[player_id])
 
     return {"message": "Game started"}
 
@@ -119,7 +119,7 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int, curren
         await asyncio.sleep(3)
     
     game_instance = GAMES[game_id]["game_instance"]
-    await ws.send_json(game_instance.get_multiplayer_game_state(player_id))
+    await ws.send_json(game_instance.get_multiplayer_game_state()[player_id])
 
     # Main Game Loop
     try:
@@ -145,6 +145,14 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int, curren
         for conn in GAMES[game_id]["websockets"].values():
             if conn:
                 await conn.send_json({"status": "player_disconnected", "player_id": player_id})
+        # remove player from game instance
+        game_instance.remove_player(player_id)
+        if any(game_instance.players[p]["victory_points"] <= 2 for p in game_instance.players.keys()):
+            GAMES[game_id]["game_state"] = False
+            for conn in GAMES[game_id]["websockets"].values():
+                if conn:
+                    await conn.send_json({"status": "game_over", "message": "Not enough players to continue the game"})
+
 
 
 def start_server(host, port):
