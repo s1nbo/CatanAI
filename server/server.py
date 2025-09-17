@@ -121,9 +121,9 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int, curren
     game_instance = GAMES[game_id]["game_instance"]
     await ws.send_json(game_instance.get_multiplayer_game_state(player_id))
 
+    # Main Game Loop
     try:
         while True:
-
             data = await ws.receive_json()
             
             result = game_instance.call_action(player_id, data)
@@ -139,6 +139,7 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int, curren
                 for pid, conn in GAMES[game_id]["websockets"].items():
                     if conn:
                         await conn.send_json(result[pid])
+    
     except WebSocketDisconnect:
         GAMES[game_id]["websockets"][player_id] = None
         for conn in GAMES[game_id]["websockets"].values():

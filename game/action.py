@@ -520,6 +520,12 @@ def can_steal(board: Board, stealer_id: int, victim_id: int, players: dict) -> b
             return True
     return False 
 
+
+# TODO INITAL PLACEMENT PHASE, WE ALSO HAVE TO CHANGE THE TURN ORDER TO ACCOMODATE THIS, 
+# Also these can't be called later in the game
+# So we start at player x, then go to player x+1, ..., player n, then player n, ..., player x+1, player x
+
+
 def inital_placement_round_one(board: Board, vertex_id: int, player_id: int, players: dict) -> bool:
     if board.vertices[vertex_id].owner != None and board.vertices[vertex_id].building != None:
         return False
