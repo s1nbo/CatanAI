@@ -551,5 +551,3 @@ def inital_placement_round_road(board: Board, edge_id: int, player_id: int, play
     board.edges[edge_id].owner = player_id
     players[player_id]["roads"] -= 1
     return True
-
-

@@ -1,3 +1,4 @@
+import time
 import requests
 import websockets
 import asyncio
@@ -6,7 +7,7 @@ import json
 BASE_URL = "localhost:8000"
 
 def create_game():
-    response = requests.post(f"http://{BASE_URL}/create_game")
+    response = requests.post(f"http://{BASE_URL}/create")
     if response.status_code == 200:
         return response.json()
     else:
@@ -14,7 +15,7 @@ def create_game():
         return None
 
 def join_game(game_id: int):
-    response = requests.post(f"http://{BASE_URL}/join_game", params={"game_id": game_id})
+    response = requests.post(f"http://{BASE_URL}/join", json={"game_id": game_id})
     if response.status_code == 200:
         return response.json()
     else:
@@ -41,49 +42,62 @@ async def game(game_id: int, player_id: int):
     uri = f"ws://{BASE_URL}/ws/{game_id}/{player_id}"
     async with websockets.connect(uri) as websocket:
         print(f"Connected to game {game_id} as player {player_id}.")
+        
+        async def recieve():
+            while True:
+                try:
+                    message = await websocket.recv()
+                    print(f"Received message: {message}")
+                except websockets.ConnectionClosed:
+                    print("Connection closed")
+                    break
 
-        while True:
-            try:
-                message = await websocket.recv()
-                print(f"Received message: {message}")
-            except websockets.ConnectionClosed:
-                print("Connection closed")
-                break
+        async def send():
+            loop = asyncio.get_event_loop()
+            while True:
+                try:
+                    msg = await loop.run_in_executor(None, input, "Enter message to send (or 'exit' to quit): ")
+                    action = {}
+                    if msg.startswith("s"): # settlement
+                        vertex_id = int(msg.split()[1])
+                        action = {
+                            "type": "place_settlement",
+                            "vertex_id": vertex_id
+                        }
+                    elif msg.startswith("r"): # road
+                        pass
+                    elif msg.startswith("c"): # city
+                        pass
+                    elif msg.startswith("d"): # buy development card
+                        pass
+                    elif msg.startswith("e"): # end turn
+                        action = {
+                            "type": "end_turn"
+                        }
+                    elif msg.startswith("w"): # roll dice (wuerfel)
+                        action = {
+                            "type": "roll_dice"
+                        }
+                    # TODO more actions
+                    elif msg.startswith("n"):  # start game
+                        # Send POST request to server
+                        resp = requests.post(f"http://{BASE_URL}/game/{game_id}/start", json={"game_id": game_id})
+                        if resp.status_code == 200:
+                            print("Game started successfully!")
+                        else:
+                            print("Failed to start game:", resp.text)
+                    else:
+                        print("Unknown command")
+                        continue
             
-            continue
-            # GAME LOGIC
-            if message["type"] == "your_turn":
-                pass
-            elif message["type"] == "roll_results":
-                pass
-            elif message["type"] == "robber_move":
-                pass
-            elif message["type"] == "build_action":
-                pass
-            elif message["type"] == "ressource_update":
-                pass
-            elif message["type"] == "development_card_buy":
-                pass
-            elif message["type"] == "development_card_play":
-                pass
-            elif message["type"] == "trade_request":
-                pass
-            elif message["type"] == "victory_point_update":
-                pass
-            elif message["type"] == "longest_road_update":
-                pass
-            elif message["type"] == "largest_army_update":
-                pass
-            elif message["type"] == "player_disconnect":
-                pass
-            elif message["type"] == "player_joined":
-                pass
-            elif message["type"] == "board_update":
-                pass
-            elif message["type"] == "game_start":
-                pass
-            elif message["type"] == "game_over":
-                pass
+                    await websocket.send(json.dumps(action))
+                    print(f"Sent action: {action}")
+                
+                except websockets.ConnectionClosed:
+                    print("Connection closed")
+                    break
+            
+        await asyncio.gather(recieve(), send())
     
 
     
@@ -107,21 +121,10 @@ if __name__ == "__main__":
         print("Failed to create or join game. Exiting.")
         exit(1)
     
-    players = list_players(game_id)
-    print(f"Current players in lobby {game_id}: {players}")
+    #players = list_players(game_id)
+    #print(f"Current players in lobby {game_id}: {players}")
+
     
-    '''
-    while True:
-        start = input("Start game? (y/n): ").strip().lower()
-        if start == 'y':
-            if start_game(game_id):
-                print("Game started!")
-                break
-            else:
-                print("Failed to start game. Try again.")
-        elif start == 'n':
-            print("Waiting for more players...")
-    '''
     print("Waiting for game to start...")
     asyncio.run(game(game_id=int(game_id), player_id=int(player_id)))
     

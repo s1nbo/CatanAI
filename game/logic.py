@@ -44,7 +44,7 @@ class Game:
             del self.players[player_id]
 
     def start_game(self):
-        if len(self.players) < 3 or len(self.players) > 4:
+        if len(self.players) < 2 or len(self.players) > 4:
             return False
         current_turn = random.choice(list(self.players.keys()))
         self.players[current_turn]["current_turn"] = True
@@ -53,6 +53,7 @@ class Game:
         self.inital_placement_order = self.inital_placement_order[current_turn-1:] + self.inital_placement_order[:current_turn-1]
         self.inital_placement_order += self.inital_placement_order[::-1]
         # The inital placement phase is done separately, since it requires player interaction
+        self.current_turn = current_turn
         return self.get_multiplayer_game_state()
     
 

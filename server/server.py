@@ -13,7 +13,6 @@ from game.action import *
 app = FastAPI()
 
 
-BASE_URL = "localhost:8000"
 GAMES = {} # game_id -> {"game_state": game_state, "websockets": {player_id: websocket}}
 
 class GameIdRequest(BaseModel):
@@ -26,6 +25,7 @@ async def create_game():
     game_id = random.randint(1000, 9999)
     while game_id in GAMES:
         game_id = random.randint(1000, 9999)
+    print(f"Creating game {game_id}")
     
     GAMES[game_id] = {"game_state": False, "websockets": {}}
     player_id = 1
@@ -36,6 +36,7 @@ async def create_game():
 @app.post("/join")
 async def join_game(req: GameIdRequest):
     game_id = req.game_id
+    print(f"Joining game {game_id}")
     if game_id not in GAMES:
         return JSONResponse(status_code=404, content={"message": "Game not found"})
     if len(GAMES[game_id]["websockets"]) >= 4:
@@ -98,14 +99,14 @@ async def start_game(req: GameIdRequest):
     # send initial game state to all players
     for player_id, conn in GAMES[game_id]["websockets"].items():
         if conn:
-            await conn.send_json(GAMES[game_id]['game_instance'].get_multiplayer_game_state()[player_id])
+            await conn.send_json(GAMES[game_id]['game_instance'].start_game()[player_id])
 
     return {"message": "Game started"}
 
 
 
 @app.websocket("/ws/{game_id}/{player_id}")
-async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int, current_game: Game):
+async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
     await ws.accept()
 
     if game_id not in GAMES or player_id not in GAMES[game_id]["websockets"]:
@@ -114,15 +115,15 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int, curren
     
     GAMES[game_id]["websockets"][player_id] = ws
 
-
-    while not GAMES[game_id]["game_state"]:
-        await asyncio.sleep(3)
-    
-    game_instance = GAMES[game_id]["game_instance"]
-    await ws.send_json(game_instance.get_multiplayer_game_state()[player_id])
-
-    # Main Game Loop
     try:
+        while not GAMES[game_id]["game_state"]:
+            # await ws.send_json({"status": "waiting_for_start"})
+            await asyncio.sleep(3)
+    
+        game_instance = GAMES[game_id]["game_instance"]
+        await ws.send_json(game_instance.get_multiplayer_game_state()[player_id])
+
+        # Main Game Loop
         while True:
             data = await ws.receive_json()
             
@@ -147,6 +148,8 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int, curren
                 await conn.send_json({"status": "player_disconnected", "player_id": player_id})
         # remove player from game instance
         game_instance.remove_player(player_id)
+        GAMES[game_id]["websockets"].pop(player_id)
+        # If in placement phase, just stop the game
         if any(game_instance.players[p]["victory_points"] <= 2 for p in game_instance.players.keys()):
             GAMES[game_id]["game_state"] = False
             for conn in GAMES[game_id]["websockets"].values():
@@ -156,4 +159,4 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int, curren
 
 
 def start_server(host, port):
-     uvicorn.run(app, host=host, port=port)
+    uvicorn.run(app, host=host, port=port)
