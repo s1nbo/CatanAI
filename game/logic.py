@@ -1,6 +1,8 @@
 import random
 from game import Board
 from game import *
+
+# Game Logic file
 class Game:
     def __init__(self, game_id):
         self.game_id = game_id

@@ -1,6 +1,8 @@
 from game import Board
 import random
 
+# Possible Actions + Validaitiy Checks
+
 # Every Action follows this pattern
 # What Action is being attempted
 # Data needed to perform the action

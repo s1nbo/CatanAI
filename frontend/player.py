@@ -1,5 +1,5 @@
 from typing import List
-
+# What exactly is this file for?
 class Player:
     def __init__(self, color: str = "orange", id: int = 0) -> None:
         self.color = color
