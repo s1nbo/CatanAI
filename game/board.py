@@ -1,5 +1,5 @@
 import random
-from game import static_board
+import static_board
 import json
 '''
 Analysis:
@@ -184,9 +184,7 @@ class Board:
             print(f"  Adjacent Edges: {edge.edges}")
             print()
     
-    # convert board to vector representation for AI input
-    def board_to_vector(self):
-        pass
+
 
 if __name__ == "__main__":
     BOARD = Board()

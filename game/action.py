@@ -1,4 +1,4 @@
-from game import Board
+from board import Board
 import random
 
 # Possible Actions + Validaitiy Checks
@@ -57,6 +57,10 @@ def amount_lose_resource(player_id: int, players: dict) -> int:
 
 
 def remove_resources(player_id: int, players: dict, resources: dict) -> bool:
+    # check if player removes enough ressources
+    total_remove = sum(resources.values())
+    if total_remove < amount_lose_resource(player_id, players):
+        return False
     for resource, amount in resources.items():
         if players[player_id]["hand"].get(resource, 0) < amount:
             return False
@@ -82,6 +86,8 @@ def move_robber(board: Board , new_tile_id: int) -> bool:
 
 
 def end_turn(player_id: int, players: dict) -> bool: 
+    if players[player_id]["dice_rolled"] == False or players[player_id]["current_turn"] == False:
+        return False
     players[player_id]["dice_rolled"] = False
     players[player_id]["played_card_this_turn"] = False
     players[player_id]["current_turn"] = False
@@ -192,7 +198,12 @@ def can_place_road(board: Board, edge_id: int, player_id: int) -> bool:
 
 
 # Development Card Actions
-def buy_development_card(player_id: int, development_cards: list, players: dict) -> bool: 
+def buy_development_card(player_id: int, development_cards: list, players: dict) -> bool:
+    '''
+    player_id: ID of the player buying the card
+    development_cards: list of available development cards in the game
+    players: dict of all players in the game
+    ''' 
     if players[player_id]["dice_rolled"] == False:
         return False
     if players[player_id]["hand"]["sheep"] < 1 or players[player_id]["hand"]["wheat"] < 1 or players[player_id]["hand"]["ore"] < 1:
@@ -273,6 +284,8 @@ def can_play_knight(board: Board, player_id: int, target_tile: int, players: dic
         return False
     if players[player_id]["played_card_this_turn"] == True:
         return False
+    if players[player_id]["current_turn"] == False:
+        return False
     return True
 
 
@@ -288,6 +301,8 @@ def can_play_road_building(board: Board, player_id: int, roads: list[int], playe
     if len(roads) == 2 and not can_place_road(board, roads[1], player_id):
         return False
     if players[player_id]["roads"] < len(roads):
+        return False
+    if players[player_id]["current_turn"] == False:
         return False
     return True
 
@@ -312,6 +327,8 @@ def can_play_year_of_plenty(player_id: int, resources: list[str], players: dict,
         else:
             if bank[resources[1]] <= 0:
                 return False
+    if players[player_id]["current_turn"] == False:
+        return False
     return True
 
 
@@ -321,6 +338,8 @@ def can_play_monopoly(player_id: int, resource: str, players: dict) -> bool:
     if players[player_id]["development_cards"]["monopoly"] <= 0:
         return False
     if players[player_id]["played_card_this_turn"] == True:
+        return False
+    if players[player_id]["current_turn"] == False:
         return False
     return True
 
@@ -335,8 +354,6 @@ def trade_possible(player_id: int, resource_0: dict, resource_1: dict, players: 
         if trader != player_id:
             if can_do_trade_player(trader, resource_1, players):
                return True
-    if can_do_trade_bank(player_id, resource_0, resource_1, players, bank):
-        return True
 
     return False
     
@@ -503,7 +520,7 @@ def can_steal(board: Board, stealer_id: int, victim_id: int, players: dict) -> b
             return True
     return False 
 
-def inital_placement_round_one_settlement(board: Board, vertex_id: int, player_id: int, players: dict) -> bool:
+def inital_placement_round_one(board: Board, vertex_id: int, player_id: int, players: dict) -> bool:
     if board.vertices[vertex_id].owner != None and board.vertices[vertex_id].building != None:
         return False
     for neighbor in board.vertices[vertex_id].vertices:
@@ -530,17 +547,10 @@ def inital_placement_round_road(board: Board, edge_id: int, player_id: int, play
     return True
 
 def inital_placement_round_two(board: Board, vertex_id: int, player_id: int, players: dict) -> bool:
-    inital_placement_round_one_settlement(board, vertex_id, player_id, players)
+    inital_placement_round_one(board, vertex_id, player_id, players)
     # give resources for the settlement placed
     for tile in board.vertices[vertex_id].tiles:
         resource = board.tiles[tile].resource
         if resource != "desert":
             players[player_id]["hand"][resource] += 1
     return True
-
-
-def get_availabe_build_locations(board: Board, player_id: int) -> dict: #TODO future implementation
-    pass
-
-def get_availabe_steal_targets(board: Board, stealer_id: int, players: dict) -> list[int]: #TODO future implementation
-    pass
