@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Catan Multiplayer</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #log { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll; }
+    button { margin: 5px; }
+  </style>
+</head>
+<body>
+  <h1>Catan Multiplayer (Demo)</h1>
+
+  <div>
+    <button id="createBtn">Create Game</button>
+    <input type="text" id="gameIdInput" placeholder="Enter game ID">
+    <button id="joinBtn">Join Game</button>
+  </div>
+
+  <h3>Game Info</h3>
+  <p>Game ID: <span id="gameId">-</span></p>
+  <p>Player ID: <span id="playerId">-</span></p>
+
+  <h3>Log</h3>
+  <div id="log"></div>
+
+  <h3>Send Action</h3>
+  <input type="text" id="actionInput" placeholder='{"action": "build_road"}'>
+  <button id="sendBtn">Send</button>
+
+  <script>
+    let gameId = null;
+    let playerId = null;
+    let ws = null;
+
+    const logDiv = document.getElementById("log");
+    function log(msg) {
+      logDiv.innerHTML += `<div>${msg}</div>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    // Create Game
+    document.getElementById("createBtn").onclick = async () => {
+    try {
+        const res = await fetch("http://localhost:8000/create", {
+        method: "POST"
+        });
+
+        if (!res.ok) {
+        log("Create failed: " + res.status);
+        return;
+        }
+
+        const data = await res.json();
+        console.log("Create response:", data); // <--- DEBUG
+        gameId = data.game_id;
+        playerId = data.player_id;
+
+        document.getElementById("gameId").innerText = gameId || "-";
+        document.getElementById("playerId").innerText = playerId || "-";
+
+        log(`Created game ${gameId}, you are Player ${playerId}`);
+        connectWS();
+    } catch (err) {
+        console.error(err);
+        log("Error creating game: " + err);
+    }
+    };
+
+    // Join Game
+    document.getElementById("joinBtn").onclick = async () => {
+      const id = document.getElementById("gameIdInput").value;
+      if (!id) return alert("Enter game ID");
+      const res = await fetch("http://localhost:8000/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game_id: parseInt(id) })
+      });
+      const data = await res.json();
+      if (data.message) {
+        log("Error: " + data.message);
+        return;
+      }
+      gameId = data.game_id;
+      playerId = data.player_id;
+      document.getElementById("gameId").innerText = gameId;
+      document.getElementById("playerId").innerText = playerId;
+      log(`Joined game ${gameId}, you are Player ${playerId}`);
+      connectWS();
+    };
+
+    // Connect WebSocket
+    function connectWS() {
+      ws = new WebSocket(`ws://localhost:8000/ws/${gameId}/${playerId}`);
+      ws.onopen = () => log("Connected to WebSocket");
+      ws.onmessage = (event) => {
+        log("Message: " + event.data);
+      };
+      ws.onclose = () => log("WebSocket closed");
+    }
+
+    // Send Action
+    document.getElementById("sendBtn").onclick = () => {
+      if (!ws) return alert("Not connected");
+      try {
+        const action = JSON.parse(document.getElementById("actionInput").value);
+        ws.send(JSON.stringify(action));
+        log("Sent: " + JSON.stringify(action));
+      } catch (e) {
+        alert("Invalid JSON");
+      }
+    };
+  </script>
+</body>
+</html>

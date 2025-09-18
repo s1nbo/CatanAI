@@ -4,6 +4,7 @@ import uvicorn
 import asyncio
 import random
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 from game.logic import Game
 from game.board import Board
@@ -18,7 +19,13 @@ GAMES = {} # game_id -> {"game_state": game_state, "websockets": {player_id: web
 class GameIdRequest(BaseModel):
     game_id: int
 
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or ["http://localhost:8080"] if serving frontend via http.server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/create")
 async def create_game():
