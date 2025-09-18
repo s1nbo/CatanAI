@@ -124,9 +124,8 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
 
     try:
         while not GAMES[game_id]["game_state"]:
-            # await ws.send_json({"status": "waiting_for_start"})
-            # Here is a BUG TODO: If a player disconnects and reconnects, they are not removed properly
-            await asyncio.sleep(3)
+            await ws.send_json({"type": "ping"})
+            await asyncio.sleep(2)
     
         game_instance = GAMES[game_id]["game_instance"]
         await ws.send_json(game_instance.get_multiplayer_game_state()[player_id])
@@ -150,19 +149,30 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
                         await conn.send_json(result[pid])
     # Here is a BUG TODO: If a player disconnects and reconnects, they are not removed properly
     except WebSocketDisconnect:
-        GAMES[game_id]["websockets"][player_id] = None
+        print(f"Player {player_id} disconnected from game {game_id}")
+
+        # Remove the websocket connection
+        if player_id in GAMES[game_id]["websockets"]:
+            GAMES[game_id]["websockets"].pop(player_id, None)
+
+        # Notify remaining players
         for conn in GAMES[game_id]["websockets"].values():
             if conn:
                 await conn.send_json({"status": "player_disconnected", "player_id": player_id})
-        # remove player from game instance
-        game_instance.remove_player(player_id)
-        GAMES[game_id]["websockets"].pop(player_id)
-        # If in placement phase, just stop the game
-        if any(game_instance.players[p]["victory_points"] <= 2 for p in game_instance.players.keys()):
+
+        # Remove from game instance
+        if player_id in game_instance.players:
+            game_instance.remove_player(player_id)
+
+        # Check if enough players remain
+        if len(game_instance.players) < 2:
             GAMES[game_id]["game_state"] = False
             for conn in GAMES[game_id]["websockets"].values():
                 if conn:
-                    await conn.send_json({"status": "game_over", "message": "Not enough players to continue the game"})
+                    await conn.send_json({
+                        "status": "game_over",
+                        "message": "Not enough players to continue the game"
+                    })
 
 
 
