@@ -193,7 +193,7 @@ class Game:
             case "propose_trade": # Dont Forget to check what players can do trade (This only checks if there is atleast one possible trade partner) TODO
                 return trade_possible(player_id = player_id, offer = action.get("offer", {}), request = action.get("request", {}), players = self.players, bank = self.bank)
              
-            case "accept_trade": # Makes the Trade if both players agreed TODO
+            case "accept_trade":
                 return complete_trade_player(player_id = player_id, trader = int(action.get("trader_id")), offer = action.get("offer", {}), request = action.get("request", {}), players = self.players)
 
             case _:

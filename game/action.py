@@ -344,7 +344,7 @@ def can_play_monopoly(player_id: int, resource: str, players: dict) -> bool:
     return True
 
 
-# Trade Actions
+# Trade Actions TODO revamp trade system
 def trade_possible(player_id: int, resource_0: dict, resource_1: dict, players: dict, bank: dict) -> bool: # could the trade be possible
     if players[player_id]["dice_rolled"] == False:
         return False
