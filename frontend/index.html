@@ -19,7 +19,6 @@
     <input type="text" id="gameIdInput" placeholder="Enter game ID">
     <button id="joinBtn">Join Game</button>
     <button id="startBtn">Start Game</button>
-    <button id="listBtn">List Players</button>
   </div>
 
   <h3>Game Info</h3>
@@ -92,24 +91,6 @@
       });
       const data = await res.json();
       log("Start Game response: " + JSON.stringify(data));
-    };
-
-    // List Players
-    document.getElementById("listBtn").onclick = async () => {
-      if (!gameId) return alert("No game ID set");
-      const res = await fetch(`http://localhost:8000/game/${gameId}/players`);
-      const data = await res.json();
-      playersUl.innerHTML = "";
-      if (data.players) {
-        data.players.forEach(pid => {
-          const li = document.createElement("li");
-          li.textContent = "Player " + pid;
-          playersUl.appendChild(li);
-        });
-        log("Players: " + data.players.join(", "));
-      } else {
-        log("Error fetching players: " + JSON.stringify(data));
-      }
     };
 
     // Connect WebSocket

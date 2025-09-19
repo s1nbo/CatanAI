@@ -49,16 +49,17 @@ class Game:
         current_turn = random.choice(list(self.players.keys()))
         self.players[current_turn]["current_turn"] = True
         # make inital placement phase pattern  (1,2,3,4,4,3,2,1) (based on player ids) (1 = current turn player)
-        self.inital_placement_order = list(range(1, len(self.players)+1))
-        self.inital_placement_order = self.inital_placement_order[current_turn-1:] + self.inital_placement_order[:current_turn-1]
-        self.inital_placement_order += self.inital_placement_order[::-1]
+        order = list(range(1, len(self.players)+1))
+        order = order[current_turn-1:] + order[:current_turn-1]
+        order += order[::-1]
+        self.inital_placement_order = [i for i in order for _ in (range(2))]
+
         # The inital placement phase is done separately, since it requires player interaction
         self.current_turn = current_turn
         return self.get_multiplayer_game_state()
     
 
     def inital_placement_phase(self, player_id: int, action: dict) -> dict:
-
         # check if action is from the correct player
         if player_id != self.inital_placement_order[self.counter]:
                 return False
@@ -80,8 +81,6 @@ class Game:
                         self.bank[resource.lower()] -= 1
             
             self.last_vertex_inital_placement = int(action.get("vertex_id"))
-            self.counter += 1
-            return self.get_multiplayer_game_state()
         
         else: # road
             if not action.get("type") == "place_road":
@@ -94,12 +93,15 @@ class Game:
             if int(action.get("edge_id")) not in connected_edges:
                 return False
             
-            if not inital_placement_round_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players):
+            if not inital_placement_round_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players, vertex_id=self.last_vertex_inital_placement):
                 return False
             
             self.last_vertex_inital_placement = None
-            self.counter += 1
-            return self.get_multiplayer_game_state()
+        
+        
+        
+        self.counter += 1
+        return True
             
 
  
@@ -215,7 +217,8 @@ class Game:
                 "players": players,
                 "bank": self.bank,
                 "development_cards_remaining": len(self.development_cards),
-                "current_turn": self.current_turn
+                "current_turn": self.current_turn,
+                "inital_placement_order": self.inital_placement_order[self.counter] if self.counter < len(self.inital_placement_order) else None
             }
         return result
 

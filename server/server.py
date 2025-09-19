@@ -93,11 +93,14 @@ async def start_game(req: GameIdRequest):
     for conn in GAMES[game_id]["websockets"].values():
         if conn:
             await conn.send_json({"game_state": "True"})
+    
+    # star game
+    start_state = GAMES[game_id]['game_instance'].start_game()
 
     # send initial game state to all players
     for player_id, conn in GAMES[game_id]["websockets"].items():
         if conn:
-            await conn.send_json(GAMES[game_id]['game_instance'].start_game()[player_id])
+            await conn.send_json(start_state[player_id])
 
     return {"message": "Game started"}
 
@@ -138,7 +141,7 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
                 for pid, conn in GAMES[game_id]["websockets"].items():
                     if conn:
                         await conn.send_json(result[pid])
-    # Here is a BUG TODO: If a player disconnects and reconnects, they are not removed properly
+    
     except WebSocketDisconnect:
         print(f"Player {player_id} disconnected from game {game_id}")
 
