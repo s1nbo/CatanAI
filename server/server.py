@@ -62,15 +62,6 @@ async def join_game(req: GameIdRequest):
     return {"player_id": player_id, "game_id": game_id}
 
 
-@app.get("/game/{game_id}/players")
-async def list_players(req: GameIdRequest):
-    game_id = req.game_id
-    if game_id not in GAMES:
-        return JSONResponse(status_code=404, content={"message": "Game not found"})
-    
-    players = list(GAMES[game_id]["websockets"].keys())
-    return {"players": players}
-
 
 @app.post("/game/{game_id}/add_bot")
 def add_bot(game_id: str):

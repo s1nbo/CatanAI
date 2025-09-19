@@ -22,13 +22,6 @@ def join_game(game_id: int):
         print("Failed to join lobby:", response.text)
         return None
 
-def list_players(game_id: int):
-    response = requests.get(f"http://{BASE_URL}/game/{game_id}/players")
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print("Failed to list players:", response.text)
-        return None
 
 def start_game(game_id: int):
     response = requests.post(f"http://{BASE_URL}/game/{game_id}/start")

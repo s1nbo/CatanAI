@@ -7,6 +7,8 @@
     body { font-family: Arial, sans-serif; margin: 20px; }
     #log { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll; }
     button { margin: 5px; }
+    #players { margin-top: 10px; }
+    .action-block { margin: 5px 0; }
   </style>
 </head>
 <body>
@@ -16,18 +18,22 @@
     <button id="createBtn">Create Game</button>
     <input type="text" id="gameIdInput" placeholder="Enter game ID">
     <button id="joinBtn">Join Game</button>
+    <button id="startBtn">Start Game</button>
+    <button id="listBtn">List Players</button>
   </div>
 
   <h3>Game Info</h3>
   <p>Game ID: <span id="gameId">-</span></p>
   <p>Player ID: <span id="playerId">-</span></p>
 
+  <h3>Players</h3>
+  <ul id="players"></ul>
+
   <h3>Log</h3>
   <div id="log"></div>
 
-  <h3>Send Action</h3>
-  <input type="text" id="actionInput" placeholder='{"action": "build_road"}'>
-  <button id="sendBtn">Send</button>
+  <h3>Actions</h3>
+  <div id="actions"></div>
 
   <script>
     let gameId = null;
@@ -35,6 +41,8 @@
     let ws = null;
 
     const logDiv = document.getElementById("log");
+    const playersUl = document.getElementById("players");
+
     function log(msg) {
       logDiv.innerHTML += `<div>${msg}</div>`;
       logDiv.scrollTop = logDiv.scrollHeight;
@@ -42,30 +50,14 @@
 
     // Create Game
     document.getElementById("createBtn").onclick = async () => {
-    try {
-        const res = await fetch("http://localhost:8000/create", {
-        method: "POST"
-        });
-
-        if (!res.ok) {
-        log("Create failed: " + res.status);
-        return;
-        }
-
-        const data = await res.json();
-        console.log("Create response:", data); // <--- DEBUG
-        gameId = data.game_id;
-        playerId = data.player_id;
-
-        document.getElementById("gameId").innerText = gameId || "-";
-        document.getElementById("playerId").innerText = playerId || "-";
-
-        log(`Created game ${gameId}, you are Player ${playerId}`);
-        connectWS();
-    } catch (err) {
-        console.error(err);
-        log("Error creating game: " + err);
-    }
+      const res = await fetch("http://localhost:8000/create", { method: "POST" });
+      const data = await res.json();
+      gameId = data.game_id;
+      playerId = data.player_id;
+      document.getElementById("gameId").innerText = gameId;
+      document.getElementById("playerId").innerText = playerId;
+      log(`Created game ${gameId}, you are Player ${playerId}`);
+      connectWS();
     };
 
     // Join Game
@@ -90,27 +82,134 @@
       connectWS();
     };
 
+    // Start Game
+    document.getElementById("startBtn").onclick = async () => {
+      if (!gameId) return alert("No game ID set");
+      const res = await fetch(`http://localhost:8000/game/${gameId}/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game_id: gameId })
+      });
+      const data = await res.json();
+      log("Start Game response: " + JSON.stringify(data));
+    };
+
+    // List Players
+    document.getElementById("listBtn").onclick = async () => {
+      if (!gameId) return alert("No game ID set");
+      const res = await fetch(`http://localhost:8000/game/${gameId}/players`);
+      const data = await res.json();
+      playersUl.innerHTML = "";
+      if (data.players) {
+        data.players.forEach(pid => {
+          const li = document.createElement("li");
+          li.textContent = "Player " + pid;
+          playersUl.appendChild(li);
+        });
+        log("Players: " + data.players.join(", "));
+      } else {
+        log("Error fetching players: " + JSON.stringify(data));
+      }
+    };
+
     // Connect WebSocket
     function connectWS() {
       ws = new WebSocket(`ws://localhost:8000/ws/${gameId}/${playerId}`);
       ws.onopen = () => log("Connected to WebSocket");
-      ws.onmessage = (event) => {
-        log("Message: " + event.data);
-      };
+      ws.onmessage = (event) => log("Message: " + event.data);
       ws.onclose = () => log("WebSocket closed");
     }
 
-    // Send Action
-    document.getElementById("sendBtn").onclick = () => {
-      if (!ws) return alert("Not connected");
-      try {
-        const action = JSON.parse(document.getElementById("actionInput").value);
-        ws.send(JSON.stringify(action));
-        log("Sent: " + JSON.stringify(action));
-      } catch (e) {
-        alert("Invalid JSON");
-      }
-    };
+    // Helper: parse resource string like "wood:1 brick:2"
+    function parseResources(str) {
+      const parts = str.trim().split(/\s+/);
+      const res = {};
+      parts.forEach(p => {
+        const [key, val] = p.split(":");
+        if (key && val) res[key] = parseInt(val);
+      });
+      return res;
+    }
+
+    // Define all actions
+    const ACTIONS = [
+      { label: "Roll Dice", build: () => ({ type: "roll_dice" }) },
+      { label: "End Turn", build: () => ({ type: "end_turn" }) },
+      { label: "Discard Resources", build: (v) => ({ type: "discard_resources", resources: parseResources(v) }) },
+      { label: "Move Robber", build: (v) => ({ type: "move_robber", target_tile: parseInt(v) }) },
+      { label: "Place Road", build: (v) => ({ type: "place_road", edge_id: parseInt(v) }) },
+      { label: "Place Settlement", build: (v) => ({ type: "place_settlement", vertex_id: parseInt(v) }) },
+      { label: "Place City", build: (v) => ({ type: "place_city", vertex_id: parseInt(v) }) },
+      { label: "Buy Development Card", build: () => ({ type: "buy_development_card" }) },
+      { label: "Play Knight", build: (v) => {
+          const [tile, victim] = v.split(" ");
+          return { type: "play_knight", target_tile: parseInt(tile), victim_id: parseInt(victim) };
+        } 
+      },
+      { label: "Play Road Building", build: (v) => {
+          const ids = v.split(" ").map(x => parseInt(x)).filter(Boolean);
+          return { type: "play_road_building", edge_ids: ids };
+        } 
+      },
+      { label: "Play Year of Plenty", build: (v) => {
+          const res = v.split(" ").filter(Boolean);
+          return { type: "play_year_of_plenty", resources: res };
+        } 
+      },
+      { label: "Play Monopoly", build: (v) => ({ type: "play_monopoly", resource: v.trim() }) },
+      { label: "Propose Trade", build: (v) => {
+          // Format: traderId | offer | request   (offer/request as "wood:1 brick:2")
+          const [tid, offerStr, requestStr] = v.split("|").map(s => s.trim());
+          return { type: "propose_trade", trader_id: parseInt(tid), offer: parseResources(offerStr), request: parseResources(requestStr) };
+        }
+      },
+      { label: "Accept Trade", build: (v) => ({ type: "accept_trade", trader_id: parseInt(v) }) },
+      { label: "Decline Trade", build: (v) => ({ type: "decline_trade", trader_id: parseInt(v) }) },
+      { label: "Make Trade", build: (v) => {
+          // Format: id1 id2 | offer | request
+          const [ids, offerStr, requestStr] = v.split("|").map(s => s.trim());
+          const [id1, id2] = ids.split(" ").map(x => parseInt(x));
+          return { type: "make_trade", trader_1_id: id1, trader_2_id: id2, offer: parseResources(offerStr), request: parseResources(requestStr) };
+        }
+      },
+      { label: "Bank Trade", build: (v) => {
+          // Format: offer | request
+          const [offerStr, requestStr] = v.split("|").map(s => s.trim());
+          return { type: "bank_trade", offer: parseResources(offerStr), request: parseResources(requestStr) };
+        }
+      },
+    ];
+
+    // Render buttons
+    const actionsDiv = document.getElementById("actions");
+    ACTIONS.forEach((a, i) => {
+      const block = document.createElement("div");
+      block.className = "action-block";
+
+      const btn = document.createElement("button");
+      btn.textContent = a.label;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "Input";
+
+      // Hide input for actions that need no input
+      if (a.build.length === 0) input.style.display = "none";
+
+      btn.onclick = () => {
+        if (!ws) return alert("Not connected");
+        try {
+          const payload = a.build(input.value);
+          ws.send(JSON.stringify(payload));
+          log("Sent: " + JSON.stringify(payload));
+        } catch (err) {
+          log("Error: " + err.message);
+        }
+      };
+
+      block.appendChild(btn);
+      block.appendChild(input);
+      actionsDiv.appendChild(block);
+    });
   </script>
 </body>
 </html>

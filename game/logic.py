@@ -124,36 +124,6 @@ class Game:
 
 
     def process_action(self, player_id: int, action: dict) -> bool:
-        '''
-        What can a player do?
-
-        - Roll Dice -> Ressources Distribution / Robber + Steal
-        - End Turn
-
-        - Build Road
-        - Build Settlement
-        - Upgrade to City
-
-        - Play one Development Card 
-
-        - Trade with Bank
-        - Propose Trade with Player
-        - Accept/Decline Trade with Player
-        - Trade with Player (if accepted)
-        
-        Action dict example:
-        'type' (Str)
-        'resources' (Dict or List)
-        'target_tile' (Int)
-        'victim_id' (Int)
-        'vertex_id' (Int)
-        'edge_id' (Int)
-        'trader_id' (Int)
-        'offer' (Dict)
-        'request' (Dict)
-        'edge_ids' (List[Int])
-        'resource' (Str)
-        '''
         # Validate turn and phase
         if player_id != self.current_turn:
             return False
@@ -213,7 +183,7 @@ class Game:
                 return play_monopoly(player_id = player_id, resource = action.get("resource"), players = self.players)
         
             # Trade actions TODO (Trades are not yet fully implemented)
-            case "trade_with_bank": # Bank Trades skip other players
+            case "bank_trade": # Bank Trades skip other players
                 if not can_do_trade_bank(player_id = player_id, resource_give = action.get("offer", {}), resource_receive = action.get("request", {}), players = self.players, bank = self.bank):
                     return False
                 return complete_trade_bank(player_id = player_id, offer = action.get("offer", {}), request = action.get("request", {}), players = self.players, bank = self.bank)
