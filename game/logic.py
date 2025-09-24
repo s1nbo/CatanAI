@@ -12,9 +12,9 @@ class Game:
         random.shuffle(self.development_cards)
         self.number = None
         self.board = Board()
-        self.inital_placement_order = None
+        self.initial_placement_order = None
         self.counter = 0
-        self.last_vertex_inital_placement = None
+        self.last_vertex_initial_placement = None
 
     def add_player(self, player_id):
         if player_id not in self.players:
@@ -48,31 +48,31 @@ class Game:
             return False
         current_turn = random.choice(list(self.players.keys()))
         self.players[current_turn]["current_turn"] = True
-        # make inital placement phase pattern  (1,2,3,4,4,3,2,1) (based on player ids) (1 = current turn player)
+        # make initial placement phase pattern  (1,2,3,4,4,3,2,1) (based on player ids) (1 = current turn player)
         order = list(range(1, len(self.players)+1))
         order = order[current_turn-1:] + order[:current_turn-1]
         order += order[::-1]
-        self.inital_placement_order = [i for i in order for _ in (range(2))]
+        self.initial_placement_order = [i for i in order for _ in (range(2))]
 
-        # The inital placement phase is done separately, since it requires player interaction
+        # The initial placement phase is done separately, since it requires player interaction
         self.current_turn = current_turn
         return self.get_multiplayer_game_state()
     
 
-    def inital_placement_phase(self, player_id: int, action: dict) -> dict:
+    def initial_placement_phase(self, player_id: int, action: dict) -> dict:
         # check if action is from the correct player
-        if player_id != self.inital_placement_order[self.counter]:
+        if player_id != self.initial_placement_order[self.counter]:
                 return False
                     
         # check if action is even (settlement) or odd (road)
         if self.counter % 2 == 0: # settlement
             if not action.get("type") == "place_settlement":
                 return False
-            if not inital_placement_round(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players):
+            if not initial_placement_round(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players):
                 return False
             
-            # check if second round of inital placement
-            if self.counter >= len(self.inital_placement_order)//2:
+            # check if second round of initial placement
+            if self.counter >= len(self.initial_placement_order)//2:
                 # give resources for the settlement placed
                 for tile in self.board.vertices[int(action.get("vertex_id"))].tiles:
                     resource = self.board.tiles[tile].resource
@@ -80,23 +80,23 @@ class Game:
                         self.players[player_id]["hand"][resource.lower()] += 1
                         self.bank[resource.lower()] -= 1
             
-            self.last_vertex_inital_placement = int(action.get("vertex_id"))
+            self.last_vertex_initial_placement = int(action.get("vertex_id"))
         
         else: # road
             if not action.get("type") == "place_road":
                 return False
             
             # check if edge is connected to last placed settlement
-            if self.last_vertex_inital_placement is None:
+            if self.last_vertex_initial_placement is None:
                 return False
-            connected_edges = self.board.vertices[self.last_vertex_inital_placement].edges
+            connected_edges = self.board.vertices[self.last_vertex_initial_placement].edges
             if int(action.get("edge_id")) not in connected_edges:
                 return False
             
-            if not inital_placement_round_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players, vertex_id=self.last_vertex_inital_placement):
+            if not initial_placement_round_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players, vertex_id=self.last_vertex_initial_placement):
                 return False
             
-            self.last_vertex_inital_placement = None
+            self.last_vertex_initial_placement = None
         
         
         
@@ -110,8 +110,8 @@ class Game:
     
     def call_action(self, player_id: int, action: dict) -> bool | dict:
         
-        if self.counter < len(self.inital_placement_order): # only allow inital placement actions
-            success = self.inital_placement_phase(player_id, action)
+        if self.counter < len(self.initial_placement_order): # only allow initial placement actions
+            success = self.initial_placement_phase(player_id, action)
         else:
             success = self.process_action(player_id, action)
         
@@ -218,7 +218,7 @@ class Game:
                 "bank": self.bank,
                 "development_cards_remaining": len(self.development_cards),
                 "current_turn": self.current_turn,
-                "inital_placement_order": self.inital_placement_order[self.counter] if self.counter < len(self.inital_placement_order) else None
+                "initial_placement_order": self.initial_placement_order[self.counter] if self.counter < len(self.initial_placement_order) else -1
             }
         return result
 

@@ -12,7 +12,7 @@ We can do:
 
 Once in the game 
 Create Board and Game Class
-Inital Placement Phase
+Initial Placement Phase
 Main Game Loop (Players send actions to server, server validates and updates game state, then sends updated state to all players)
 '''
 import server.server as server

@@ -149,6 +149,11 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
         if player_id in GAMES[game_id]["websockets"]:
             GAMES[game_id]["websockets"].pop(player_id, None)
 
+        # if websockets is empty, remove the game
+        if not GAMES[game_id]["websockets"]:
+            GAMES.pop(game_id, None)
+            return
+
         # Notify remaining players
         for conn in GAMES[game_id]["websockets"].values():
             if conn:
@@ -157,6 +162,7 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
         # Remove from game instance
         if player_id in game_instance.players:
             game_instance.remove_player(player_id)
+
 
         # Check if enough players remain
         if len(game_instance.players) < 2:

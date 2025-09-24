@@ -1,11 +1,29 @@
+// Board.tsx
 // HexGrid React component (Plain React + Tailwind + CSS)
 // Tiles: 0–18, Vertices: 0–53, Edges: 0–71
-// Each object now includes attributes, and here we assign some test values for resources, numbers, and owners.
+// Now supports "overlay" props to apply live server state.
 
 import React, { useMemo, useState } from "react";
 
-// --- Type Definitions ---
-interface Vertex {
+/** ---- Overlay types coming from server-normalized data ---- */
+export type BoardOverlay = {
+  tiles?: Array<{
+    resource?: string | null;   // e.g., "Lumber" | "Grain" | "Wool" | "Brick" | "Ore" | "Desert"
+    number?: number | null;     // 2..12 or null for Desert
+    robber?: boolean | null;
+  }>;
+  vertices?: Array<{
+    building?: "Settlement" | "City" | null;
+    owner?: number | null;      // 1..4 or null
+    port?: string | null;       // "3:1", "2:1 Brick", ...
+  }>;
+  edges?: Array<{
+    owner?: number | null;      // 1..4 or null
+  }>;
+};
+
+/** ---- Geometry Types (internal) ---- */
+interface VertexG {
   id: number;
   x: number; y: number;
   building: string | null;
@@ -13,14 +31,14 @@ interface Vertex {
   port: string | null;
   blocked: boolean;
 }
-interface Edge {
+interface EdgeG {
   id: number;
   v1: number; v2: number;
   x1: number; y1: number; x2: number; y2: number;
   mx: number; my: number;
   owner: number | null;
 }
-interface Tile {
+interface TileG {
   id: number;
   cx: number; cy: number;
   pts: { x: number; y: number; }[];
@@ -28,10 +46,10 @@ interface Tile {
   vertexIds: number[];
   edgeIds: number[];
   resource: keyof typeof RESOURCE_COLORS;
-  number: number;
+  number: number | null;
   robber: boolean | null;
 }
-interface Geometry { tiles: Tile[]; vertices: Record<number, Vertex>; edges: Record<number, Edge>; }
+interface Geometry { tiles: TileG[]; vertices: Record<number, VertexG>; edges: Record<number, EdgeG>; }
 type LastClick = { type: 'tile' | 'edge' | 'vertex'; id: number } | null;
 
 const HEX_SIZE = 64;
@@ -41,21 +59,35 @@ const EDGE_STROKE = 6;
 
 // Darker, dimmed tile colors for better eye comfort
 const RESOURCE_COLORS = {
-  Wood: "#14532d",   // darker green
-  Brick: "#9a3412",  // dark orange-brown
-  Sheep: "#65a30d",  // lighter green for sheep
-  Wheat: "#ca8a04",  // dark golden yellow
-  Ore: "#4b5563",    // dark gray
-  Desert: "#e7e5e4", // muted beige
-  null: "#e5e7eb",   // neutral gray
+  Wood: "#14532d",
+  Brick: "#9a3412",
+  Sheep: "#65a30d",
+  Wheat: "#ca8a04",
+  Ore: "#4b5563",
+  Desert: "#e7e5e4",
+  null: "#e5e7eb",
+};
+
+// Server → board color key
+const RESOURCE_ALIASES: Record<string, keyof typeof RESOURCE_COLORS> = {
+  Lumber: "Wood",
+  Grain: "Wheat",
+  Wool: "Sheep",
+  Brick: "Brick",
+  Ore: "Ore",
+  Desert: "Desert",
+  Wood: "Wood",
+  Wheat: "Wheat",
+  Sheep: "Sheep",
+  null: "null",
 };
 
 // Player colors: orange, purple, dark blue, light blue
-const PLAYER_COLORS = {
-  1: "#f97316", // orange
-  2: "#a855f7", // purple
-  3: "#1448d5ff", // dark blue
-  4: "#000000ff", // light blue
+const PLAYER_COLORS: Record<number | "null", string> = {
+  1: "#f97316",
+  2: "#a855f7",
+  3: "#1448d5",
+  4: "#000000",
   null: "#374151",
 };
 
@@ -64,28 +96,28 @@ function hexToPixel(q: number, r: number, size: number): { x: number; y: number 
   const y = size * (3 / 2) * r;
   return { x, y };
 }
-
-function snap(v: number): number {
-  return Math.round(v * SNAP_K) / SNAP_K;
-}
-
-function vKey(x: number, y: number): string {
-  return `${snap(x)}_${snap(y)}`;
-}
+function snap(v: number): number { return Math.round(v * SNAP_K) / SNAP_K; }
+function vKey(x: number, y: number): string { return `${snap(x)}_${snap(y)}`; }
 
 function generateHexes(radius: number): { q: number; r: number }[] {
   const hexes: { q: number; r: number }[] = [];
   for (let q = -radius; q <= radius; q++) {
     const r1 = Math.max(-radius, -q - radius);
     const r2 = Math.min(radius, -q + radius);
-    for (let r = r1; r <= r2; r++) {
-      hexes.push({ q, r });
-    }
+    for (let r = r1; r <= r2; r++) hexes.push({ q, r });
   }
   return hexes;
 }
 
-export default function HexBoard({ radius = 2, size = HEX_SIZE }) {
+export default function HexBoard({
+  radius = 2,
+  size = HEX_SIZE,
+  overlay,
+}: {
+  radius?: number;
+  size?: number;
+  overlay?: BoardOverlay;
+}) {
   const hexes = useMemo(() => generateHexes(radius), [radius]);
 
   const hexesWithIds = useMemo(() => {
@@ -118,13 +150,12 @@ export default function HexBoard({ radius = 2, size = HEX_SIZE }) {
       tilesDraft.push({ cx, cy, pts, keys });
     }
 
-    const vEntries: [string, { x: number; y: number }][] = Object.entries(vertexIndex);
-    vEntries.sort(([, a], [, b]) => (a.y === b.y ? a.x - b.x : a.y - b.y));
-
+    const vEntries = Object.entries(vertexIndex).sort(([, a], [, b]) => (a.y === b.y ? a.x - b.x : a.y - b.y));
     const rows: [string, { x: number; y: number }][][] = [];
     let current: [string, { x: number; y: number }][] = [];
     let lastY: number | null = null;
     const yThreshold = size * 0.35;
+
     for (const [k, v] of vEntries) {
       if (lastY === null || Math.abs(v.y - lastY) <= yThreshold) {
         current.push([k, v]);
@@ -148,37 +179,19 @@ export default function HexBoard({ radius = 2, size = HEX_SIZE }) {
       rows.push(...sliced);
     }
 
-    // Build vertices with IDs 0..53 in zig-zag rows
-    const vertices = {};
-    const keyToVid = {};
-    const portTypes = ["3:1", "2:1 Wood", "2:1 Brick", "2:1 Sheep", "2:1 Wheat", "2:1 Ore"];
+    const vertices: Record<number, VertexG> = {};
+    const keyToVid: Record<string, number> = {};
     let vid = 0;
     for (let r = 0; r < rows.length; r++) {
       const row = rows[r].slice().sort(([, a], [, b]) => a.x - b.x);
       for (const [k, v] of row) {
-        // Assign ports only to outer edge vertices
-        let portType = null;
-        const isOuterVertex = (r === 0 || r === rows.length - 1) ||
-          (v.x < -100 || v.x > 100 || v.y < -100 || v.y > 100);
-
-        // Force wheat port on a specific vertex for testing (regardless of outer status)
-        if (vid === 5) {
-          portType = "2:1 Wheat"; // Test wheat port
-        } else if (isOuterVertex) {
-          if (vid % 9 === 2 || vid % 13 === 5 || vid % 17 === 3) {
-            portType = "3:1"; // More 3:1 ports
-          } else if (vid % 11 === 7) {
-            portType = portTypes[1 + (vid % 5)]; // Specialty ports
-          }
-        }
-
         vertices[vid] = {
           id: vid,
           x: v.x,
           y: v.y,
-          building: vid % 11 === 0 ? "City" : null,
-          owner: vid % 5 === 0 ? (vid % 4) + 1 : null,
-          port: portType,
+          building: null,
+          owner: null,
+          port: null,
           blocked: false,
         };
         keyToVid[k] = vid;
@@ -186,18 +199,19 @@ export default function HexBoard({ radius = 2, size = HEX_SIZE }) {
       }
     }
 
-    // Prepare tiles (assign fake resources/numbers/robber for demo)
-    const sampleResources = ["Wood", "Brick", "Sheep", "Wheat", "Ore", "Desert"];
-    const tiles: Tile[] = tilesDraft.map((t, idx) => ({
+    const sampleResources: Array<keyof typeof RESOURCE_COLORS> = ["Wood", "Brick", "Sheep", "Wheat", "Ore", "Desert"];
+    const tiles: TileG[] = tilesDraft.map((t, idx) => ({
       ...t,
       id: idx,
       vertexIds: t.keys.map((k) => keyToVid[k]),
       resource: sampleResources[idx % sampleResources.length],
-      number: (idx % 11) + 2,
+      number: ((idx % 11) + 2), // placeholder, will be overridden by overlay
       robber: idx === 0 ? true : null,
+      edgeIds: [],
+      keys: t.keys,
     }));
 
-    // Build unique edges from vertex pairs
+    // Build unique edges
     const edgeMap = new Map<string, { v1: number; v2: number; x1: number; y1: number; x2: number; y2: number }>();
     for (const t of tiles) {
       const vIds = t.vertexIds;
@@ -215,76 +229,60 @@ export default function HexBoard({ radius = 2, size = HEX_SIZE }) {
       }
     }
 
-    // Convert edges to array, sort visually, then REINDEX ids to be continuous 0..71
     const edgeArr = Array.from(edgeMap.entries())
       .map(([key, e]) => ({ key, ...e, mx: (e.x1 + e.x2) / 2, my: (e.y1 + e.y2) / 2 }))
       .sort((a, b) => (a.my === b.my ? a.mx - b.mx : a.my - b.my));
 
     const keyToEdgeId = new Map<string, number>();
     edgeArr.forEach((e, idx) => {
-      e.id = idx; // reindex
-      e.owner = idx % 10 === 0 ? ((idx % 4) + 1) : null; // demo owners
+      e.id = idx;
+      e.owner = null; // placeholder; overlay will control
       keyToEdgeId.set(e.key, idx);
     });
 
-    const edges: Record<number, Edge> = Object.fromEntries(edgeArr.map((e) => [e.id, e as Edge]));
+    const edges: Record<number, EdgeG> = Object.fromEntries(edgeArr.map((e) => [e.id, e as EdgeG]));
 
-    // Attach edge ids back to tiles (no gaps guaranteed)
     tiles.forEach((t) => {
       t.edgeIds = t.vertexIds.map((_, i) => {
         const a = t.vertexIds[i];
         const b = t.vertexIds[(i + 1) % 6];
         const v1 = Math.min(a, b);
         const v2 = Math.max(a, b);
-        return keyToEdgeId.get(`${v1}_${v2}`);
+        return keyToEdgeId.get(`${v1}_${v2}`)!;
       });
     });
 
     return { tiles, vertices, edges };
   }, [hexesWithIds, size]);
 
+  // Selection UI (unchanged)
   const [selectedTiles, setSelectedTiles] = useState<Set<number>>(new Set());
   const [selectedEdges, setSelectedEdges] = useState<Set<number>>(new Set());
   const [selectedVertices, setSelectedVertices] = useState<Set<number>>(new Set());
   const [lastClick, setLastClick] = useState<LastClick>(null);
-
   function toggleSetItem(setState: React.Dispatch<React.SetStateAction<Set<number>>>, item: number) {
-    setState((prev: Set<number>) => {
+    setState((prev) => {
       const next = new Set(prev);
       if (next.has(item)) next.delete(item);
       else next.add(item);
       return next;
     });
   }
-
-  function handleTileClick(tile: Tile) {
-    toggleSetItem(setSelectedTiles, tile.id);
-    setLastClick({ type: "tile", id: tile.id });
-  }
-
-  function handleEdgeClick(edge: Edge) {
-    toggleSetItem(setSelectedEdges, edge.id);
-    setLastClick({ type: "edge", id: edge.id });
-  }
-
-  function handleVertexClick(vertex: Vertex) {
-    toggleSetItem(setSelectedVertices, vertex.id);
-    setLastClick({ type: "vertex", id: vertex.id });
-  }
+  function handleTileClick(tile: TileG) { toggleSetItem(setSelectedTiles, tile.id); setLastClick({ type: "tile", id: tile.id }); }
+  function handleEdgeClick(edge: EdgeG) { toggleSetItem(setSelectedEdges, edge.id); setLastClick({ type: "edge", id: edge.id }); }
+  function handleVertexClick(vertex: VertexG) { toggleSetItem(setSelectedVertices, vertex.id); setLastClick({ type: "vertex", id: vertex.id }); }
 
   const allX = geometry.tiles.map((t) => t.cx);
   const allY = geometry.tiles.map((t) => t.cy);
-const PAD = size * 2; // tighter fit so it reaches the top
-const minX = Math.min(...allX) - PAD;
-const maxX = Math.max(...allX) + PAD;
-const minY = Math.min(...allY) - PAD;
-const maxY = Math.max(...allY) + PAD;
-const width = maxX - minX;
-const height = maxY - minY;
-
+  const PAD = size * 2;
+  const minX = Math.min(...allX) - PAD;
+  const maxX = Math.max(...allX) + PAD;
+  const minY = Math.min(...allY) - PAD;
+  const maxY = Math.max(...allY) + PAD;
+  const width = maxX - minX;
+  const height = maxY - minY;
 
   return (
-
     <div className="w-full h-full">
       <svg
         viewBox={`${minX} ${minY} ${width} ${height}`}
@@ -292,7 +290,6 @@ const height = maxY - minY;
         preserveAspectRatio="xMidYMid meet"
         className="w-full h-full block"
       >
-
         <defs>
           <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
             <feDropShadow dx="0" dy="3" stdDeviation="3" floodOpacity="0.15" />
@@ -300,20 +297,21 @@ const height = maxY - minY;
         </defs>
 
         {/* Background */}
-        <rect
-          x={minX}
-          y={minY}
-          width={width}
-          height={height}
-          fill="#2A66A0"
-          pointerEvents="none"    // so clicks go through to tiles/edges
-        />
+        <rect x={minX} y={minY} width={width} height={height} fill="#2A66A0" pointerEvents="none" />
 
         {/* Tiles */}
         <g>
           {geometry.tiles.map((tile) => {
+            const ov = overlay?.tiles?.[tile.id];
+            const resKey = ov?.resource != null
+              ? (RESOURCE_ALIASES[ov.resource as string] ?? "null")
+              : tile.resource;
             const isSel = selectedTiles.has(tile.id);
-            const fillColor = RESOURCE_COLORS[tile.resource];
+            const fillColor = RESOURCE_COLORS[resKey as keyof typeof RESOURCE_COLORS];
+
+            const number = (ov?.number ?? tile.number) ?? null;
+            const robber = ov?.robber ?? tile.robber;
+
             return (
               <g key={tile.id}>
                 <polygon
@@ -321,69 +319,51 @@ const height = maxY - minY;
                   fill={isSel ? "#fde68a" : fillColor}
                   stroke="#374151"
                   strokeWidth={1}
-                  onClick={(ev) => {
-                    ev.stopPropagation();
-                    handleTileClick(tile);
-                  }}
+                  onClick={(ev) => { ev.stopPropagation(); handleTileClick(tile); }}
                   style={{ cursor: "pointer", filter: "url(#shadow)" }}
                 />
-                <text
-                  x={tile.cx}
-                  y={tile.cy + 6}
-                  textAnchor="middle"
-                  fontSize={16}
-                  fill="#111827"
-                  pointerEvents="none"
-                >
-                  {tile.id}
+                {/* Tile ID (small) */}
+                <text x={tile.cx} y={tile.cy + 22} textAnchor="middle" fontSize={10} fill="#111827" pointerEvents="none">
+                  #{tile.id}
                 </text>
-                {tile.robber && (
-                  <circle
-                    cx={tile.cx}
-                    cy={tile.cy - 15}
-                    r={10}
-                    fill="#000"
-                    stroke="#fff"
-                    strokeWidth={3}
-                    pointerEvents="none"
-                  />
+                {/* Number token */}
+                {number && (
+                  <g>
+                    <circle cx={tile.cx} cy={tile.cy - 2} r={14} fill="#fff" stroke="#111827" strokeWidth={1.5} />
+                    <text x={tile.cx} y={tile.cy + 3} textAnchor="middle" fontSize={12} fontWeight={700} fill="#111827" pointerEvents="none">
+                      {number}
+                    </text>
+                  </g>
+                )}
+                {/* Robber */}
+                {robber && (
+                  <circle cx={tile.cx} cy={tile.cy - 22} r={9} fill="#000" stroke="#fff" strokeWidth={2} pointerEvents="none" />
                 )}
               </g>
             );
           })}
         </g>
 
-        {/* Edges without halo, just white */}
+        {/* Edges (owner colored or white) */}
         <g>
           {Object.values(geometry.edges).map((e) => {
+            const ov = overlay?.edges?.[e.id];
+            const owner = ov?.owner ?? e.owner ?? null;
             const isSel = selectedEdges.has(e.id);
-            const strokeColor = e.owner ? PLAYER_COLORS[e.owner] : "#ffffff"; // white if no owner
+            const strokeColor = owner ? PLAYER_COLORS[owner] : "#ffffff";
 
             return (
               <g key={e.id}>
                 <line
-                  x1={e.x1}
-                  y1={e.y1}
-                  x2={e.x2}
-                  y2={e.y2}
+                  x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
                   stroke={isSel ? "#ef4444" : strokeColor}
                   strokeWidth={EDGE_STROKE}
                   strokeLinecap="round"
                   style={{ cursor: "pointer" }}
                   pointerEvents="stroke"
-                  onClick={(ev) => {
-                    ev.stopPropagation();
-                    handleEdgeClick(e);
-                  }}
+                  onClick={(ev) => { ev.stopPropagation(); handleEdgeClick(e); }}
                 />
-                <text
-                  x={(e.x1 + e.x2) / 2}
-                  y={(e.y1 + e.y2) / 2}
-                  textAnchor="middle"
-                  fontSize={10}
-                  fill="#111827"
-                  pointerEvents="none"
-                >
+                <text x={(e.x1 + e.x2) / 2} y={(e.y1 + e.y2) / 2} textAnchor="middle" fontSize={10} fill="#111827" pointerEvents="none">
                   {e.id}
                 </text>
               </g>
@@ -391,87 +371,51 @@ const height = maxY - minY;
           })}
         </g>
 
-
         {/* Vertices */}
         <g>
           {Object.values(geometry.vertices).map((v) => {
+            const ov = overlay?.vertices?.[v.id];
+            const building = (ov?.building ?? v.building) as "City" | "Settlement" | null;
+            const owner = ov?.owner ?? v.owner;
+            const port = ov?.port ?? v.port;
+
             const isSel = selectedVertices.has(v.id);
-            const fillColor = v.owner ? PLAYER_COLORS[v.owner] : "#fff";
+            const fillColor = owner ? PLAYER_COLORS[owner] : "#fff";
             const strokeColor = "#111827";
+
             return (
               <g key={v.id}>
-                {v.building === "City" ? (
+                {building === "City" ? (
                   <rect
-                    x={v.x - 8}
-                    y={v.y - 8}
-                    width={16}
-                    height={16}
+                    x={v.x - 8} y={v.y - 8} width={16} height={16}
                     fill={isSel ? "#60a5fa" : fillColor}
-                    stroke={strokeColor}
-                    strokeWidth={2}
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      handleVertexClick(v);
-                    }}
+                    stroke={strokeColor} strokeWidth={2}
+                    onClick={(ev) => { ev.stopPropagation(); handleVertexClick(v); }}
                     style={{ cursor: "pointer" }}
                   />
                 ) : (
                   <circle
-                    cx={v.x}
-                    cy={v.y}
-                    r={8}
+                    cx={v.x} cy={v.y} r={8}
                     fill={isSel ? "#60a5fa" : fillColor}
-                    stroke={strokeColor}
-                    strokeWidth={2}
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      handleVertexClick(v);
-                    }}
+                    stroke={strokeColor} strokeWidth={2}
+                    onClick={(ev) => { ev.stopPropagation(); handleVertexClick(v); }}
                     style={{ cursor: "pointer" }}
                   />
                 )}
-                <text
-                  x={v.x}
-                  y={v.y - 12}
-                  textAnchor="middle"
-                  fontSize={12}
-                  fill="#111827"
-                  pointerEvents="none"
-                >
+                <text x={v.x} y={v.y - 12} textAnchor="middle" fontSize={12} fill="#111827" pointerEvents="none">
                   {v.id}
                 </text>
-                {/* Port indicator */}
-                {v.port && (
+                {port && (
                   <g pointerEvents="none">
                     {(() => {
-                      // Calculate text width (approximate) - smaller
-                      const textWidth = v.port.length * 5 + 3;
+                      const textWidth = port.length * 5 + 3;
                       const boxWidth = Math.max(textWidth, 16);
-
-                      // Position closer to vertex
-                      const offsetY = 18; // Reduced from 25 to 18
-
+                      const offsetY = 18;
                       return (
                         <>
-                          <rect
-                            x={v.x - boxWidth / 2}
-                            y={v.y + offsetY - 6}
-                            width={boxWidth}
-                            height={12}
-                            rx={6}
-                            fill="#1e40af"
-                            stroke="#ffffff"
-                            strokeWidth={1}
-                          />
-                          <text
-                            x={v.x}
-                            y={v.y + offsetY + 2}
-                            textAnchor="middle"
-                            fontSize={7}
-                            fill="#ffffff"
-                            fontWeight="bold"
-                          >
-                            {v.port}
+                          <rect x={v.x - boxWidth / 2} y={v.y + offsetY - 6} width={boxWidth} height={12} rx={6} fill="#1e40af" stroke="#ffffff" strokeWidth={1} />
+                          <text x={v.x} y={v.y + offsetY + 2} textAnchor="middle" fontSize={7} fill="#ffffff" fontWeight="bold">
+                            {port}
                           </text>
                         </>
                       );

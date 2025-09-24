@@ -522,7 +522,7 @@ def can_steal(board: Board, stealer_id: int, victim_id: int, players: dict) -> b
 
 
 
-def inital_placement_round(board: Board, vertex_id: int, player_id: int, players: dict) -> bool:
+def initial_placement_round(board: Board, vertex_id: int, player_id: int, players: dict) -> bool:
     if board.vertices[vertex_id].owner != None and board.vertices[vertex_id].building != None:
         return False
     for neighbor in board.vertices[vertex_id].vertices:
@@ -537,7 +537,7 @@ def inital_placement_round(board: Board, vertex_id: int, player_id: int, players
         players[player_id]["ports"].append(board.vertices[vertex_id].port)
     return True
 
-def inital_placement_round_road(board: Board, edge_id: int, player_id: int, players: dict, vertex_id: int) -> bool:
+def initial_placement_round_road(board: Board, edge_id: int, player_id: int, players: dict, vertex_id: int) -> bool:
     if board.edges[edge_id].owner != None:
         return False
     if vertex_id not in board.edges[edge_id].vertices:

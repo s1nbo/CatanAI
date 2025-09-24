@@ -6,7 +6,7 @@ Analysis:
 A board has 19 Hexagon: (TILES)
 - 4 Wool
 - 4 Grain
-- 4 Lumber
+- 4 Wood
 - 3 Brick
 - 3 Ore
 - 1 Desert 
@@ -49,14 +49,14 @@ class Board:
         HEXES = [
             'Wool', 'Wool', 'Wool', 'Wool',
             'Grain', 'Grain', 'Grain', 'Grain',
-            'Lumber', 'Lumber', 'Lumber', 'Lumber',
+            'Wood', 'Wood', 'Wood', 'Wood',
             'Brick', 'Brick', 'Brick',
             'Ore', 'Ore', 'Ore',
             'Desert'
         ]
         PORTS = [
             '3:1', '3:1', '3:1', '3:1',
-            '2:1 Wool', '2:1 Grain', '2:1 Lumber', '2:1 Brick', '2:1 Ore'
+            '2:1 Wool', '2:1 Grain', '2:1 Wood', '2:1 Brick', '2:1 Ore'
         ]
         #WATER = ['Water' for _ in range(9)]
         NUMBERS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
@@ -75,7 +75,7 @@ class Board:
             resource = HEXES[i]
 
             if resource == 'Desert':
-                number = None
+                number = 0
                 self.robber_tile = i
             else:
                 number = NUMBERS.pop()
