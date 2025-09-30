@@ -2824,17 +2824,17 @@
         ]
     },
     "players": {
-        "2": "{\"hand\": {\"wood\": 0, \"brick\": 0, \"sheep\": 0, \"wheat\": 0, \"ore\": 0}, \"development_cards\": {\"knight\": 0, \"victory_point\": 0, \"road_building\": 0, \"year_of_plenty\": 0, \"monopoly\": 0}, \"played_knights\": 0, \"longest_road_length\": 0, \"victory_points\": 0, \"settlements\": 5, \"cities\": 4, \"roads\": 15, \"ports\": [], \"longest_road\": false, \"largest_army\": false, \"played_card_this_turn\": false, \"dice_rolled\": false, \"current_turn\": true, \"total_hand\": 0, \"total_development_cards\": 0, \"victory_points_without_vp_cards\": 0}",
+        "2": "{\"hand\": {\"wood\": 10, \"brick\": 0, \"sheep\": 0, \"wheat\": 0, \"ore\": 0}, \"development_cards\": {\"knight\": 0, \"victory_point\": 0, \"road_building\": 0, \"year_of_plenty\": 0, \"monopoly\": 0}, \"played_knights\": 0, \"longest_road_length\": 0, \"victory_points\": 0, \"settlements\": 5, \"cities\": 4, \"roads\": 15, \"ports\": [], \"longest_road\": false, \"largest_army\": false, \"played_card_this_turn\": false, \"dice_rolled\": false, \"current_turn\": true, \"total_hand\": 0, \"total_development_cards\": 0, \"victory_points_without_vp_cards\": 0}",
         "1": {
-            "total_hand": 0,
+            "total_hand": 5,
             "total_development_cards": 0,
-            "victory_points_without_vp_cards": 0,
+            "victory_points_without_vp_cards": 10,
             "played_knights": 0,
             "longest_road_length": 0,
             "victory_points": 0,
             "settlements": 5,
             "cities": 4,
-            "roads": 15,
+            "roads": 10,
             "ports": [],
             "longest_road": false,
             "largest_army": false,
@@ -2852,5 +2852,5 @@
     },
     "development_cards_remaining": 25,
     "current_turn": 2,
-    "initial_placement_order": 1
+    "initial_placement_order": 2
 }
