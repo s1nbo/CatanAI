@@ -264,7 +264,9 @@ export default function App() {
   }
 
   // Actions
-  function handleRollDice() { setIsRolling(true); /* send WS action if needed */ }
+  function handleRollDice() { setIsRolling(true);
+    
+     /* send WS action if needed */ }
   function handleTrade() { /* send WS action if needed */ }
   function handleBuyDev() { /* send WS action if needed */ }
 

@@ -137,6 +137,9 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
                 for conn in GAMES[game_id]["websockets"].values():
                     if conn:
                         await conn.send_json({"status": "game_over", "winner": player_id})
+                        # One Edge case, if you block the longest road and another player gets it and wins with that.
+                        # Else The game will always be won by the player whos turn it is.
+                        # Maybe TODO: Handle this edge case properly.
             else:
                 for pid, conn in GAMES[game_id]["websockets"].items():
                     if conn:
