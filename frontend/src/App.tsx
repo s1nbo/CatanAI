@@ -253,6 +253,37 @@ export default function App() {
   const [isRolling, setIsRolling] = useState(false);
   function onServerRolled(d1: number, d2: number) { setCurrentRoll({ d1, d2 }); setIsRolling(false); }
 
+  // NEW: what the board says is currently selected
+  const [selected, setSelected] = useState<{ type: 'tile' | 'edge' | 'vertex'; id: number } | null>(null);
+
+  // NEW: compute the context-aware action label + enabled flag
+  const buildAction = useMemo(() => {
+    if (!selected) return { label: "Select a tile/edge/node", enabled: false };
+    if (selected.type === "tile") {
+      return { label: "Place Robber", enabled: true }; // wrapper only (TODO)
+    }
+    if (selected.type === "edge") {
+      const e = overlay.edges?.[selected.id];
+      const taken = e?.owner != null;
+      return taken
+        ? { label: "Edge occupied", enabled: false }
+        : { label: "Build Road", enabled: true };
+    }
+    // vertex
+    const v = overlay.vertices?.[selected.id];
+    const b = (v?.building || "").toString().toLowerCase();
+    if (b === "settlement") return { label: "Build City", enabled: true };
+    if (!b) return { label: "Build Settlement", enabled: true };
+    return { label: "Vertex occupied", enabled: false };
+  }, [selected, overlay]);
+
+  // NEW: click handler (wrapper only for now)
+  function handleBuildClick() {
+    if (!buildAction.enabled || !selected) return;
+    // TODO: wire to server action later — for now just log
+    console.log("[TODO action]", buildAction.label, "on", selected);
+  }
+
   // Dev hooks for testing
   if (typeof window !== "undefined") {
     (window as any).simRoll = (d1: number, d2: number) => onServerRolled(d1, d2);
@@ -618,10 +649,28 @@ export default function App() {
               <div className="resource-card"><div className="resource-left"><span className="resource-emoji">⛰️</span></div><div className="count-pill">{self.resources.ore}</div></div>
             </div>
           </div>
+          
+          {/* NEW: Single context-aware build button */}
+          <div className="hud-card">
+            <h3 className="hud-title">Build / Action</h3>
+            <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ opacity: selected ? 1 : 0.7 }}>
+                {selected
+                  ? (selected.type === "tile" && <>Tile <strong>#{selected.id}</strong></>) ||
+                  (selected.type === "edge" && <>Edge <strong>#{selected.id}</strong></>) ||
+                  (selected.type === "vertex" && <>Node <strong>#{selected.id}</strong></>)
+                  : <>Nothing selected</>}
+              </div>
+              <button onClick={handleBuildClick} disabled={!buildAction.enabled}>
+                {buildAction.label}
+              </button>
+            </div>
+          </div>
+
         </div>
 
         {/* The actual board, driven by live overlay */}
-        <HexBoard overlay={overlay} onVertexClick={onVertexClick} onEdgeClick={onEdgeClick} />
+        <HexBoard overlay={overlay} onSelect={setSelected} />
       </div>
 
       {/* Right sidebar: Bank + Players */}

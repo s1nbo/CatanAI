@@ -120,12 +120,14 @@ export default function HexBoard({
   overlay,
   onVertexClick,
   onEdgeClick,
+  onSelect,
 }: {
   radius?: number;
   size?: number;
   overlay?: BoardOverlay;
   onVertexClick?: (p: ClickVertexPayload) => void;
   onEdgeClick?: (p: ClickEdgePayload) => void;
+  onSelect?: (sel: LastClick) => void;
 }) {
   const hexes = useMemo(() => generateHexes(radius), [radius]);
 
@@ -249,7 +251,7 @@ export default function HexBoard({
       keyToEdgeId.set(e.key, idx);
     });
 
-    const edges: Record<number, EdgeG> = Object.fromEntries(edgeArr.map((e) => [ (e as any).id, e as unknown as EdgeG ]));
+    const edges: Record<number, EdgeG> = Object.fromEntries(edgeArr.map((e) => [(e as any).id, e as unknown as EdgeG]));
 
     tiles.forEach((t) => {
       t.edgeIds = t.vertexIds.map((_, i) => {
@@ -264,35 +266,32 @@ export default function HexBoard({
     return { tiles, vertices, edges };
   }, [hexesWithIds, size]);
 
-  // Selection UI (kept for debug)
-  const [selectedTiles, setSelectedTiles] = useState<Set<number>>(new Set());
-  const [selectedEdges, setSelectedEdges] = useState<Set<number>>(new Set());
-  const [selectedVertices, setSelectedVertices] = useState<Set<number>>(new Set());
-  const [lastClick, setLastClick] = useState<LastClick>(null);
-  function toggleSetItem(setState: React.Dispatch<React.SetStateAction<Set<number>>>, item: number) {
-    setState((prev) => {
-      const next = new Set(prev);
-      if (next.has(item)) next.delete(item);
-      else next.add(item);
-      return next;
+
+  // Single, mutually exclusive selection (tile OR edge OR vertex)
+  const [selected, setSelected] = useState<LastClick>(null);
+  const isSelected = (t: NonNullable<LastClick>["type"], id: number) =>
+    selected?.type === t && selected?.id === id;
+  const pick = (next: NonNullable<LastClick>) => {
+    setSelected((prev) => {
+      const same = prev && prev.type === next.type && prev.id === next.id;
+      const updated = same ? null : next;
+      onSelect?.(updated);     // NEW: bubble up
+      return updated;
     });
-  }
+  };
 
   // NOTE: in addition to selection, we emit a concise payload to parent for WS action
   function handleTileClick(tile: TileG) {
-    toggleSetItem(setSelectedTiles, tile.id);
-    setLastClick({ type: "tile", id: tile.id });
+    pick({ type: "tile", id: tile.id });
   }
   function handleEdgeClick(edge: EdgeG) {
-    toggleSetItem(setSelectedEdges, edge.id);
-    setLastClick({ type: "edge", id: edge.id });
+    pick({ type: "edge", id: edge.id });
     const ov = overlay?.edges?.[edge.id];
     const owner = ov?.owner ?? edge.owner ?? null;
     onEdgeClick?.({ id: edge.id, owner });
   }
   function handleVertexClick(vertex: VertexG) {
-    toggleSetItem(setSelectedVertices, vertex.id);
-    setLastClick({ type: "vertex", id: vertex.id });
+    pick({ type: "vertex", id: vertex.id });
     const ov = overlay?.vertices?.[vertex.id];
     const owner = ov?.owner ?? vertex.owner ?? null;
     const buildingRaw = ov?.building ?? vertex.building ?? null;
@@ -316,6 +315,7 @@ export default function HexBoard({
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="xMidYMid meet"
         className="w-full h-full block"
+        onClick={() => { setSelected(null); onSelect?.(null); }}
       >
         <defs>
           <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -333,7 +333,7 @@ export default function HexBoard({
             const resKey = ov?.resource != null
               ? (RESOURCE_ALIASES[ov.resource as string] ?? "null")
               : tile.resource;
-            const isSel = selectedTiles.has(tile.id);
+            const isSel = isSelected("tile", tile.id);
             const fillColor = RESOURCE_COLORS[resKey as keyof typeof RESOURCE_COLORS];
 
             const number = (ov?.number ?? tile.number) ?? null;
@@ -372,7 +372,7 @@ export default function HexBoard({
           {Object.values(geometry.edges).map((e) => {
             const ov = overlay?.edges?.[e.id];
             const owner = ov?.owner ?? e.owner ?? null;
-            const isSel = selectedEdges.has(e.id);
+            const isSel = isSelected("edge", e.id);
             const strokeColor = owner ? PLAYER_COLORS[owner] : "#ffffff";
 
             return (
@@ -400,7 +400,7 @@ export default function HexBoard({
             const owner = ov?.owner ?? v.owner;
             const port = ov?.port ?? v.port;
 
-            const isSel = selectedVertices.has(v.id);
+            const isSel = isSelected("vertex", v.id);
             const fillColor = owner ? PLAYER_COLORS[owner] : "#fff";
             const strokeColor = "#111827";
 
