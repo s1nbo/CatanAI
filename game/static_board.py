@@ -23,7 +23,7 @@ class Vertex:
         
         self.building = None  # None, 'Settlement', or 'City'
         self.owner = None  # Player object who owns the building
-        self.port = None  # None or Port type (e.g., '3:1', '2:1 Wool', etc.)
+        self.port = None  # None or Port type (e.g., '3:1', '2:1 Sheep', etc.)
         self.blocked = False  # True if blocked by the distance rule for buildings
 
         self.tiles = None # size 1 - 3

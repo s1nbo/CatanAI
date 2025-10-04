@@ -4,8 +4,8 @@ import json
 '''
 Analysis:
 A board has 19 Hexagon: (TILES)
-- 4 Wool
-- 4 Grain
+- 4 Sheep
+- 4 Wheat
 - 4 Wood
 - 3 Brick
 - 3 Ore
@@ -47,8 +47,8 @@ class Board:
         # Setup Board
 
         HEXES = [
-            'Wool', 'Wool', 'Wool', 'Wool',
-            'Grain', 'Grain', 'Grain', 'Grain',
+            'Sheep', 'Sheep', 'Sheep', 'Sheep',
+            'Wheat', 'Wheat', 'Wheat', 'Wheat',
             'Wood', 'Wood', 'Wood', 'Wood',
             'Brick', 'Brick', 'Brick',
             'Ore', 'Ore', 'Ore',
@@ -56,7 +56,7 @@ class Board:
         ]
         PORTS = [
             '3:1', '3:1', '3:1', '3:1',
-            '2:1 Wool', '2:1 Grain', '2:1 Wood', '2:1 Brick', '2:1 Ore'
+            '2:1 Sheep', '2:1 Wheat', '2:1 Wood', '2:1 Brick', '2:1 Ore'
         ]
         #WATER = ['Water' for _ in range(9)]
         NUMBERS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]

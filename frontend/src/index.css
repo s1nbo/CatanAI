@@ -352,3 +352,23 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
 .roll-pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 999px; background: #fff; font-weight: 800; }
 .roll-dice { font-size: 1.2rem; line-height: 1; }
 .hud-left .actions-grid button:disabled { opacity: .6; cursor: not-allowed; }
+
+
+
+/* Accent outline on hover (color comes from --accent) */
+.btn-accent {
+  border: 1px solid transparent;
+  transition: box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+.btn-accent:hover {
+  /* small colored outline */
+  box-shadow: 0 0 0 3px var(--accent, currentColor);
+  border-color: var(--accent, currentColor);
+}
+.btn-accent:disabled,
+.btn-accent[disabled] {
+  box-shadow: none;
+  border-color: transparent;
+  opacity: 0.6;
+  cursor: not-allowed;
+}

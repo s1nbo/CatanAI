@@ -8,7 +8,7 @@ import React, { useMemo, useState } from "react";
 /** ---- Overlay types coming from server-normalized data ---- */
 export type BoardOverlay = {
   tiles?: Array<{
-    resource?: string | null;   // e.g., "Lumber" | "Grain" | "Wool" | "Brick" | "Ore" | "Desert"
+    resource?: string | null;   // e.g., "Wood" | "Wheat" | "Sheep" | "Brick" | "Ore" | "Desert"
     number?: number | null;     // 2..12 or null for Desert
     robber?: boolean | null;
   }>;
@@ -61,6 +61,7 @@ const HEX_SIZE = 64;
 const VERTEX_ROW_COUNTS = [7, 9, 11, 11, 9, 7];
 const SNAP_K = 1000;
 const EDGE_STROKE = 6;
+const EDGE_HIT_EXTRA = 8;
 
 // Darker, dimmed tile colors for better eye comfort
 const RESOURCE_COLORS = {
@@ -75,15 +76,14 @@ const RESOURCE_COLORS = {
 
 // Server → board color key
 const RESOURCE_ALIASES: Record<string, keyof typeof RESOURCE_COLORS> = {
-  Lumber: "Wood",
-  Grain: "Wheat",
-  Wool: "Sheep",
+  Wood: "Wood",
   Brick: "Brick",
+  Sheep: "Sheep",
+  Wheat: "Wheat",
   Ore: "Ore",
   Desert: "Desert",
-  Wood: "Wood",
-  Wheat: "Wheat",
-  Sheep: "Sheep",
+  
+  
   null: "null",
 };
 
@@ -91,8 +91,8 @@ const RESOURCE_ALIASES: Record<string, keyof typeof RESOURCE_COLORS> = {
 const PLAYER_COLORS: Record<number | "null", string> = {
   1: "#f97316",
   2: "#a855f7",
-  3: "#1448d5",
-  4: "#60a5fa",
+  3: "#003049",
+  4: "#780000",
   null: "#374151",
 };
 
@@ -379,7 +379,15 @@ export default function HexBoard({
               <g key={e.id}>
                 <line
                   x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
-                  stroke={isSel ? "#ef4444" : strokeColor}
+                  stroke="transparent"
+                  strokeWidth={EDGE_STROKE + EDGE_HIT_EXTRA}
+                  strokeLinecap="round"
+                  pointerEvents="stroke"
+                  onClick={(ev) => { ev.stopPropagation(); handleEdgeClick(e); }}
+                />
+                <line
+                  x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
+                  stroke={isSel ? "#fde68a" : strokeColor}
                   strokeWidth={EDGE_STROKE}
                   strokeLinecap="round"
                   style={{ cursor: "pointer" }}
@@ -409,7 +417,7 @@ export default function HexBoard({
                 {buildingLower === "city" ? (
                   <rect
                     x={v.x - 8} y={v.y - 8} width={16} height={16}
-                    fill={isSel ? "#60a5fa" : fillColor}
+                    fill={isSel ? "#fde68a" : fillColor}
                     stroke={strokeColor} strokeWidth={2}
                     onClick={(ev) => { ev.stopPropagation(); handleVertexClick(v); }}
                     style={{ cursor: "pointer" }}
@@ -417,7 +425,7 @@ export default function HexBoard({
                 ) : (
                   <circle
                     cx={v.x} cy={v.y} r={8}
-                    fill={isSel ? "#60a5fa" : fillColor}
+                    fill={isSel ? "#fde68a" : fillColor}
                     stroke={strokeColor} strokeWidth={2}
                     onClick={(ev) => { ev.stopPropagation(); handleVertexClick(v); }}
                     style={{ cursor: "pointer" }}

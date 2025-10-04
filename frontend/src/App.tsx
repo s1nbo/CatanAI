@@ -50,10 +50,10 @@ const API_URL = (import.meta as any).env?.VITE_API_URL ?? "http://localhost:8000
 const WS_URL = (import.meta as any).env?.VITE_WS_URL_BASE ?? "ws://localhost:8000"; // we append /ws/{gid}/{pid}
 
 const PLAYER_COLORS: Record<string, string> = {
-  "1": "#f97316", // orange
-  "2": "#a855f7", // purple
-  "3": "#1448d5", // dark blue
-  "4": "#60a5fa", // light blue
+  1: "#f97316",
+  2: "#a855f7",
+  3: "#003049",
+  4: "#780000",
 };
 const DIE = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
 
@@ -69,7 +69,7 @@ function looksLikeSelfEntry(raw: any): boolean {
   if (!raw || typeof raw !== "object") return false;
   const hasHandObj = !!(raw.resources || raw.hand);
   const hasFlatResourceCounts =
-    ["wood", "brick", "sheep", "wheat", "ore", "Wood", "Brick", "Sheep", "Wheat", "Ore", "grain", "Grain", "wool", "Wool"]
+    ["wood", "brick", "sheep", "wheat", "ore", "Wood", "Brick", "Sheep", "Wheat", "Ore", "Wheat", "Wheat", "Sheep", "Sheep"]
       .some(k => typeof (raw as any)[k] === "number");
   const hasDevList = Array.isArray((raw as any).development_cards) || Array.isArray((raw as any).dev_cards);
   const hasDevCounts = !!((raw as any).development_cards_counts || (raw as any).dev_cards_counts);
@@ -82,8 +82,8 @@ function normalizeResources(raw: any): SelfPanel["resources"] {
   return {
     wood: n(src.wood ?? src.Wood),
     brick: n(src.brick ?? src.Brick),
-    sheep: n(src.sheep ?? src.Sheep ?? src.wool ?? src.Wool),
-    wheat: n(src.wheat ?? src.Wheat ?? src.grain ?? src.Grain),
+    sheep: n(src.sheep ?? src.Sheep ?? src.Sheep ?? src.Sheep),
+    wheat: n(src.wheat ?? src.Wheat ?? src.Wheat ?? src.Wheat),
     ore: n(src.ore ?? src.Ore),
   };
 }
@@ -250,8 +250,7 @@ export default function App() {
 
   // Dice
   const [currentRoll, setCurrentRoll] = useState<{ d1: number; d2: number } | null>(null);
-  const [isRolling, setIsRolling] = useState(false);
-  function onServerRolled(d1: number, d2: number) { setCurrentRoll({ d1, d2 }); setIsRolling(false); }
+  function onServerRolled(d1: number, d2: number) { setCurrentRoll({ d1, d2 }); }
 
   // NEW: what the board says is currently selected
   const [selected, setSelected] = useState<{ type: 'tile' | 'edge' | 'vertex'; id: number } | null>(null);
@@ -278,11 +277,35 @@ export default function App() {
   }, [selected, overlay]);
 
   // NEW: click handler (wrapper only for now)
-  function handleBuildClick() {
-    if (!buildAction.enabled || !selected) return;
-    // TODO: wire to server action later — for now just log
-    console.log("[TODO action]", buildAction.label, "on", selected);
+function handleBuildClick() {
+  if (!buildAction.enabled || !selected) return;
+
+  // Edges → place_road
+  if (selected.type === "edge") {
+    sendAction({ type: "place_road", edge_id: selected.id });
+    return;
   }
+
+  // Vertices → place_settlement or place_city (if it's your settlement)
+  if (selected.type === "vertex") {
+    const v = overlay.vertices?.[selected.id];
+    const building = (v?.building || "").toString().toLowerCase();
+    const ownerStr = v?.owner != null ? String(v.owner) : null;
+
+    // Empty vertex → settlement
+    if (!building) {
+      sendAction({ type: "place_settlement", vertex_id: selected.id });
+      return;
+    }
+    // Your settlement → upgrade to city
+    if (building === "settlement" && ownerStr === self.id) {
+      sendAction({ type: "place_city", vertex_id: selected.id });
+      return;
+    }
+  }
+
+  // Tiles are ignored here (robber wrapper/TODO).
+}
 
   // Dev hooks for testing
   if (typeof window !== "undefined") {
@@ -290,7 +313,7 @@ export default function App() {
   }
 
   // Actions (hook up to WS later if you have action routing)
-  function handleRollDice() { setIsRolling(true); /* send WS action if needed */ }
+  function handleRollDice() { /* send WS action if needed */ }
   function handleTrade() { /* send WS action if needed */ }
   function handleBuyDev() { /* send WS action if needed */ }
 
@@ -582,8 +605,8 @@ export default function App() {
           <div className="hud-card">
             <h3 className="hud-title">Actions</h3>
             <div className="actions-grid">
-              <button onClick={handleRollDice} title="Roll Dice" disabled={isRolling}>
-                <Dice5 size={18} /> {isRolling ? "Rolling…" : "Roll"}
+              <button onClick={handleRollDice} title="Roll Dice">
+                <Dice5 size={18} /> {"Roll"}
               </button>
               <button onClick={handleTrade} title="Trade">
                 <Handshake size={18} /> Trade
@@ -649,10 +672,10 @@ export default function App() {
               <div className="resource-card"><div className="resource-left"><span className="resource-emoji">⛰️</span></div><div className="count-pill">{self.resources.ore}</div></div>
             </div>
           </div>
-          
+
           {/* NEW: Single context-aware build button */}
           <div className="hud-card">
-            <h3 className="hud-title">Build / Action</h3>
+            <h3 className="hud-title">Build</h3>
             <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ opacity: selected ? 1 : 0.7 }}>
                 {selected
@@ -661,7 +684,13 @@ export default function App() {
                   (selected.type === "vertex" && <>Node <strong>#{selected.id}</strong></>)
                   : <>Nothing selected</>}
               </div>
-              <button onClick={handleBuildClick} disabled={!buildAction.enabled}>
+              <button
+                onClick={handleBuildClick}
+                disabled={!buildAction.enabled}
+                className="btn-accent"
+                /* feed the player color into a CSS variable read by .btn-accent */
+                style={{ ["--accent" as any]: self.color }}
+              >
                 {buildAction.label}
               </button>
             </div>
@@ -697,8 +726,8 @@ export default function App() {
             <div className="stats-grid">
               <div className="stat"><Trophy /> <span>{p.victoryPoints}</span></div>
               <div className="stat"><Swords /> <span>{p.largestArmy}</span></div>
-              <div className="stat"><Route /> <span>{p.longestRoad}</span></div>
               <div className="stat"><Hand /> <span>{p.handSize}</span></div>
+              <div className="stat"><Route /> <span>{p.longestRoad}</span></div>
               <div className="stat"><Layers /> <span>{p.devCards}</span></div>
             </div>
             <div className="stats-grid" style={{ marginTop: 4, opacity: .8, fontSize: 12 }}>

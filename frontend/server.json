@@ -30,7 +30,7 @@
             },
             {
                 "id": 1,
-                "resource": "Grain",
+                "resource": "Wheat",
                 "number": 5,
                 "robber": false,
                 "tiles": [
@@ -58,7 +58,7 @@
             },
             {
                 "id": 2,
-                "resource": "Grain",
+                "resource": "Wheat",
                 "number": 9,
                 "robber": false,
                 "tiles": [
@@ -85,7 +85,7 @@
             },
             {
                 "id": 3,
-                "resource": "Grain",
+                "resource": "Wheat",
                 "number": 3,
                 "robber": false,
                 "tiles": [
@@ -113,7 +113,7 @@
             },
             {
                 "id": 4,
-                "resource": "Wool",
+                "resource": "Sheep",
                 "number": 3,
                 "robber": false,
                 "tiles": [
@@ -403,7 +403,7 @@
             },
             {
                 "id": 14,
-                "resource": "Wool",
+                "resource": "Sheep",
                 "number": 5,
                 "robber": false,
                 "tiles": [
@@ -433,7 +433,7 @@
             },
             {
                 "id": 15,
-                "resource": "Wool",
+                "resource": "Sheep",
                 "number": 6,
                 "robber": false,
                 "tiles": [
@@ -488,7 +488,7 @@
             },
             {
                 "id": 17,
-                "resource": "Grain",
+                "resource": "Wheat",
                 "number": 10,
                 "robber": false,
                 "tiles": [
@@ -516,7 +516,7 @@
             },
             {
                 "id": 18,
-                "resource": "Wool",
+                "resource": "Sheep",
                 "number": 4,
                 "robber": false,
                 "tiles": [
@@ -672,7 +672,7 @@
                 "id": 7,
                 "building": null,
                 "player": null,
-                "port": "2:1 Wool",
+                "port": "2:1 Sheep",
                 "tiles": [
                     3
                 ],
@@ -868,7 +868,7 @@
                 "id": 17,
                 "building": null,
                 "player": null,
-                "port": "2:1 Wool",
+                "port": "2:1 Sheep",
                 "tiles": [
                     3,
                     7
@@ -1085,7 +1085,7 @@
                 "id": 28,
                 "building": null,
                 "player": null,
-                "port": "2:1 Grain",
+                "port": "2:1 Wheat",
                 "tiles": [
                     7,
                     12
@@ -1289,7 +1289,7 @@
                 "id": 38,
                 "building": null,
                 "player": null,
-                "port": "2:1 Grain",
+                "port": "2:1 Wheat",
                 "tiles": [
                     12
                 ],
