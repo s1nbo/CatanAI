@@ -1,14 +1,14 @@
 // App.tsx
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Trophy, Swords, Route, Hand, Layers,
-  Dice5, ShoppingBag, Handshake
+  Dice5, ShoppingBag, Handshake, Bot, UserPlus, UserMinus, Play, KeyRound, Users
 } from "lucide-react";
 import "./App.css";
 import HexBoard from "./Board";
 import type { BoardOverlay } from "./Board";
 
-/** ---------- Types ---------- */
+/** ================== Types ================== */
 type Player = {
   id: string;
   name: string;
@@ -39,11 +39,16 @@ type SelfPanel = {
   color: string;
   victoryPoints: number;
   resources: { wood: number; brick: number; sheep: number; wheat: number; ore: number };
-  devList: string[];   // playable (non-VP) dev cards
-  vpCards: number;     // VP development cards
+  devList: string[];
+  vpCards: number;
 };
 
-/** ---------- Constants ---------- */
+type Phase = "lobby" | "game";
+
+/** ================== Constants ================== */
+const API_URL = (import.meta as any).env?.VITE_API_URL ?? "http://localhost:8000";
+const WS_URL = (import.meta as any).env?.VITE_WS_URL_BASE ?? "ws://localhost:8000"; // we append /ws/{gid}/{pid}
+
 const PLAYER_COLORS: Record<string, string> = {
   "1": "#f97316", // orange
   "2": "#a855f7", // purple
@@ -51,9 +56,8 @@ const PLAYER_COLORS: Record<string, string> = {
   "4": "#60a5fa", // light blue
 };
 const DIE = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
-const DEFAULT_SELF_FROM_ENV = (import.meta as any).env?.VITE_PLAYER_ID ?? null;
 
-/** ---------- Helpers ---------- */
+/** ================== Helpers for server snapshots ================== */
 function parseMaybeJSONString<T = any>(v: any): T {
   if (typeof v === "string") {
     try { return JSON.parse(v) as T; } catch { return v as T; }
@@ -61,22 +65,14 @@ function parseMaybeJSONString<T = any>(v: any): T {
   return v as T;
 }
 
-// Does this player entry look like the controlling client (has private info)?
 function looksLikeSelfEntry(raw: any): boolean {
   if (!raw || typeof raw !== "object") return false;
-
-  // Direct hand fields or nested hand/resources object
   const hasHandObj = !!(raw.resources || raw.hand);
-  // Flat resource keys (common in some servers)
   const hasFlatResourceCounts =
-    ["wood","brick","sheep","wheat","ore","Wood","Brick","Sheep","Wheat","Ore","grain","Grain","wool","Wool"]
-      .some(k => typeof raw[k] === "number");
-
-  // Dev cards as list or detailed counts (NOT just a total)
-  const hasDevList = Array.isArray(raw.development_cards) || Array.isArray(raw.dev_cards);
-  const hasDevCounts = !!(raw.development_cards_counts || raw.dev_cards_counts);
-
-  // If any of these are present, assume this is the client's player
+    ["wood", "brick", "sheep", "wheat", "ore", "Wood", "Brick", "Sheep", "Wheat", "Ore", "grain", "Grain", "wool", "Wool"]
+      .some(k => typeof (raw as any)[k] === "number");
+  const hasDevList = Array.isArray((raw as any).development_cards) || Array.isArray((raw as any).dev_cards);
+  const hasDevCounts = !!((raw as any).development_cards_counts || (raw as any).dev_cards_counts);
   return !!(hasHandObj || hasFlatResourceCounts || hasDevList || hasDevCounts);
 }
 
@@ -95,7 +91,6 @@ function normalizeResources(raw: any): SelfPanel["resources"] {
 function normalizeDevCards(raw: any): { devList: string[]; vpCards: number } {
   const out: string[] = [];
   let vp = 0;
-
   const arr = raw?.development_cards ?? raw?.dev_cards ?? null;
   const counts = raw?.development_cards_counts ?? raw?.dev_cards_counts ?? null;
 
@@ -105,7 +100,7 @@ function normalizeDevCards(raw: any): { devList: string[]; vpCards: number } {
       if (/victory/i.test(name)) vp += 1; else out.push(name);
     }
   } else if (counts && typeof counts === "object") {
-    const pushTimes = (label: string, times: number) => { for (let i = 0; i < (times || 0); i++) out.push(label); };
+    const pushTimes = (label: string, times: number | undefined) => { for (let i = 0; i < (times || 0); i++) out.push(label); };
     pushTimes("Knight", counts.Knight ?? counts.knight);
     pushTimes("Road Building", counts["Road Building"] ?? counts.road_building);
     pushTimes("Year of Plenty", counts["Year of Plenty"] ?? counts.year_of_plenty);
@@ -120,7 +115,6 @@ function normalizeDevCards(raw: any): { devList: string[]; vpCards: number } {
     const overflow = out.length + vp - total;
     out.splice(0, Math.max(0, overflow));
   }
-
   return { devList: out, vpCards: vp };
 }
 
@@ -135,27 +129,21 @@ function extractSelfPanel(playersMap: Record<string, any>, selfId: string, playe
   return { id: selfId, name, color, victoryPoints, resources, devList, vpCards };
 }
 
-// Find controlling player ID from a snapshot by scanning for private info
 function detectSelfFromSnapshot(server: any, fallback: string | null): string {
   const playersMap = server?.players ?? {};
   for (const [pid, entry] of Object.entries(playersMap)) {
     const raw = parseMaybeJSONString(entry);
     if (looksLikeSelfEntry(raw)) return String(pid);
   }
-  // Secondary hints provided by server
   const hinted = server?.self_player_id ?? server?.you_are ?? null;
   if (hinted != null) return String(hinted);
-  // Otherwise, use fallback (env/URL) or default to "1"
   return String(fallback ?? "1");
 }
 
-/** Highlight logic: prefer initial_placement_order if not -1, else current_turn */
 function computeHighlightId(server: any): string | null {
   const placementRaw =
     server?.initial_placement_order ??
-    server?.inital_placement_order ?? // tolerate misspelling
-    null;
-
+    server?.inital_placement_order ?? null;
   if (placementRaw !== null && placementRaw !== undefined && Number(placementRaw) !== -1) {
     return String(placementRaw);
   }
@@ -165,7 +153,6 @@ function computeHighlightId(server: any): string | null {
   return null;
 }
 
-/** ---------- Server → UI normalize ---------- */
 function toOverlayFromServer(server: any): {
   overlay: BoardOverlay;
   players: Player[];
@@ -229,9 +216,18 @@ function toOverlayFromServer(server: any): {
   return { overlay, players, bank };
 }
 
-/** ---------- Component ---------- */
+/** ================== Component ================== */
 export default function App() {
-  // Players/Bank/Board overlay
+  /** ----- Phase & Lobby state ----- */
+  const [phase, setPhase] = useState<Phase>("lobby");
+  const [gameId, setGameId] = useState<number | null>(null);
+  const [playerId, setPlayerId] = useState<number | null>(null);
+  const [joinCode, setJoinCode] = useState<string>("");
+
+  // Observed players in lobby (server only sends join/leave events pre-start)
+  const [observedPlayers, setObservedPlayers] = useState<Set<number>>(new Set());
+
+  /** ----- Game state (existing HUD/board bits) ----- */
   const [players, setPlayers] = useState<Player[]>([
     { id: "1", name: "Player 1", color: PLAYER_COLORS["1"], victoryPoints: 0, largestArmy: 0, longestRoad: 0, cities: 0, settlements: 0, roads: 0, handSize: 0, devCards: 0 },
     { id: "2", name: "Player 2", color: PLAYER_COLORS["2"], victoryPoints: 0, largestArmy: 0, longestRoad: 0, cities: 0, settlements: 0, roads: 0, handSize: 0, devCards: 0 },
@@ -241,12 +237,11 @@ export default function App() {
   const [bank, setBank] = useState<Bank>({ wood: 19, brick: 19, sheep: 19, wheat: 19, ore: 19, devCards: 25 });
   const [overlay, setOverlay] = useState<BoardOverlay>({ tiles: [], edges: [], vertices: [] });
 
-  // Self (controlling player)
-  const [selfId, setSelfId] = useState<string | null>(DEFAULT_SELF_FROM_ENV);
+  // Self panel
   const [self, setSelf] = useState<SelfPanel>({
-    id: selfId ?? "1",
-    name: `Player ${selfId ?? "1"}`,
-    color: PLAYER_COLORS[selfId ?? "1"] ?? "#94a3b8",
+    id: "1",
+    name: `Player 1`,
+    color: PLAYER_COLORS["1"] ?? "#94a3b8",
     victoryPoints: 0,
     resources: { wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 },
     devList: [],
@@ -258,15 +253,13 @@ export default function App() {
   const [isRolling, setIsRolling] = useState(false);
   function onServerRolled(d1: number, d2: number) { setCurrentRoll({ d1, d2 }); setIsRolling(false); }
 
-  // Dev hooks
+  // Dev hooks for testing
   if (typeof window !== "undefined") {
     (window as any).simRoll = (d1: number, d2: number) => onServerRolled(d1, d2);
   }
 
-  // Actions
-  function handleRollDice() { setIsRolling(true);
-    
-     /* send WS action if needed */ }
+  // Actions (hook up to WS later if you have action routing)
+  function handleRollDice() { setIsRolling(true); /* send WS action if needed */ }
   function handleTrade() { /* send WS action if needed */ }
   function handleBuyDev() { /* send WS action if needed */ }
 
@@ -276,79 +269,167 @@ export default function App() {
     return Array.from(counts.entries()).map(([type, count]) => ({ type, count }));
   }, [self.devList]);
 
-  // WebSocket
+  /** ----- WebSocket (shared for lobby and game) ----- */
   const wsRef = useRef<WebSocket | null>(null);
+
+  // Connect WS when we know gameId & playerId
   useEffect(() => {
-    const url =
-      (import.meta as any).env?.VITE_WS_URL ??
-      `ws://localhost:8000/ws/1/1`; // ws://.../ws/{game_id}/{player_id}
+    if (!gameId || !playerId) return;
+    // Close any existing
+    if (wsRef.current) { try { wsRef.current.close(); } catch { } wsRef.current = null; }
 
-    // Infer player id from URL if not set
-    if (!selfId) {
-      try {
-        const pid = new URL(url).pathname.split("/").filter(Boolean).pop();
-        if (pid) setSelfId(pid);
-      } catch {}
+    const ws = new WebSocket(`${WS_URL}/ws/${gameId}/${playerId}`); // ws://.../ws/{game_id}/{player_id}
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      // Add self to observed list
+      setObservedPlayers((prev) => new Set(prev).add(playerId));
+    };
+
+
+    ws.onmessage = (ev) => {
+      let data: any;
+      try { data = JSON.parse(ev.data); } catch { data = ev.data; }
+
+      // --- NEW: full snapshot for late joiners ---
+      if (data?.type === "lobby_state" && Array.isArray(data.players)) {
+        setObservedPlayers(new Set<number>(data.players.map((n: number) => Number(n))));
+        return;
+      }
+
+      // existing:
+      if (data?.status === "player_joined" && typeof data.player_id === "number") {
+        setObservedPlayers(prev => {
+          const next = new Set(prev);
+          next.add(data.player_id);
+          return next;
+        });
+        return;
+      }
+      if (data?.status === "player_disconnected" && typeof data.player_id === "number") {
+        setObservedPlayers(prev => {
+          const next = new Set(prev);
+          next.delete(data.player_id);
+          return next;
+        });
+        return;
+      }
+
+      // --- LOBBY-ONLY events before game starts ---
+      if (data?.status === "player_joined" && typeof data.player_id === "number") {
+        setObservedPlayers((prev) => {
+          const next = new Set(prev);
+          next.add(data.player_id);
+          return next;
+        });
+        return;
+      }
+      if (data?.status === "player_disconnected" && typeof data.player_id === "number") {
+        setObservedPlayers((prev) => {
+          const next = new Set(prev);
+          next.delete(data.player_id);
+          return next;
+        });
+        return;
+      }
+      if (data?.type === "ping") {
+        // keep-alive during lobby; nothing to do
+        return;
+      }
+
+      // --- GAME START SIGNALS ---
+      // server sends {"game_state":"True"} to all when start called, followed by per-player snapshot
+      if (data?.game_state === "True") {
+        setPhase("game");
+        return;
+      }
+
+      // --- FULL SNAPSHOT DURING GAME ---
+      if (data?.board && data?.players) {
+        setPhase("game");
+
+        const { overlay, players, bank } = toOverlayFromServer(data);
+        setOverlay(overlay);
+        setPlayers(players);
+        setBank(bank);
+
+        // Detect controlling player ID from snapshot
+        const detectedSelf = detectSelfFromSnapshot(data, String(playerId));
+        const sp = extractSelfPanel(data.players ?? {}, String(detectedSelf), PLAYER_COLORS);
+        setSelf(sp);
+        return;
+      }
+
+      // --- DICE EVENT ---
+      if (data?.type === "roll" && typeof data?.d1 === "number" && typeof data?.d2 === "number") {
+        onServerRolled(data.d1, data.d2);
+        return;
+      }
+    };
+
+    ws.onclose = () => { /* optionally: setPhase("lobby") */ };
+    ws.onerror = () => { /* optional log */ };
+
+    return () => { try { ws.close(); } catch { } };
+  }, [gameId, playerId]);
+
+  /** ----- REST helpers (same endpoints as in board.html) ----- */
+  async function createLobby() {
+    // POST /create -> { game_id, player_id }
+    const res = await fetch(`${API_URL}/create`, { method: "POST" }); // :contentReference[oaicite:2]{index=2}
+    const data = await res.json();
+    setGameId(data.game_id);
+    setPlayerId(data.player_id);
+    setObservedPlayers(new Set([data.player_id]));
+  }
+
+  async function joinLobby() {
+    if (!joinCode.trim()) return;
+    const code = parseInt(joinCode.trim(), 10);
+    const res = await fetch(`${API_URL}/join`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ game_id: code }),
+    }); // :contentReference[oaicite:3]{index=3}
+
+    const data = await res.json();
+    if (data.message) {
+      alert(`Join failed: ${data.message}`);
+      return;
     }
+    setGameId(data.game_id);
+    setPlayerId(data.player_id);
+    setObservedPlayers(new Set([data.player_id]));
+  }
 
-    try {
-      const ws = new WebSocket(url);
-      wsRef.current = ws;
-
-      ws.onopen = () => { /* optionally identify / subscribe */ };
-
-      ws.onmessage = (ev) => {
-        let data: any;
-        try { data = JSON.parse(ev.data); } catch { data = ev.data; }
-
-        // Detect controlling player from the snapshot (prefers entry with private info)
-        const detected = (data && data.players) ? detectSelfFromSnapshot(data, selfId) : null;
-
-        // Fallback chain if not a snapshot or nothing detected
-        const candidateSelf =
-          (detected ??
-           data?.self_player_id ??
-           data?.you_are ??
-           selfId ??
-           (() => {
-             try {
-               const pid = wsRef.current ? new URL(wsRef.current.url).pathname.split("/").filter(Boolean).pop() : null;
-               return pid || null;
-             } catch { return null; }
-           })() ??
-           "1");
-
-        setSelfId(String(candidateSelf));
-
-        // Full snapshot
-        if (data?.board && data?.players) {
-          const { overlay, players, bank } = toOverlayFromServer(data);
-          setOverlay(overlay);
-          setPlayers(players);
-          setBank(bank);
-
-          // Update self panel from snapshot using detected/candidate id
-          const myId = String(candidateSelf);
-          const sp = extractSelfPanel(data.players ?? {}, myId, PLAYER_COLORS);
-          setSelf(sp);
-        }
-
-        // Dice event
-        if (data?.type === "roll" && typeof data?.d1 === "number" && typeof data?.d2 === "number") {
-          onServerRolled(data.d1, data.d2);
-        }
-      };
-
-      ws.onerror = () => { /* optional toast/log */ };
-      ws.onclose = () => { /* optional reconnect */ };
-
-      return () => { ws.close(); };
-    } catch {
-      // ignore if environment blocks WS
+  async function startGame() {
+    if (!gameId) return;
+    const res = await fetch(`${API_URL}/game/${gameId}/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ game_id: gameId }),
+    }); // :contentReference[oaicite:4]{index=4}
+    const data = await res.json();
+    if (data.message && /already started|Not enough/.test(data.message)) {
+      alert(data.message);
     }
-  }, [selfId]);
+    // After this, server will push game_state + first snapshot via WS
+  }
 
-  // Dev helper: manual snapshot injection that also updates self
+  async function addBot() {
+    if (!gameId) return;
+    // Endpoints exist but are TODO in your server right now.
+    const res = await fetch(`${API_URL}/game/${gameId}/add_bot`, { method: "POST" }); // :contentReference[oaicite:5]{index=5}
+    if (!res.ok) alert("add_bot not implemented on server yet.");
+  }
+
+  async function removeBot() {
+    if (!gameId) return;
+    const res = await fetch(`${API_URL}/game/${gameId}/remove_bot`, { method: "POST" }); // :contentReference[oaicite:6]{index=6}
+    if (!res.ok) alert("remove_bot not implemented on server yet.");
+  }
+
+  /** ----- Dev helper: manual snapshot injection that also updates self ----- */
   useEffect(() => {
     if (typeof window === "undefined") return;
     (window as any).applyServer = (snap: any, me?: string | number) => {
@@ -357,16 +438,72 @@ export default function App() {
       setPlayers(players);
       setBank(bank);
 
-      // Prefer auto-detect from snapshot; allow override via 2nd arg
-      const auto = detectSelfFromSnapshot(snap, selfId);
+      const auto = detectSelfFromSnapshot(snap, self.id);
       const myId = (me != null ? String(me) : auto);
-      setSelfId(String(myId));
       const sp = extractSelfPanel(snap.players ?? {}, String(myId), PLAYER_COLORS);
       setSelf(sp);
+      setPhase("game");
     };
-    (window as any).setSelfId = (pid: string) => setSelfId(String(pid));
-  }, [selfId]);
+  }, [self.id]);
 
+  /** ================== UI ================== */
+  if (phase === "lobby") {
+    const count = observedPlayers.size;
+    return (
+      <div className="lobby-wrap" style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "linear-gradient(180deg,#0f172a,#1e293b)" }}>
+        <div className="lobby-card" style={{ width: 520, background: "grey", borderRadius: 16, padding: 20, boxShadow: "0 10px 30px rgba(0,0,0,.25)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <KeyRound /> <h2 style={{ margin: 0 }}>Catan</h2>
+          </div>
+
+          <div style={{ display: "grid", gap: 12 }}>
+            <button onClick={createLobby} className="btn primary" style={{ padding: 12, borderRadius: 10 }}>
+              <UserPlus size={18} /> Create new lobby
+            </button>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                placeholder="Enter lobby code"
+                className="input"
+                style={{ flex: 1, padding: 10, borderRadius: 10, border: "1px solid #e2e8f0" }}
+              />
+              <button onClick={joinLobby} className="btn" style={{ padding: "10px 14px", borderRadius: 10 }}>
+                Join
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gap: 8, marginTop: 6, background: "grey", padding: 12, borderRadius: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Users size={18} /> <strong>Players connected:</strong> {count}/4
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 6 }}>
+                <button onClick={startGame} disabled={(count < 2) || !gameId} className="btn success" style={{ padding: 10, borderRadius: 10 }}>
+                  <Play size={16} /> Start Game
+                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={addBot} disabled={!gameId} className="btn" title="Add bot" style={{ padding: 10, borderRadius: 10 }}>
+                    <Bot size={16} /> Add Bot
+                  </button>
+                  <button onClick={removeBot} disabled={!gameId} className="btn" title="Remove bot" style={{ padding: 10, borderRadius: 10 }}>
+                    <UserMinus size={16} /> Remove Bot
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: 4, marginTop: 4, fontSize: 14 }}>
+                <div><strong>Lobby code:</strong> {gameId ?? "—"}</div>
+                <div><strong>You are:</strong> {playerId ? `Player ${playerId}` : "—"}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ====== GAME PHASE (your existing HUD/board UI) ======
   return (
     <div className="layout">
       {/* Main board area */}
@@ -421,9 +558,9 @@ export default function App() {
                 <div key={type} className="dev-card" title={`${type} ×${count}`}>
                   <span className="dev-emoji">
                     {type === "Knight" ? "⚔️" :
-                     type === "Road Building" ? "🛣️" :
-                     type === "Year of Plenty" ? "🎁" :
-                     type === "Monopoly" ? "🎩" : "🎴"}
+                      type === "Road Building" ? "🛣️" :
+                        type === "Year of Plenty" ? "🎁" :
+                          type === "Monopoly" ? "🎩" : "🎴"}
                   </span>
                   {count > 1 && <span className="dev-badge">{count}</span>}
                 </div>

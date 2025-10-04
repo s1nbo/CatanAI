@@ -116,6 +116,11 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
     
     GAMES[game_id]["websockets"][player_id] = ws
 
+    await ws.send_json({
+        "type": "lobby_state",
+        "players": sorted(GAMES[game_id]["websockets"].keys())
+    })
+
     try:
         while not GAMES[game_id]["game_state"]:
             await ws.send_json({"type": "ping"})
