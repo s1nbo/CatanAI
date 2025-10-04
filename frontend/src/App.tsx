@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import "./App.css";
 import HexBoard from "./Board";
-import type { BoardOverlay } from "./Board";
+import type { BoardOverlay, ClickEdgePayload, ClickVertexPayload } from "./Board";
 
 /** ================== Types ================== */
 type Player = {
@@ -272,6 +272,16 @@ export default function App() {
   /** ----- WebSocket (shared for lobby and game) ----- */
   const wsRef = useRef<WebSocket | null>(null);
 
+  // Helper to send actions to the server over WS
+  function sendAction(payload: Record<string, any>) {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try { ws.send(JSON.stringify(payload)); } catch (e) { console.error("WS send failed", e); }
+    } else {
+      console.warn("WebSocket not connected; cannot send action", payload);
+    }
+  }
+
   // Connect WS when we know gameId & playerId
   useEffect(() => {
     if (!gameId || !playerId) return;
@@ -376,7 +386,7 @@ export default function App() {
   /** ----- REST helpers (same endpoints as in board.html) ----- */
   async function createLobby() {
     // POST /create -> { game_id, player_id }
-    const res = await fetch(`${API_URL}/create`, { method: "POST" }); // :contentReference[oaicite:2]{index=2}
+    const res = await fetch(`${API_URL}/create`, { method: "POST" });
     const data = await res.json();
     setGameId(data.game_id);
     setPlayerId(data.player_id);
@@ -390,7 +400,7 @@ export default function App() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ game_id: code }),
-    }); // :contentReference[oaicite:3]{index=3}
+    });
 
     const data = await res.json();
     if (data.message) {
@@ -408,7 +418,7 @@ export default function App() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ game_id: gameId }),
-    }); // :contentReference[oaicite:4]{index=4}
+    });
     const data = await res.json();
     if (data.message && /already started|Not enough/.test(data.message)) {
       alert(data.message);
@@ -418,14 +428,13 @@ export default function App() {
 
   async function addBot() {
     if (!gameId) return;
-    // Endpoints exist but are TODO in your server right now.
-    const res = await fetch(`${API_URL}/game/${gameId}/add_bot`, { method: "POST" }); // :contentReference[oaicite:5]{index=5}
+    const res = await fetch(`${API_URL}/game/${gameId}/add_bot`, { method: "POST" });
     if (!res.ok) alert("add_bot not implemented on server yet.");
   }
 
   async function removeBot() {
     if (!gameId) return;
-    const res = await fetch(`${API_URL}/game/${gameId}/remove_bot`, { method: "POST" }); // :contentReference[oaicite:6]{index=6}
+    const res = await fetch(`${API_URL}/game/${gameId}/remove_bot`, { method: "POST" });
     if (!res.ok) alert("remove_bot not implemented on server yet.");
   }
 
@@ -445,6 +454,34 @@ export default function App() {
       setPhase("game");
     };
   }, [self.id]);
+
+  /** ----- NEW: Board interaction → WS actions ----- */
+  function onVertexClick(evt: ClickVertexPayload) {
+    const me = self.id;
+    const ownerStr = evt.owner == null ? null : String(evt.owner);
+    const building = evt.building ? String(evt.building).toLowerCase() : null;
+
+    // Empty vertex → try place settlement
+    if (ownerStr == null && building == null) {
+      sendAction({ action: "place_settlement", vertex_id: evt.id });
+      return;
+    }
+
+    // My settlement → try upgrade to city
+    if (ownerStr === me && building === "settlement") {
+      sendAction({ action: "place_city", vertex_id: evt.id });
+      return;
+    }
+
+    // otherwise ignore (e.g., opponent piece)
+  }
+
+  function onEdgeClick(evt: ClickEdgePayload) {
+    // Only if unowned → try place road
+    if (evt.owner == null) {
+      sendAction({ action: "place_road", edge_id: evt.id });
+    }
+  }
 
   /** ================== UI ================== */
   if (phase === "lobby") {
@@ -584,7 +621,7 @@ export default function App() {
         </div>
 
         {/* The actual board, driven by live overlay */}
-        <HexBoard overlay={overlay} />
+        <HexBoard overlay={overlay} onVertexClick={onVertexClick} onEdgeClick={onEdgeClick} />
       </div>
 
       {/* Right sidebar: Bank + Players */}

@@ -1,7 +1,7 @@
 // Board.tsx
 // HexGrid React component (Plain React + Tailwind + CSS)
 // Tiles: 0–18, Vertices: 0–53, Edges: 0–71
-// Now supports "overlay" props to apply live server state.
+// Now supports "overlay" props to apply live server state and emits click events for actions.
 
 import React, { useMemo, useState } from "react";
 
@@ -13,7 +13,7 @@ export type BoardOverlay = {
     robber?: boolean | null;
   }>;
   vertices?: Array<{
-    building?: "Settlement" | "City" | null;
+    building?: string | null;   // server might send "settlement"/"city"
     owner?: number | null;      // 1..4 or null
     port?: string | null;       // "3:1", "2:1 Brick", ...
   }>;
@@ -21,6 +21,10 @@ export type BoardOverlay = {
     owner?: number | null;      // 1..4 or null
   }>;
 };
+
+/** ---- Click payloads (exported to App) ---- */
+export type ClickVertexPayload = { id: number; owner: number | null; building: string | null };
+export type ClickEdgePayload = { id: number; owner: number | null };
 
 /** ---- Geometry Types (internal) ---- */
 interface VertexG {
@@ -50,6 +54,7 @@ interface TileG {
   robber: boolean | null;
 }
 interface Geometry { tiles: TileG[]; vertices: Record<number, VertexG>; edges: Record<number, EdgeG>; }
+
 type LastClick = { type: 'tile' | 'edge' | 'vertex'; id: number } | null;
 
 const HEX_SIZE = 64;
@@ -87,7 +92,7 @@ const PLAYER_COLORS: Record<number | "null", string> = {
   1: "#f97316",
   2: "#a855f7",
   3: "#1448d5",
-  4: "#000000",
+  4: "#60a5fa",
   null: "#374151",
 };
 
@@ -113,10 +118,14 @@ export default function HexBoard({
   radius = 2,
   size = HEX_SIZE,
   overlay,
+  onVertexClick,
+  onEdgeClick,
 }: {
   radius?: number;
   size?: number;
   overlay?: BoardOverlay;
+  onVertexClick?: (p: ClickVertexPayload) => void;
+  onEdgeClick?: (p: ClickEdgePayload) => void;
 }) {
   const hexes = useMemo(() => generateHexes(radius), [radius]);
 
@@ -134,8 +143,8 @@ export default function HexBoard({
     const vertexIndex: Record<string, { x: number; y: number }> = {};
 
     for (const { q, r, cx, cy } of hexesWithIds) {
-      const pts = [];
-      const keys = [];
+      const pts = [] as { x: number; y: number }[];
+      const keys = [] as string[];
       for (let i = 0; i < 6; i++) {
         const angle = ((60 * i - 30) * Math.PI) / 180;
         const x = cx + size * Math.cos(angle);
@@ -169,10 +178,10 @@ export default function HexBoard({
     if (current.length) rows.push(current);
 
     if (rows.length !== VERTEX_ROW_COUNTS.length) {
-      const sliced = [];
+      const sliced: typeof rows = [];
       let cursor = 0;
       for (const count of VERTEX_ROW_COUNTS) {
-        sliced.push(vEntries.slice(cursor, cursor + count));
+        sliced.push(vEntries.slice(cursor, cursor + count) as any);
         cursor += count;
       }
       rows.length = 0;
@@ -235,12 +244,12 @@ export default function HexBoard({
 
     const keyToEdgeId = new Map<string, number>();
     edgeArr.forEach((e, idx) => {
-      e.id = idx;
-      e.owner = null; // placeholder; overlay will control
+      (e as any).id = idx;
+      (e as any).owner = null; // placeholder; overlay will control
       keyToEdgeId.set(e.key, idx);
     });
 
-    const edges: Record<number, EdgeG> = Object.fromEntries(edgeArr.map((e) => [e.id, e as EdgeG]));
+    const edges: Record<number, EdgeG> = Object.fromEntries(edgeArr.map((e) => [ (e as any).id, e as unknown as EdgeG ]));
 
     tiles.forEach((t) => {
       t.edgeIds = t.vertexIds.map((_, i) => {
@@ -255,7 +264,7 @@ export default function HexBoard({
     return { tiles, vertices, edges };
   }, [hexesWithIds, size]);
 
-  // Selection UI (unchanged)
+  // Selection UI (kept for debug)
   const [selectedTiles, setSelectedTiles] = useState<Set<number>>(new Set());
   const [selectedEdges, setSelectedEdges] = useState<Set<number>>(new Set());
   const [selectedVertices, setSelectedVertices] = useState<Set<number>>(new Set());
@@ -268,9 +277,27 @@ export default function HexBoard({
       return next;
     });
   }
-  function handleTileClick(tile: TileG) { toggleSetItem(setSelectedTiles, tile.id); setLastClick({ type: "tile", id: tile.id }); }
-  function handleEdgeClick(edge: EdgeG) { toggleSetItem(setSelectedEdges, edge.id); setLastClick({ type: "edge", id: edge.id }); }
-  function handleVertexClick(vertex: VertexG) { toggleSetItem(setSelectedVertices, vertex.id); setLastClick({ type: "vertex", id: vertex.id }); }
+
+  // NOTE: in addition to selection, we emit a concise payload to parent for WS action
+  function handleTileClick(tile: TileG) {
+    toggleSetItem(setSelectedTiles, tile.id);
+    setLastClick({ type: "tile", id: tile.id });
+  }
+  function handleEdgeClick(edge: EdgeG) {
+    toggleSetItem(setSelectedEdges, edge.id);
+    setLastClick({ type: "edge", id: edge.id });
+    const ov = overlay?.edges?.[edge.id];
+    const owner = ov?.owner ?? edge.owner ?? null;
+    onEdgeClick?.({ id: edge.id, owner });
+  }
+  function handleVertexClick(vertex: VertexG) {
+    toggleSetItem(setSelectedVertices, vertex.id);
+    setLastClick({ type: "vertex", id: vertex.id });
+    const ov = overlay?.vertices?.[vertex.id];
+    const owner = ov?.owner ?? vertex.owner ?? null;
+    const buildingRaw = ov?.building ?? vertex.building ?? null;
+    onVertexClick?.({ id: vertex.id, owner, building: (buildingRaw == null ? null : String(buildingRaw)) });
+  }
 
   const allX = geometry.tiles.map((t) => t.cx);
   const allY = geometry.tiles.map((t) => t.cy);
@@ -322,10 +349,6 @@ export default function HexBoard({
                   onClick={(ev) => { ev.stopPropagation(); handleTileClick(tile); }}
                   style={{ cursor: "pointer", filter: "url(#shadow)" }}
                 />
-                {/* Tile ID (small) */}
-                <text x={tile.cx} y={tile.cy + 22} textAnchor="middle" fontSize={10} fill="#111827" pointerEvents="none">
-                  #{tile.id}
-                </text>
                 {/* Number token */}
                 {number && (
                   <g>
@@ -363,9 +386,6 @@ export default function HexBoard({
                   pointerEvents="stroke"
                   onClick={(ev) => { ev.stopPropagation(); handleEdgeClick(e); }}
                 />
-                <text x={(e.x1 + e.x2) / 2} y={(e.y1 + e.y2) / 2} textAnchor="middle" fontSize={10} fill="#111827" pointerEvents="none">
-                  {e.id}
-                </text>
               </g>
             );
           })}
@@ -375,7 +395,8 @@ export default function HexBoard({
         <g>
           {Object.values(geometry.vertices).map((v) => {
             const ov = overlay?.vertices?.[v.id];
-            const building = (ov?.building ?? v.building) as "City" | "Settlement" | null;
+            const buildingRaw = (ov?.building ?? v.building) as string | null; // server may send lowercase
+            const buildingLower = buildingRaw ? buildingRaw.toLowerCase() : null;
             const owner = ov?.owner ?? v.owner;
             const port = ov?.port ?? v.port;
 
@@ -385,7 +406,7 @@ export default function HexBoard({
 
             return (
               <g key={v.id}>
-                {building === "City" ? (
+                {buildingLower === "city" ? (
                   <rect
                     x={v.x - 8} y={v.y - 8} width={16} height={16}
                     fill={isSel ? "#60a5fa" : fillColor}
@@ -402,9 +423,6 @@ export default function HexBoard({
                     style={{ cursor: "pointer" }}
                   />
                 )}
-                <text x={v.x} y={v.y - 12} textAnchor="middle" fontSize={12} fill="#111827" pointerEvents="none">
-                  {v.id}
-                </text>
                 {port && (
                   <g pointerEvents="none">
                     {(() => {
