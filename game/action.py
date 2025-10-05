@@ -56,7 +56,7 @@ def amount_lose_resource(player_id: int, players: dict) -> int:
     return total_cards // 2
 
 
-def remove_resources(player_id: int, players: dict, resources: dict) -> bool:
+def remove_resources(player_id: int, players: dict, resources: dict, bank: dict) -> bool:
     # check if player removes enough ressources
     total_remove = sum(resources.values())
     if total_remove < amount_lose_resource(player_id, players):
@@ -66,6 +66,7 @@ def remove_resources(player_id: int, players: dict, resources: dict) -> bool:
             return False
     for resource, amount in resources.items():
         players[player_id]["hand"][resource] -= amount
+        bank[resource] += amount
     return True
  
 
@@ -96,7 +97,7 @@ def end_turn(player_id: int, players: dict) -> bool:
 
 
 # Building Actions
-def place_settlement(board, vertex_id: int, player_id: int, players: dict) -> bool: 
+def place_settlement(board, vertex_id: int, player_id: int, players: dict, bank: dict) -> bool: 
     if players[player_id]["dice_rolled"] == False:
         return False
     if players[player_id]["settlements"] <= 0:
@@ -117,13 +118,17 @@ def place_settlement(board, vertex_id: int, player_id: int, players: dict) -> bo
     players[player_id]["hand"]["sheep"] -= 1
     players[player_id]["hand"]["wheat"] -= 1
     players[player_id]["victory_points"] += 1
+    bank["brick"] += 1
+    bank["wood"] += 1
+    bank["sheep"] += 1
+    bank["wheat"] += 1
     board.vertices[vertex_id].owner = player_id
     board.vertices[vertex_id].building = "settlement"
 
     return True
 
 
-def place_city(board: Board, vertex_id: int, player_id: int, players: dict) -> bool: 
+def place_city(board: Board, vertex_id: int, player_id: int, players: dict, bank: dict) -> bool: 
     if players[player_id]["dice_rolled"] == False:
         return False
     if players[player_id]["cities"] <= 0:
@@ -138,12 +143,14 @@ def place_city(board: Board, vertex_id: int, player_id: int, players: dict) -> b
     players[player_id]["hand"]["ore"] -= 3
     players[player_id]["hand"]["wheat"] -= 2
     players[player_id]["victory_points"] += 1
+    bank["ore"] += 3
+    bank["wheat"] += 2
     board.vertices[vertex_id].building = "city"
 
     return True
 
 
-def place_road(board: Board, edge_id: int, player_id: int, players: dict) -> bool: 
+def place_road(board: Board, edge_id: int, player_id: int, players: dict, bank: dict) -> bool: 
     if players[player_id]["dice_rolled"] == False:
         return False
     if players[player_id]["roads"] <= 0:
@@ -158,6 +165,8 @@ def place_road(board: Board, edge_id: int, player_id: int, players: dict) -> boo
     players[player_id]["roads"] -= 1
     players[player_id]["hand"]["brick"] -= 1
     players[player_id]["hand"]["wood"] -= 1
+    bank["brick"] += 1
+    bank["wood"] += 1
     board.edges[edge_id].owner = player_id
 
     return True
@@ -198,7 +207,7 @@ def can_place_road(board: Board, edge_id: int, player_id: int) -> bool:
 
 
 # Development Card Actions
-def buy_development_card(player_id: int, development_cards: list, players: dict) -> bool:
+def buy_development_card(player_id: int, development_cards: list, players: dict, bank: dict) -> bool:
     '''
     player_id: ID of the player buying the card
     development_cards: list of available development cards in the game
@@ -216,6 +225,10 @@ def buy_development_card(player_id: int, development_cards: list, players: dict)
     players[player_id]["hand"]["sheep"] -= 1
     players[player_id]["hand"]["wheat"] -= 1
     players[player_id]["hand"]["ore"] -= 1
+    bank["sheep"] += 1
+    bank["wheat"] += 1
+    bank["ore"] += 1
+
     if card == "victory_point":
         players[player_id]["victory_points"] += 1
     return True
@@ -258,6 +271,7 @@ def play_year_of_plenty(player_id: int, resources: list[str], players: dict, ban
         return False
     for resource in resources:
         players[player_id]["hand"][resource] += 1
+        bank[resource] -= 1
     players[player_id]["development_cards"]["year_of_plenty"] -= 1
     players[player_id]["played_card_this_turn"] = True
     return True

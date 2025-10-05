@@ -151,7 +151,7 @@ class Game:
                     return False
             
             case "discard_resources":
-                return remove_resources(player_id = player_id, players = self.players, resources = action.get("resources", {}))
+                return remove_resources(player_id = player_id, players = self.players, resources = action.get("resources", {}), bank = self.bank)
             
             case "move_robber":
                 if not move_robber(board = self.board, target_tile = int(action.get("target_tile"))):
@@ -162,16 +162,16 @@ class Game:
     
             # Building actions
             case "place_road":
-                return place_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players)
+                return place_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players, bank = self.bank)
             
             case "place_settlement":
-                return place_settlement(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players)
+                return place_settlement(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players, bank = self.bank)
             
             case "place_city":
-                return place_city(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players)
+                return place_city(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players, bank = self.bank)
             
             case "buy_development_card":
-                return buy_development_card(player_id= player_id, development_cards = self.development_cards, players = self.players)
+                return buy_development_card(player_id= player_id, development_cards = self.development_cards, players = self.players, bank = self.bank)
 
             # Development Card actions
             case "play_knight_card":
