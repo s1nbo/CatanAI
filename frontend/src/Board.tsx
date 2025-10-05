@@ -3,7 +3,7 @@
 // Tiles: 0–18, Vertices: 0–53, Edges: 0–71
 // Now supports "overlay" props to apply live server state and emits click events for actions.
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 
 /** ---- Overlay types coming from server-normalized data ---- */
 export type BoardOverlay = {
@@ -119,6 +119,7 @@ export default function HexBoard({
   onVertexClick,
   onEdgeClick,
   onSelect,
+  resetSelectionToken,
 }: {
   radius?: number;
   size?: number;
@@ -126,6 +127,7 @@ export default function HexBoard({
   onVertexClick?: (p: ClickVertexPayload) => void;
   onEdgeClick?: (p: ClickEdgePayload) => void;
   onSelect?: (sel: LastClick) => void;
+  resetSelectionToken?: unknown; // ← NEW
 }) {
   const hexes = useMemo(() => generateHexes(radius), [radius]);
 
@@ -277,6 +279,10 @@ export default function HexBoard({
       return updated;
     });
   };
+
+  useEffect(() => {
+    setSelected(null);
+  }, [resetSelectionToken]);
 
   // NOTE: in addition to selection, we emit a concise payload to parent for WS action
   function handleTileClick(tile: TileG) {

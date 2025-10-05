@@ -242,6 +242,8 @@ export default function App() {
   const [bank, setBank] = useState<Bank>({ wood: 19, brick: 19, sheep: 19, wheat: 19, ore: 19, devCards: 25, current_roll: null });
   const [overlay, setOverlay] = useState<BoardOverlay>({ tiles: [], edges: [], vertices: [] });
 
+  const [resetBoardSelToken, setResetBoardSelToken] = useState(0);
+
   // Self panel
   const [self, setSelf] = useState<SelfPanel>({
     id: "1",
@@ -294,35 +296,32 @@ export default function App() {
   function handleTrade() { /* send WS action if needed */ }
 
 
-  // NEW: click handler (wrapper only for now)
-  function handleBuildClick() {
+  // Click Handler
+  async function handleBuildClick() {
     if (!buildAction.enabled || !selected) return;
-
-    // Edges → place_road
-    if (selected.type === "edge") {
-      sendAction({ type: "place_road", edge_id: selected.id });
-      return;
-    }
-
-    // Vertices → place_settlement or place_city (if it's your settlement)
-    if (selected.type === "vertex") {
-      const v = overlay.vertices?.[selected.id];
-      const building = (v?.building || "").toString().toLowerCase();
-      const ownerStr = v?.owner != null ? String(v.owner) : null;
-
-      // Empty vertex → settlement
-      if (!building) {
-        sendAction({ type: "place_settlement", vertex_id: selected.id });
+    try {
+      if (selected.type === "edge") {
+        sendAction({ type: "place_road", edge_id: selected.id });
         return;
       }
-      // Your settlement → upgrade to city
-      if (building === "settlement" && ownerStr === self.id) {
-        sendAction({ type: "place_city", vertex_id: selected.id });
-        return;
-      }
-    }
+      if (selected.type === "vertex") {
+        const v = overlay.vertices?.[selected.id];
+        const building = (v?.building || "").toLowerCase();
+        const ownerStr = v?.owner != null ? String(v.owner) : null;
 
-    // Tiles are ignored here (robber wrapper/TODO).
+        if (!building) {
+          sendAction({ type: "place_settlement", vertex_id: selected.id });
+          return;
+        }
+        if (building === "settlement" && ownerStr === self.id) {
+          sendAction({ type: "place_city", vertex_id: selected.id });
+          return;
+        }
+      }
+    } finally {
+      setSelected(null);               // clear parent selection
+      setResetBoardSelToken(t => t + 1); // force Board to clear its local highlight
+    }
   }
 
   /** ----- WebSocket (shared for lobby and game) ----- */
@@ -625,14 +624,41 @@ export default function App() {
 
 
 
-            <div className="roll-row">
-              <span className="roll-label">Current roll</span>
-              <span className="roll-pill">
-                <span className="roll-dice">
-                  {bank.current_roll ? bank.current_roll : "— —"}
-                </span>
+            <div
+              style={{
+                marginTop: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                paddingTop: 8,
+              }}
+            >
+              <span style={{ fontSize: 14, opacity: 0.85 }}>Current Roll:</span>
+
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 64,
+                  height: 36,
+                  padding: "0 14px",
+                  borderRadius: 9999,
+                  fontWeight: 700,
+                  letterSpacing: 0.3,
+                  background:
+                    "linear-gradient(180deg, rgba(241,245,249,.6), rgba(226,232,240,.6))",
+                  border: `1px solid rgba(100,116,139,.35)`,
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,.35)",
+                  color: "#0f172a",
+                }}
+              >
+                {bank.current_roll ?? "—"}
               </span>
             </div>
+
+
           </div>
 
           {/* YOU panel */}
@@ -719,7 +745,7 @@ export default function App() {
         </div>
 
         {/* The actual board, driven by live overlay */}
-        <HexBoard overlay={overlay} onSelect={setSelected} />
+        <HexBoard overlay={overlay} onSelect={setSelected} resetSelectionToken={resetBoardSelToken} />
       </div>
 
       {/* Right sidebar: Bank + Players */}
