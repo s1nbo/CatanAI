@@ -2,11 +2,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Trophy, Swords, Route, Hand, Layers,
-  Dice5, ShoppingBag, Handshake, Bot, UserPlus, UserMinus, Play, KeyRound, Users
+  Bot, UserPlus, UserMinus, Play, KeyRound, Users
 } from "lucide-react";
 import "./App.css";
 import HexBoard from "./Board";
-import type { BoardOverlay, ClickEdgePayload, ClickVertexPayload } from "./Board";
+import type { BoardOverlay} from "./Board";
 
 /** ================== Types ================== */
 type Player = {
@@ -56,7 +56,7 @@ const PLAYER_COLORS: Record<string, string> = {
   3: "#003049",
   4: "#780000",
 };
-const DIE = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+
 
 /** ================== Helpers for server snapshots ================== */
 function parseMaybeJSONString<T = any>(v: any): T {
