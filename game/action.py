@@ -91,7 +91,7 @@ def end_turn(player_id: int, players: dict) -> bool:
     players[player_id]["dice_rolled"] = False
     players[player_id]["played_card_this_turn"] = False
     players[player_id]["current_turn"] = False
-    players[(player_id + 1) % len(players) + 1]["current_turn"] = True
+    players[player_id % len(players) + 1]["current_turn"] = True
     return True
 
 

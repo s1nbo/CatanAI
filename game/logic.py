@@ -122,6 +122,7 @@ class Game:
             return True
         
         # return a list of game states for all players
+        # print(self.get_multiplayer_game_state()) # DEBUG
         return self.get_multiplayer_game_state()
 
 
@@ -144,6 +145,7 @@ class Game:
             case "end_turn":
                 if end_turn(player_id = player_id, players = self.players):
                     self.number = None
+                    self.current_turn = (self.current_turn % len(self.players)) + 1
                     return True
                 else:
                     return False
