@@ -76,14 +76,12 @@ const RESOURCE_COLORS = {
 
 // Server → board color key
 const RESOURCE_ALIASES: Record<string, keyof typeof RESOURCE_COLORS> = {
-  Wood: "Wood",
-  Brick: "Brick",
-  Sheep: "Sheep",
-  Wheat: "Wheat",
-  Ore: "Ore",
-  Desert: "Desert",
-  
-  
+  Wood: "Wood", wood: "Wood",
+  Brick: "Brick", brick: "Brick",
+  Sheep: "Sheep", sheep: "Sheep",
+  Wheat: "Wheat", wheat: "Wheat",
+  Ore:  "Ore",  ore:  "Ore",
+  Desert: "Desert", desert: "Desert",
   null: "null",
 };
 

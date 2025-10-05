@@ -69,7 +69,7 @@ function looksLikeSelfEntry(raw: any): boolean {
   if (!raw || typeof raw !== "object") return false;
   const hasHandObj = !!(raw.resources || raw.hand);
   const hasFlatResourceCounts =
-    ["wood", "brick", "sheep", "wheat", "ore", "Wood", "Brick", "Sheep", "Wheat", "Ore", "Wheat", "Wheat", "Sheep", "Sheep"]
+    ["wood", "brick", "sheep", "wheat", "ore", "Wood", "Brick", "Sheep", "Wheat", "Ore"]
       .some(k => typeof (raw as any)[k] === "number");
   const hasDevList = Array.isArray((raw as any).development_cards) || Array.isArray((raw as any).dev_cards);
   const hasDevCounts = !!((raw as any).development_cards_counts || (raw as any).dev_cards_counts);
@@ -82,8 +82,8 @@ function normalizeResources(raw: any): SelfPanel["resources"] {
   return {
     wood: n(src.wood ?? src.Wood),
     brick: n(src.brick ?? src.Brick),
-    sheep: n(src.sheep ?? src.Sheep ?? src.Sheep ?? src.Sheep),
-    wheat: n(src.wheat ?? src.Wheat ?? src.Wheat ?? src.Wheat),
+    sheep: n(src.sheep ?? src.Sheep),
+    wheat: n(src.wheat ?? src.Wheat),
     ore: n(src.ore ?? src.Ore),
   };
 }

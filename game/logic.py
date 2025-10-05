@@ -142,7 +142,11 @@ class Game:
                 return True
             
             case "end_turn":
-                return end_turn(player_id = player_id, players = self.players)
+                if end_turn(player_id = player_id, players = self.players):
+                    self.number = None
+                    return True
+                else:
+                    return False
             
             case "discard_resources":
                 return remove_resources(player_id = player_id, players = self.players, resources = action.get("resources", {}))
@@ -218,6 +222,7 @@ class Game:
                 "bank": self.bank,
                 "development_cards_remaining": len(self.development_cards),
                 "current_turn": self.current_turn,
+                "current_roll": self.number,
                 "initial_placement_order": self.initial_placement_order[self.counter] if self.counter < len(self.initial_placement_order) else -1
             }
         return result
