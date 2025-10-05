@@ -92,8 +92,12 @@ function normalizeResources(raw: any): SelfPanel["resources"] {
 function normalizeDevCards(raw: any): { devList: string[]; vpCards: number } {
   const out: string[] = [];
   let vp = 0;
+
   const arr = raw?.development_cards ?? raw?.dev_cards ?? null;
-  const counts = raw?.development_cards_counts ?? raw?.dev_cards_counts ?? null;
+  // NEW: if development_cards is an OBJECT, treat it as counts
+  const counts =
+    (raw?.development_cards_counts ?? raw?.dev_cards_counts) ??
+    (arr && typeof arr === "object" && !Array.isArray(arr) ? arr : null);
 
   if (Array.isArray(arr)) {
     for (const d of arr) {
@@ -101,12 +105,13 @@ function normalizeDevCards(raw: any): { devList: string[]; vpCards: number } {
       if (/victory/i.test(name)) vp += 1; else out.push(name);
     }
   } else if (counts && typeof counts === "object") {
-    const pushTimes = (label: string, times: number | undefined) => { for (let i = 0; i < (times || 0); i++) out.push(label); };
-    pushTimes("Knight", counts.Knight ?? counts.knight);
-    pushTimes("Road Building", counts["Road Building"] ?? counts.road_building);
-    pushTimes("Year of Plenty", counts["Year of Plenty"] ?? counts.year_of_plenty);
-    pushTimes("Monopoly", counts.Monopoly ?? counts.monopoly);
-    vp = (counts["Victory Point"] ?? counts.victory_point ?? 0) as number;
+    const n = (v: any) => (typeof v === "number" ? v : 0);
+    const pushTimes = (label: string, times: number) => { for (let i = 0; i < (times || 0); i++) out.push(label); };
+    pushTimes("Knight", n(counts.Knight ?? counts.knight));
+    pushTimes("Road Building", n(counts["Road Building"] ?? counts.road_building));
+    pushTimes("Year of Plenty", n(counts["Year of Plenty"] ?? counts.year_of_plenty));
+    pushTimes("Monopoly", n(counts.Monopoly ?? counts.monopoly));
+    vp = n(counts["victory_point"] ?? counts["Victory Point"] ?? counts.victory_point);
   } else {
     vp = raw?.victory_point_cards ?? raw?.vp_cards ?? 0;
   }
@@ -118,6 +123,7 @@ function normalizeDevCards(raw: any): { devList: string[]; vpCards: number } {
   }
   return { devList: out, vpCards: vp };
 }
+
 
 function extractSelfPanel(playersMap: Record<string, any>, selfId: string, playerColors: Record<string, string>): SelfPanel {
   const rawEntry = playersMap?.[selfId];
