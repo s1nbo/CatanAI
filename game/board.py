@@ -47,11 +47,11 @@ class Board:
         # Setup Board
 
         HEXES = [
-            'Sheep', 'Sheep', 'Sheep', 'Sheep',
-            'Wheat', 'Wheat', 'Wheat', 'Wheat',
-            'Wood', 'Wood', 'Wood', 'Wood',
-            'Brick', 'Brick', 'Brick',
-            'Ore', 'Ore', 'Ore',
+            'sheep', 'sheep', 'sheep', 'sheep',
+            'wheat', 'wheat', 'wheat', 'wheat',
+            'wood', 'wood', 'wood', 'wood',
+            'brick', 'brick', 'brick',
+            'ore', 'ore', 'ore',
             'Desert'
         ]
         PORTS = [

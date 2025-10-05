@@ -31,6 +31,7 @@ type Bank = {
   wheat: number;
   ore: number;
   devCards: number;
+  current_roll: number | null;
 };
 
 type SelfPanel = {
@@ -187,10 +188,12 @@ function toOverlayFromServer(server: any): {
     wheat: server?.bank?.wheat ?? 0,
     ore: server?.bank?.ore ?? 0,
     devCards: server?.development_cards_remaining ?? 0,
+    current_roll: server?.current_roll ?? null,
   };
 
   const playersMap = server?.players ?? {};
   const highlightId = computeHighlightId(server);
+
 
   const ids = Object.keys(playersMap).sort((a, b) => Number(a) - Number(b));
   const players: Player[] = ids.map((pid) => {
@@ -216,6 +219,8 @@ function toOverlayFromServer(server: any): {
   return { overlay, players, bank };
 }
 
+``
+
 /** ================== Component ================== */
 export default function App() {
   /** ----- Phase & Lobby state ----- */
@@ -234,7 +239,7 @@ export default function App() {
     { id: "3", name: "Player 3", color: PLAYER_COLORS["3"], victoryPoints: 0, largestArmy: 0, longestRoad: 0, cities: 0, settlements: 0, roads: 0, handSize: 0, devCards: 0 },
     { id: "4", name: "Player 4", color: PLAYER_COLORS["4"], victoryPoints: 0, largestArmy: 0, longestRoad: 0, cities: 0, settlements: 0, roads: 0, handSize: 0, devCards: 0 },
   ]);
-  const [bank, setBank] = useState<Bank>({ wood: 19, brick: 19, sheep: 19, wheat: 19, ore: 19, devCards: 25 });
+  const [bank, setBank] = useState<Bank>({ wood: 19, brick: 19, sheep: 19, wheat: 19, ore: 19, devCards: 25, current_roll: null });
   const [overlay, setOverlay] = useState<BoardOverlay>({ tiles: [], edges: [], vertices: [] });
 
   // Self panel
@@ -248,9 +253,12 @@ export default function App() {
     vpCards: 0,
   });
 
-  // Dice
-  const [currentRoll, setCurrentRoll] = useState<{ d1: number; d2: number } | null>(null);
-  function onServerRolled(d1: number, d2: number) { setCurrentRoll({ d1, d2 }); }
+  const isMyTurn = players.find(p => p.id === self.id)?.isCurrent ?? false;
+
+  const canEndTurn = useMemo(() => {
+    const hasRolled = bank.current_roll !== null;
+    return isMyTurn && hasRolled;
+  }, [players, self.id, bank.current_roll]);
 
   // NEW: what the board says is currently selected
   const [selected, setSelected] = useState<{ type: 'tile' | 'edge' | 'vertex'; id: number } | null>(null);
@@ -276,52 +284,46 @@ export default function App() {
     return { label: "Vertex occupied", enabled: false };
   }, [selected, overlay]);
 
-  // NEW: click handler (wrapper only for now)
-function handleBuildClick() {
-  if (!buildAction.enabled || !selected) return;
 
-  // Edges → place_road
-  if (selected.type === "edge") {
-    sendAction({ type: "place_road", edge_id: selected.id });
-    return;
-  }
 
-  // Vertices → place_settlement or place_city (if it's your settlement)
-  if (selected.type === "vertex") {
-    const v = overlay.vertices?.[selected.id];
-    const building = (v?.building || "").toString().toLowerCase();
-    const ownerStr = v?.owner != null ? String(v.owner) : null;
-
-    // Empty vertex → settlement
-    if (!building) {
-      sendAction({ type: "place_settlement", vertex_id: selected.id });
-      return;
-    }
-    // Your settlement → upgrade to city
-    if (building === "settlement" && ownerStr === self.id) {
-      sendAction({ type: "place_city", vertex_id: selected.id });
-      return;
-    }
-  }
-
-  // Tiles are ignored here (robber wrapper/TODO).
-}
-
-  // Dev hooks for testing
-  if (typeof window !== "undefined") {
-    (window as any).simRoll = (d1: number, d2: number) => onServerRolled(d1, d2);
-  }
+  function handleEndTurn() { sendAction({ type: "end_turn" }); }
+  function handleBuyDev() { sendAction({ type: "buy_development_card" }); }
 
   // Actions (hook up to WS later if you have action routing)
-  function handleRollDice() { /* send WS action if needed */ }
+  function handleRollDice() { sendAction({ type: "roll_dice" }); }
   function handleTrade() { /* send WS action if needed */ }
-  function handleBuyDev() { /* send WS action if needed */ }
 
-  const devGroups = useMemo(() => {
-    const counts = new Map<string, number>();
-    self.devList.forEach((c) => counts.set(c, (counts.get(c) ?? 0) + 1));
-    return Array.from(counts.entries()).map(([type, count]) => ({ type, count }));
-  }, [self.devList]);
+
+  // NEW: click handler (wrapper only for now)
+  function handleBuildClick() {
+    if (!buildAction.enabled || !selected) return;
+
+    // Edges → place_road
+    if (selected.type === "edge") {
+      sendAction({ type: "place_road", edge_id: selected.id });
+      return;
+    }
+
+    // Vertices → place_settlement or place_city (if it's your settlement)
+    if (selected.type === "vertex") {
+      const v = overlay.vertices?.[selected.id];
+      const building = (v?.building || "").toString().toLowerCase();
+      const ownerStr = v?.owner != null ? String(v.owner) : null;
+
+      // Empty vertex → settlement
+      if (!building) {
+        sendAction({ type: "place_settlement", vertex_id: selected.id });
+        return;
+      }
+      // Your settlement → upgrade to city
+      if (building === "settlement" && ownerStr === self.id) {
+        sendAction({ type: "place_city", vertex_id: selected.id });
+        return;
+      }
+    }
+
+    // Tiles are ignored here (robber wrapper/TODO).
+  }
 
   /** ----- WebSocket (shared for lobby and game) ----- */
   const wsRef = useRef<WebSocket | null>(null);
@@ -423,12 +425,6 @@ function handleBuildClick() {
         setSelf(sp);
         return;
       }
-
-      // --- DICE EVENT ---
-      if (data?.type === "roll" && typeof data?.d1 === "number" && typeof data?.d2 === "number") {
-        onServerRolled(data.d1, data.d2);
-        return;
-      }
     };
 
     ws.onclose = () => { /* optionally: setPhase("lobby") */ };
@@ -509,34 +505,6 @@ function handleBuildClick() {
     };
   }, [self.id]);
 
-  /** ----- NEW: Board interaction → WS actions ----- */
-  function onVertexClick(evt: ClickVertexPayload) {
-    const me = self.id;
-    const ownerStr = evt.owner == null ? null : String(evt.owner);
-    const building = evt.building ? String(evt.building).toLowerCase() : null;
-
-    // Empty vertex → try place settlement
-    if (ownerStr == null && building == null) {
-      sendAction({ action: "place_settlement", vertex_id: evt.id });
-      return;
-    }
-
-    // My settlement → try upgrade to city
-    if (ownerStr === me && building === "settlement") {
-      sendAction({ action: "place_city", vertex_id: evt.id });
-      return;
-    }
-
-    // otherwise ignore (e.g., opponent piece)
-  }
-
-  function onEdgeClick(evt: ClickEdgePayload) {
-    // Only if unowned → try place road
-    if (evt.owner == null) {
-      sendAction({ action: "place_road", edge_id: evt.id });
-    }
-  }
-
   /** ================== UI ================== */
   if (phase === "lobby") {
     const count = observedPlayers.size;
@@ -584,8 +552,27 @@ function handleBuildClick() {
               </div>
 
               <div style={{ display: "grid", gap: 4, marginTop: 4, fontSize: 14 }}>
-                <div><strong>Lobby code:</strong> {gameId ?? "—"}</div>
-                <div><strong>You are:</strong> {playerId ? `Player ${playerId}` : "—"}</div>
+                <div>
+                  <strong>Lobby code:</strong>{" "}
+                  {gameId !== undefined && gameId !== null && String(gameId).trim() !== "" ? (
+                    <span style={{ fontWeight: 800, fontSize: 20, letterSpacing: 0.5 }}>
+                      {String(gameId)}
+                    </span>
+                  ) : (
+                    <span>--</span>
+                  )}
+                </div>
+
+                <div>
+                  <strong>You are:</strong>{" "}
+                  {playerId !== undefined && playerId !== null && String(playerId).trim() !== "" ? (
+                    <span style={{ fontWeight: 700, fontSize: 18 }}>
+                      {`Player ${playerId}`}
+                    </span>
+                  ) : (
+                    <span>--</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -605,24 +592,45 @@ function handleBuildClick() {
           <div className="hud-card">
             <h3 className="hud-title">Actions</h3>
             <div className="actions-grid">
-              <button onClick={handleRollDice} title="Roll Dice">
-                <Dice5 size={18} /> {"Roll"}
+              <button
+                onClick={handleRollDice}
+                disabled={!isMyTurn || bank.current_roll !== null}
+                title="Roll Dice"
+                className="btn-accent hud-btn-primary"
+                style={{ ["--accent" as any]: self.color }}
+              >
+                Roll
               </button>
-              <button onClick={handleTrade} title="Trade">
-                <Handshake size={18} /> Trade
+
+              <button
+                onClick={handleTrade}
+                disabled={!canEndTurn}
+                title="Trade"
+                className="btn-accent"
+                style={{ ["--accent" as any]: self.color }}
+              >
+                Trade
               </button>
-              <button onClick={handleBuyDev} title="Buy Dev">
-                <ShoppingBag size={18} /> Buy
+
+              <button
+                onClick={handleBuyDev}
+                disabled={!canEndTurn}
+                title="Buy Dev"
+                className="btn-accent"
+                style={{ ["--accent" as any]: self.color }}
+              >
+                Buy Dev
               </button>
             </div>
+
+
 
             <div className="roll-row">
               <span className="roll-label">Current roll</span>
               <span className="roll-pill">
                 <span className="roll-dice">
-                  {currentRoll ? `${DIE[currentRoll.d1]} ${DIE[currentRoll.d2]}` : "— —"}
+                  {bank.current_roll ? bank.current_roll : "— —"}
                 </span>
-                <span>{currentRoll ? currentRoll.d1 + currentRoll.d2 : "—"}</span>
               </span>
             </div>
           </div>
@@ -694,6 +702,18 @@ function handleBuildClick() {
                 {buildAction.label}
               </button>
             </div>
+          </div>
+
+          {/* NEW: End Turn button (under Build) */}
+          <div className="hud-card">
+            <button
+              onClick={handleEndTurn}
+              disabled={!canEndTurn}
+              className="btn-accent"
+              style={{ ["--accent" as any]: self.color, width: "100%" }}
+            >
+              End Turn
+            </button>
           </div>
 
         </div>
