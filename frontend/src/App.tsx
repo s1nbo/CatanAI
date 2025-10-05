@@ -41,7 +41,6 @@ type SelfPanel = {
   victoryPoints: number;
   resources: { wood: number; brick: number; sheep: number; wheat: number; ore: number };
   devList: string[];
-  vpCards: number;
 };
 
 type Phase = "lobby" | "game";
@@ -89,51 +88,65 @@ function normalizeResources(raw: any): SelfPanel["resources"] {
   };
 }
 
-function normalizeDevCards(raw: any): { devList: string[]; vpCards: number } {
+function normalizeDevCards(raw: any): string[] {
   const out: string[] = [];
-  let vp = 0;
 
   const arr = raw?.development_cards ?? raw?.dev_cards ?? null;
-  // NEW: if development_cards is an OBJECT, treat it as counts
   const counts =
-    (raw?.development_cards_counts ?? raw?.dev_cards_counts) ??
+    raw?.development_cards_counts ??
+    raw?.dev_cards_counts ??
     (arr && typeof arr === "object" && !Array.isArray(arr) ? arr : null);
+
+  const pushTimes = (label: string, times: any) => {
+    const n = typeof times === "number" ? times : 0;
+    for (let i = 0; i < n; i++) out.push(label);
+  };
 
   if (Array.isArray(arr)) {
     for (const d of arr) {
       const name = String(d);
-      if (/victory/i.test(name)) vp += 1; else out.push(name);
+      if (/victory/i.test(name)) out.push("VP");
+      else out.push(prettyDevName(name));
     }
   } else if (counts && typeof counts === "object") {
-    const n = (v: any) => (typeof v === "number" ? v : 0);
-    const pushTimes = (label: string, times: number) => { for (let i = 0; i < (times || 0); i++) out.push(label); };
-    pushTimes("Knight", n(counts.Knight ?? counts.knight));
-    pushTimes("Road Building", n(counts["Road Building"] ?? counts.road_building));
-    pushTimes("Year of Plenty", n(counts["Year of Plenty"] ?? counts.year_of_plenty));
-    pushTimes("Monopoly", n(counts.Monopoly ?? counts.monopoly));
-    vp = n(counts["victory_point"] ?? counts["Victory Point"] ?? counts.victory_point);
+    pushTimes("Knight", counts.Knight ?? counts.knight);
+    pushTimes("Road Building", counts["Road Building"] ?? counts.road_building);
+    pushTimes("Year of Plenty", counts["Year of Plenty"] ?? counts.year_of_plenty);
+    pushTimes("Monopoly", counts.Monopoly ?? counts.monopoly);
+    // VP cards go into the SAME list:
+    pushTimes("VP", counts["Victory Point"] ?? counts.victory_point ?? 0);
   } else {
-    vp = raw?.victory_point_cards ?? raw?.vp_cards ?? 0;
+    // Fallback: some servers expose total VP dev cards separately
+    pushTimes("VP", raw?.victory_point_cards ?? raw?.vp_cards ?? 0);
   }
 
-  const total = raw?.total_development_cards;
-  if (typeof total === "number" && out.length + vp > total) {
-    const overflow = out.length + vp - total;
-    out.splice(0, Math.max(0, overflow));
-  }
-  return { devList: out, vpCards: vp };
+  return out;
 }
+
+
+function prettyDevName(s: string) {
+  const k = s.toLowerCase().replace(/\s+/g, "_");
+  switch (k) {
+    case "road_building": return "Road Building";
+    case "year_of_plenty": return "Year of Plenty";
+    default:
+      return s
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, m => m.toUpperCase());
+  }
+}
+
 
 
 function extractSelfPanel(playersMap: Record<string, any>, selfId: string, playerColors: Record<string, string>): SelfPanel {
   const rawEntry = playersMap?.[selfId];
   const raw = rawEntry ? (typeof rawEntry === "string" ? JSON.parse(rawEntry) : rawEntry) : {};
   const resources = normalizeResources(raw);
-  const { devList, vpCards } = normalizeDevCards(raw);
+  const devList = normalizeDevCards(raw); // <-- now includes "VP"
   const victoryPoints = raw?.victory_points ?? 0;
   const name = `Player ${selfId}`;
   const color = playerColors[selfId] ?? "#94a3b8";
-  return { id: selfId, name, color, victoryPoints, resources, devList, vpCards };
+  return { id: selfId, name, color, victoryPoints, resources, devList };
 }
 
 function detectSelfFromSnapshot(server: any, fallback: string | null): string {
@@ -258,7 +271,6 @@ export default function App() {
     victoryPoints: 0,
     resources: { wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 },
     devList: [],
-    vpCards: 0,
   });
 
   const isMyTurn = players.find(p => p.id === self.id)?.isCurrent ?? false;
@@ -673,7 +685,6 @@ export default function App() {
             <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 6 }}>
               <div className="dot" style={{ background: self.color }} />
               <div>Victory Points: <strong>{self.victoryPoints}</strong></div>
-              <div>VP Cards: <strong>{self.vpCards}</strong></div>
             </div>
           </div>
 
@@ -691,7 +702,8 @@ export default function App() {
                     {type === "Knight" ? "⚔️" :
                       type === "Road Building" ? "🛣️" :
                         type === "Year of Plenty" ? "🎁" :
-                          type === "Monopoly" ? "🎩" : "🎴"}
+                          type === "Monopoly" ? "🎩" :
+                            type === "VP" ? "⭐" : "❓"}
                   </span>
                   {count > 1 && <span className="dev-badge">{count}</span>}
                 </div>
