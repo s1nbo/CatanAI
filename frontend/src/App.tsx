@@ -788,7 +788,15 @@ export default function App() {
 
   // ====== GAME PHASE (your existing HUD/board UI) ======
   return (
-    <div className="layout">
+
+    <div
+      className="layout"
+      style={{
+        // when right panel is closed, collapse to a single column
+        gridTemplateColumns: rightOpen ? undefined : "1fr",
+        transition: "grid-template-columns 160ms ease"
+      }}
+    >
       {/* Game Over Overlay */}
       {gameOver && (
         <div
@@ -1239,7 +1247,11 @@ export default function App() {
       )}
 
       {/* Main board area */}
-      <div className="board">
+      <div className="board" style={{
+        // when the right sidebar is hidden, push the whole block to the right edge
+        marginLeft: rightOpen ? undefined : "auto",
+        transition: "margin 160ms ease"
+      }}>
         {/* LEFT HUD */}
         <div className="hud-left">
           {/* Actions */}
@@ -1465,7 +1477,6 @@ export default function App() {
           </aside>
         )}
 
-/* Floating toggle handle (always visible) */
         <button
           onClick={() => setRightOpen(v => !v)}
           aria-label={rightOpen ? "Collapse right sidebar" : "Expand right sidebar"}
