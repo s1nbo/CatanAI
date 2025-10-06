@@ -1438,7 +1438,7 @@ export default function App() {
             position: "relative",     // create stacking context
             zIndex: 2,                // above the sidebar
             transition: "transform 200ms ease",
-            transform: rightOpen ? "translateX(0)" : "translateX(250px)", // tweak px as desired
+            transform: rightOpen ? "translateX(0)" : "translateX(280px)", // tweak px as desired
           }}
         >
           {/* The actual board, driven by live overlay */}
@@ -1450,7 +1450,7 @@ export default function App() {
       <aside className="sidebar"
         style={{
           position: "relative",   // create stacking context
-          zIndex: 1,             
+          zIndex: 1,
         }}
       >
         {/* Right sidebar: Bank + Players (collapsible) */}
@@ -1492,32 +1492,32 @@ export default function App() {
           </aside>
         )}
 
-        <button
-          onClick={() => setRightOpen(v => !v)}
-          aria-label={rightOpen ? "Collapse right sidebar" : "Expand right sidebar"}
-          title={rightOpen ? "Collapse sidebar" : "Expand sidebar"}
-          className="btn-accent"
-          style={{
-            ["--accent" as any]: self.color,
-            position: "fixed",
-            right: 8,
-            top: "50%",
-            transform: "translateY(-50%)",
-            borderRadius: 999,
-            padding: "8px 10px",
-            zIndex: 9999,
-            boxShadow: "0 6px 16px rgba(0,0,0,.25)",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            background: "white"
-          }}
-        >
-          {rightOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          <span style={{ fontSize: 12, fontWeight: 600 }}>{rightOpen ? "Hide" : "Show"}</span>
-        </button>
-
       </aside>
+
+      <button
+        onClick={() => setRightOpen(v => !v)}
+        aria-label={rightOpen ? "Collapse right sidebar" : "Expand right sidebar"}
+        title={rightOpen ? "Collapse sidebar" : "Expand sidebar"}
+        className="btn-accent"
+        style={{
+          ["--accent" as any]: self.color,
+          position: "fixed",
+          right: 8,
+          top: "50%",
+          transform: "translateY(-50%)",
+          borderRadius: 999,
+          padding: "8px 10px",
+          zIndex: 9997,
+          boxShadow: "0 6px 16px rgba(0,0,0,.25)",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          background: "white"
+        }}
+      >
+        {rightOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        <span style={{ fontSize: 12, fontWeight: 600 }}>{rightOpen ? "Hide" : "Show"}</span>
+      </button>
     </div>
   );
 }
