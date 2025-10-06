@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Trophy, Swords, Route, Hand, Layers,
-  Bot, UserPlus, UserMinus, Play, KeyRound, Users
+  Bot, UserPlus, UserMinus, Play, KeyRound, Users,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 import "./App.css";
 import HexBoard from "./Board";
@@ -333,6 +334,8 @@ export default function App() {
 
   // NEW: what the board says is currently selected
   const [selected, setSelected] = useState<{ type: 'tile' | 'edge' | 'vertex'; id: number } | null>(null);
+  const [rightOpen, setRightOpen] = useState(true);
+
 
   // NEW: compute the context-aware action label + enabled flag
   const buildAction = useMemo(() => {
@@ -1423,40 +1426,71 @@ export default function App() {
 
       {/* Right sidebar: Bank + Players */}
       <aside className="sidebar">
-        <div className="card">
-          <h2 className="card-title">Bank</h2>
-          <div className="bank-grid">
-            <div>🌲 Wood: <strong>{bank.wood}</strong></div>
-            <div>🧱 Brick: <strong>{bank.brick}</strong></div>
-            <div>🐑 Sheep: <strong>{bank.sheep}</strong></div>
-            <div>🌾 Wheat: <strong>{bank.wheat}</strong></div>
-            <div>⛰️ Ore: <strong>{bank.ore}</strong></div>
-            <div>🎴 Dev Cards: <strong>{bank.devCards}</strong></div>
-          </div>
-        </div>
+        {/* Right sidebar: Bank + Players (collapsible) */}
+        {rightOpen && (
+          <aside className="sidebar">
+            <div className="card">
+              <h2 className="card-title">Bank</h2>
+              <div className="bank-grid">
+                <div>🌲 Wood: <strong>{bank.wood}</strong></div>
+                <div>🧱 Brick: <strong>{bank.brick}</strong></div>
+                <div>🐑 Sheep: <strong>{bank.sheep}</strong></div>
+                <div>🌾 Wheat: <strong>{bank.wheat}</strong></div>
+                <div>⛰️ Ore: <strong>{bank.ore}</strong></div>
+                <div>🎴 Dev Cards: <strong>{bank.devCards}</strong></div>
+              </div>
+            </div>
 
-        <h2 className="section-title">Players</h2>
-        {players.map((p) => (
-          <div className="card" key={p.id} style={p.isCurrent ? { outline: `6px solid ${p.color}` } : undefined}>
-            <div className="player-header">
-              <div className="dot" style={{ backgroundColor: p.color }} />
-              <span className="player-name">{p.name}</span>
-            </div>
-            <div className="stats-grid">
-              <div className="stat"><Trophy /> <span>{p.victoryPoints}</span></div>
-              <div className="stat"><Swords /> <span style={{ color: p.largestArmy ? 'red' : 'black' }}>{p.played_knights}</span></div>
-              <div className="stat"><Hand /> <span>{p.handSize}</span></div>
-              <div className="stat"><Route /> <span style={{ color: p.longestRoad ? 'red' : 'black' }}>{p.longest_road_length}</span></div>
-              <div className="stat"><Layers /> <span>{p.devCards}</span></div>
+            <h2 className="section-title">Players</h2>
+            {players.map((p) => (
+              <div className="card" key={p.id} style={p.isCurrent ? { outline: `6px solid ${p.color}` } : undefined}>
+                <div className="player-header">
+                  <div className="dot" style={{ backgroundColor: p.color }} />
+                  <span className="player-name">{p.name}</span>
+                </div>
+                <div className="stats-grid">
+                  <div className="stat"><Trophy /> <span>{p.victoryPoints}</span></div>
+                  <div className="stat"><Swords /> <span style={{ color: p.largestArmy ? 'red' : 'black' }}>{p.played_knights}</span></div>
+                  <div className="stat"><Hand /> <span>{p.handSize}</span></div>
+                  <div className="stat"><Route /> <span style={{ color: p.longestRoad ? 'red' : 'black' }}>{p.longest_road_length}</span></div>
+                  <div className="stat"><Layers /> <span>{p.devCards}</span></div>
+                </div>
+                <div className="stats-grid" style={{ marginTop: 4, opacity: .8, fontSize: 12 }}>
+                  <div>🏘️ Settlements: <strong>{p.settlements}</strong></div>
+                  <div>🏙️ Cities: <strong>{p.cities}</strong></div>
+                  <div>🛣️ Roads: <strong>{p.roads}</strong></div>
+                </div>
+              </div>
+            ))}
+          </aside>
+        )}
 
-            </div>
-            <div className="stats-grid" style={{ marginTop: 4, opacity: .8, fontSize: 12 }}>
-              <div>🏘️ Settlements: <strong>{p.settlements}</strong></div>
-              <div>🏙️ Cities: <strong>{p.cities}</strong></div>
-              <div>🛣️ Roads: <strong>{p.roads}</strong></div>
-            </div>
-          </div>
-        ))}
+/* Floating toggle handle (always visible) */
+        <button
+          onClick={() => setRightOpen(v => !v)}
+          aria-label={rightOpen ? "Collapse right sidebar" : "Expand right sidebar"}
+          title={rightOpen ? "Collapse sidebar" : "Expand sidebar"}
+          className="btn-accent"
+          style={{
+            ["--accent" as any]: self.color,
+            position: "fixed",
+            right: 8,
+            top: "50%",
+            transform: "translateY(-50%)",
+            borderRadius: 999,
+            padding: "8px 10px",
+            zIndex: 9999,
+            boxShadow: "0 6px 16px rgba(0,0,0,.25)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: "white"
+          }}
+        >
+          {rightOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          <span style={{ fontSize: 12, fontWeight: 600 }}>{rightOpen ? "Hide" : "Show"}</span>
+        </button>
+
       </aside>
     </div>
   );
