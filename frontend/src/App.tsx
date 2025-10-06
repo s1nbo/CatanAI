@@ -824,7 +824,7 @@ export default function App() {
           style={{
             position: "fixed", inset: 0, zIndex: 9998,
             display: "grid", placeItems: "center",
-            backdropFilter: "blur(3px)", background: "rgba(15,23,42,.45)"
+            background: "rgba(15,23,42,.45)"
           }}
           role="dialog" aria-modal="true"
         >
