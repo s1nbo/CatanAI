@@ -19,9 +19,13 @@ GAMES = {} # game_id -> {"game_state": game_state, "websockets": {player_id: web
 class GameIdRequest(BaseModel):
     game_id: int
 
+origins = [
+    "https://catanai-frontend.onrender.com",  # your frontend URL
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or ["http://localhost:8080"] if serving frontend via http.server
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -108,6 +112,11 @@ async def start_game(req: GameIdRequest):
 
 @app.websocket("/ws/{game_id}/{player_id}")
 async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
+    origin = ws.headers.get("origin")
+    if origin != "https://catan-frontend.onrender.com":
+        await ws.close(code=1008)  # Policy Violation
+        return
+    
     await ws.accept()
 
     if game_id not in GAMES or player_id not in GAMES[game_id]["websockets"]:
