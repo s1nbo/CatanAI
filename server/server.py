@@ -113,7 +113,7 @@ async def start_game(req: GameIdRequest):
 @app.websocket("/ws/{game_id}/{player_id}")
 async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
     origin = ws.headers.get("origin")
-    if origin != "https://catan-frontend.onrender.com":
+    if origin != "https://catanai-frontend.onrender.com":
         await ws.close(code=1008)  # Policy Violation
         return
     
