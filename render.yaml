@@ -1,16 +1,24 @@
 services:
+  # ——— Backend (FastAPI) ———
   - type: web
     name: catan-backend
-    env: python
+    runtime: python
+    region: frankfurt
+    plan: starter
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn server:app --host 0.0.0.0 --port $PORT"
-    autoDeploy: true
-    region: frankfurt
-  - type: static
+
+  # ——— Frontend (Vite static) ———
+  - type: web
     name: catan-frontend
-    env: static
-    buildCommand: "npm ci && npm run build"
+    runtime: static
+    # Build the frontend app
+    buildCommand: "cd frontend && npm ci && npm run build"
+    # Publish the built files
     staticPublishPath: "frontend/dist"
+    # Monorepo hint (optional but nice): only watch this subdir for this service
+    rootDir: "frontend"
+    # Frontend needs these at build-time
     envVars:
       - key: VITE_API_URL
         value: "https://catan-backend.onrender.com"
