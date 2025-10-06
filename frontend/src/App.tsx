@@ -275,16 +275,23 @@ export default function App() {
   const [discardPick, setDiscardPick] = useState<{ wood: number; brick: number; sheep: number; wheat: number; ore: number }>({
     wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0
   });
-  const [forcedAction, setForcedAction] = useState<null | "Discard" | "Move Robber">(null);
+  const [forcedAction, setForcedAction] = useState<
+    null | "Discard" | "Move Robber" | "Steal Resource" | "Year of Plenty" | "Monopoly" | "Place Road 1" | "Place Road 2"
+  >(null);
 
   const discardTotal = discardPick.wood + discardPick.brick + discardPick.sheep + discardPick.wheat + discardPick.ore;
   const canSubmitDiscard = forcedAction === "Discard" && mustDiscard > 0 && discardTotal === mustDiscard;
 
+  // --- Year of Plenty picker state ---
+  const [yopPick, setYopPick] = useState<{ wood: number; brick: number; sheep: number; wheat: number; ore: number }>({
+    wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0
+  });
+  const yopTotal = yopPick.wood + yopPick.brick + yopPick.sheep + yopPick.wheat + yopPick.ore;
+  const canSubmitYOP = forcedAction === "Year of Plenty" && yopTotal === 2;
 
   // Robber
   const [robberCandidates, setRobberCandidates] = useState<string[]>([]);
   const [robberTile, setRobberTile] = useState<number | null>(null);
-
 
   // Self panel
   const [self, setSelf] = useState<SelfPanel>({
@@ -300,8 +307,8 @@ export default function App() {
 
   const canEndTurn = useMemo(() => {
     const hasRolled = bank.current_roll !== null;
-    return isMyTurn && hasRolled;
-  }, [players, self.id, bank.current_roll]);
+    return isMyTurn && hasRolled && !["Place Road 1", "Place Road 2", "Move Robber", "Steal Resource", "Year of Plenty", "Monopoly", "Discard"].includes(String(forcedAction ?? ""));
+  }, [players, self.id, bank.current_roll, forcedAction]);
 
   const discardingNow = forcedAction === "Discard" && mustDiscard > 0;
 
@@ -310,30 +317,52 @@ export default function App() {
 
   // NEW: compute the context-aware action label + enabled flag
   const buildAction = useMemo(() => {
-    if (!selected) return { label: "Select a tile/edge/node", enabled: false };
+    if (!selected) {
+      if (forcedAction === "Place Road 1" || forcedAction === "Place Road 2") {
+        return { label: "Select an edge to place a Road", enabled: false };
+      }
+      if (forcedAction === "Move Robber") {
+        return { label: "Select a tile to move the Robber", enabled: false };
+      }
+      return { label: "Select a tile/edge/node", enabled: false };
+    }
     if (selected.type === "tile") {
-      return { label: "Place Robber", enabled: true }; // wrapper only (TODO)
+      return { label: "Place Robber", enabled: forcedAction === "Move Robber" };
     }
     if (selected.type === "edge") {
       const e = overlay.edges?.[selected.id];
       const taken = e?.owner != null;
+      const allowed = forcedAction === null || forcedAction === "Place Road 1" || forcedAction === "Place Road 2";
       return taken
         ? { label: "Edge occupied", enabled: false }
-        : { label: "Build Road", enabled: true };
+        : { label: "Build Road", enabled: allowed };
     }
     // vertex
     const v = overlay.vertices?.[selected.id];
     const b = (v?.building || "").toString().toLowerCase();
-    if (b === "settlement") return { label: "Build City", enabled: true };
-    if (!b) return { label: "Build Settlement", enabled: true };
+    if (b === "settlement") return { label: "Build City", enabled: forcedAction === null };
+    if (!b) return { label: "Build Settlement", enabled: forcedAction === null };
     return { label: "Vertex occupied", enabled: false };
-  }, [selected, overlay]);
+  }, [selected, overlay, forcedAction]);
 
   function submitDiscard() {
     if (!canSubmitDiscard) return;
     sendAction({ type: "discard_resources", resources: discardPick });
-    // leave clearing to server update; optimistic clear is optional:
-    // setDiscardPick({wood:0,brick:0,sheep:0,wheat:0,ore:0});
+  }
+
+  function submitYOP() {
+    if (!canSubmitYOP) return;
+    const arr: string[] = [];
+    (["wood", "brick", "sheep", "wheat", "ore"] as const).forEach(r => {
+      for (let i = 0; i < (yopPick as any)[r]; i++) arr.push(r);
+    });
+    sendAction({ type: "Year of Plenty", resources: arr });
+    // clear local picker after submit (server snapshot will also close modal)
+    setYopPick({ wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 });
+  }
+
+  function chooseMonopoly(resource: "wood" | "brick" | "sheep" | "wheat" | "ore") {
+    sendAction({ type: "Monopoly", resource });
   }
 
   function chooseRobberVictim(victimId: string) {
@@ -347,6 +376,28 @@ export default function App() {
   function handleRollDice() { sendAction({ type: "roll_dice" }); }
   function handleTrade() { /* send WS action if needed */ }
 
+  // Play a dev card
+  const canPlayDevCards = isMyTurn && !discardingNow && !forcedAction;
+  function playDevCard(type: string) {
+    if (!canPlayDevCards) return;
+    switch (type) {
+      case "Knight":
+        sendAction({ type: "play_knight_card" });
+        break;
+      case "Road Building":
+        sendAction({ type: "play_road_building_card" });
+        break;
+      case "Year of Plenty":
+        sendAction({ type: "play_year_of_plenty_card" });
+        break;
+      case "Monopoly":
+        sendAction({ type: "play_monopoly_card" });
+        break;
+      default:
+        // VP or unknown → do nothing
+        break;
+    }
+  }
 
   // Click Handler
   async function handleBuildClick() {
@@ -488,6 +539,10 @@ export default function App() {
         // Discard / forced action handling
         if (typeof data.forced_action === "string" || data.forced_action === null) {
           setForcedAction(data.forced_action as any);
+          // Clear local YOP picks if server exits that phase
+          if (data.forced_action !== "Year of Plenty") {
+            setYopPick({ wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 });
+          }
         }
         setMustDiscard(typeof data.must_discard === "number" ? data.must_discard : 0);
         if (typeof window !== "undefined") {
@@ -502,10 +557,6 @@ export default function App() {
         return;
       }
       if (data?.status === "game_over") {
-        // The server sends winner when a player wins; it may also send a 'message' when game ends early.
-        // Example server code reference: server triggers {"status":"game_over","winner": player_id}
-        // or {"status":"game_over","message":"Not enough players to continue the game"}.
-        // (See server.py websocket loop.) 
         setGameOver({
           winner: (typeof data.winner !== "undefined" ? data.winner : undefined),
           message: (typeof data.message === "string" ? data.message : undefined),
@@ -536,7 +587,6 @@ export default function App() {
 
   /** ----- REST helpers (same endpoints as in board.html) ----- */
   async function createLobby() {
-    // POST /create -> { game_id, player_id }
     const res = await fetch(`${API_URL}/create`, { method: "POST" });
     const data = await res.json();
     setGameId(data.game_id);
@@ -574,7 +624,6 @@ export default function App() {
     if (data.message && /already started|Not enough/.test(data.message)) {
       alert(data.message);
     }
-    // After this, server will push game_state + first snapshot via WS
   }
 
   async function addBot() {
@@ -735,7 +784,6 @@ export default function App() {
                 className="btn-accent"
                 style={{ ["--accent" as any]: "#6366f1", padding: "10px 14px", borderRadius: 10 }}
                 onClick={() => {
-                  // Optional: jump back to lobby quickly.
                   setGameOver(null);
                   setPhase("lobby");
                 }}
@@ -747,6 +795,7 @@ export default function App() {
           </div>
         </div>
       )}
+
       {/* Discard Overlay */}
       {mustDiscard > 0 && forcedAction === "Discard" && (
         <div
@@ -790,7 +839,6 @@ export default function App() {
                       style={{ ["--accent" as any]: self.color, padding: "4px 10px", borderRadius: 999 }}
                       onClick={() => setDiscardPick(s => {
                         const next = { ...s, [r]: s[r] + 1 };
-                        // keep soft cap at mustDiscard to guide the user
                         const cap = next.wood + next.brick + next.sheep + next.wheat + next.ore;
                         return cap > mustDiscard ? s : next;
                       })}
@@ -813,6 +861,119 @@ export default function App() {
               >
                 Discard
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Year of Plenty Overlay */}
+      {forcedAction === "Year of Plenty" && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 9998,
+            display: "grid", placeItems: "center",
+            background: "rgba(15,23,42,.45)"
+          }}
+          role="dialog" aria-modal="true"
+        >
+          <div
+            style={{
+              width: "min(92vw, 520px)", borderRadius: 16, padding: 20,
+              background: "linear-gradient(180deg,#ffffff,#f1f5f9)",
+              border: "1px solid rgba(100,116,139,.35)", color: "#0f172a"
+            }}
+          >
+            <h3 style={{ margin: "0 0 6px 0" }}>Year of Plenty</h3>
+            <p style={{ margin: 0, opacity: .8 }}>Pick exactly two resources (duplicates allowed).</p>
+
+            <div className="resource-grid" style={{ marginTop: 10 }}>
+              {(["wood", "brick", "sheep", "wheat", "ore"] as const).map((r) => (
+                <div key={r} className="resource-card">
+                  <div className="resource-left">
+                    <span className="resource-emoji">
+                      {r === "wood" ? "🌲" : r === "brick" ? "🧱" : r === "sheep" ? "🐑" : r === "wheat" ? "🌾" : "⛰️"}
+                    </span>
+                    <span style={{ marginLeft: 8, textTransform: "capitalize" }}>{r}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button
+                      className="btn-accent"
+                      style={{ ["--accent" as any]: self.color, padding: "4px 10px", borderRadius: 999 }}
+                      onClick={() => setYopPick(s => ({ ...s, [r]: Math.max(0, s[r] - 1) }))}
+                      disabled={yopPick[r] <= 0}
+                      aria-label={`decrease ${r}`}
+                    >–</button>
+                    <div className="count-pill">{yopPick[r]}</div>
+                    <button
+                      className="btn-accent"
+                      style={{ ["--accent" as any]: self.color, padding: "4px 10px", borderRadius: 999 }}
+                      onClick={() => setYopPick(s => {
+                        const next = { ...s, [r]: s[r] + 1 };
+                        const cap = next.wood + next.brick + next.sheep + next.wheat + next.ore;
+                        return cap > 2 ? s : next;
+                      })}
+                      aria-label={`increase ${r}`}
+                    >+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
+              <div style={{ opacity: .85 }}>
+                Picked: <strong>{yopTotal}</strong> / 2
+              </div>
+              <button
+                onClick={submitYOP}
+                disabled={!canSubmitYOP}
+                className="btn-accent"
+                style={{ ["--accent" as any]: self.color, padding: "10px 14px", borderRadius: 10 }}
+              >
+                Take Resources
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Monopoly Overlay */}
+      {forcedAction === "Monopoly" && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 9998,
+            display: "grid", placeItems: "center",
+            background: "rgba(15,23,42,.45)"
+          }}
+          role="dialog" aria-modal="true"
+        >
+          <div
+            style={{
+              width: "min(92vw, 420px)", borderRadius: 16, padding: 20,
+              background: "linear-gradient(180deg,#ffffff,#f1f5f9)",
+              border: "1px solid rgba(100,116,139,.35)", color: "#0f172a"
+            }}
+          >
+            <h3 style={{ margin: "0 0 6px 0" }}>Monopoly</h3>
+            <p style={{ margin: 0, opacity: .8 }}>Choose one resource to collect from all opponents.</p>
+
+            <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+              {([
+                ["wood", "🌲"],
+                ["brick", "🧱"],
+                ["sheep", "🐑"],
+                ["wheat", "🌾"],
+                ["ore", "⛰️"],
+              ] as const).map(([r, emoji]) => (
+                <button
+                  key={r}
+                  onClick={() => chooseMonopoly(r)}
+                  className="btn-accent"
+                  style={{ ["--accent" as any]: self.color, justifyContent: "flex-start", padding: "10px 12px", borderRadius: 12 }}
+                >
+                  <span className="resource-emoji" style={{ marginRight: 8 }}>{emoji}</span>
+                  {r[0].toUpperCase() + r.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -874,7 +1035,7 @@ export default function App() {
             <div className="actions-grid">
               <button
                 onClick={handleRollDice}
-                disabled={!isMyTurn || bank.current_roll !== null}
+                disabled={!isMyTurn || bank.current_roll !== null || !!forcedAction}
                 title="Roll Dice"
                 className="btn-accent hud-btn-primary"
                 style={{ ["--accent" as any]: self.color }}
@@ -884,7 +1045,7 @@ export default function App() {
 
               <button
                 onClick={handleTrade}
-                disabled={!canEndTurn || discardingNow}
+                disabled={!!forcedAction || !canEndTurn}
                 title="Trade"
                 className="btn-accent"
                 style={{ ["--accent" as any]: self.color }}
@@ -894,7 +1055,7 @@ export default function App() {
 
               <button
                 onClick={handleBuyDev}
-                disabled={!canEndTurn || discardingNow}
+                disabled={!!forcedAction || !canEndTurn}
                 title="Buy Dev"
                 className="btn-accent"
                 style={{ ["--accent" as any]: self.color }}
@@ -902,8 +1063,6 @@ export default function App() {
                 Buy Dev
               </button>
             </div>
-
-
 
             <div
               style={{
@@ -938,8 +1097,6 @@ export default function App() {
                 {bank.current_roll ?? "—"}
               </span>
             </div>
-
-
           </div>
 
           {/* YOU panel */}
@@ -959,20 +1116,35 @@ export default function App() {
                   acc[name] = (acc[name] ?? 0) + 1;
                   return acc;
                 }, {})
-              ).map(([type, count]) => (
-                <div key={type} className="dev-card" title={`${type} ×${count}`}>
-                  <span className="dev-emoji">
-                    {type === "Knight" ? "⚔️" :
-                      type === "Road Building" ? "🛣️" :
-                        type === "Year of Plenty" ? "🎁" :
-                          type === "Monopoly" ? "🎩" :
-                            type === "VP" ? "⭐" : "❓"}
-                  </span>
-                  {count > 1 && <span className="dev-badge">{count}</span>}
-                </div>
-              ))
+              ).map(([type, count]) => {
+                const isVP = type === "VP";
+                const disabled = !canPlayDevCards || isVP;
+                const title =
+                  isVP ? "Victory Point (kept secret; not playable)"
+                    : !canPlayDevCards ? "You can't play a dev card right now"
+                    : `Play ${type}`;
+                return (
+                  <button
+                    key={type}
+                    className="dev-card"
+                    title={title}
+                    onClick={() => playDevCard(type)}
+                    disabled={disabled}
+                    style={{ cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1 }}
+                  >
+                    <span className="dev-emoji">
+                      {type === "Knight" ? "⚔️" :
+                        type === "Road Building" ? "🛣️" :
+                          type === "Year of Plenty" ? "🎁" :
+                            type === "Monopoly" ? "🎩" :
+                              type === "VP" ? "⭐" : "❓"}
+                    </span>
+                    {count > 1 && <span className="dev-badge">{count}</span>}
+                  </button>
+                );
+              })
             ) : (
-              <div style={{ opacity: .7 }}>No playable dev cards</div>
+              <div style={{ opacity: .7 }}>No dev cards</div>
             )}
           </div>
 
@@ -1009,13 +1181,23 @@ export default function App() {
                 {buildAction.label}
               </button>
             </div>
+            {(forcedAction === "Place Road 1" || forcedAction === "Place Road 2") && (
+              <div style={{ marginTop: 8, fontSize: 12, opacity: .85 }}>
+                Road Building: {forcedAction === "Place Road 1" ? "First" : "Second"} free road — select an empty edge and click <em>Build Road</em>.
+              </div>
+            )}
+            {forcedAction === "Move Robber" && (
+              <div style={{ marginTop: 8, fontSize: 12, opacity: .85 }}>
+                Knight/Seven: select a tile to move the robber.
+              </div>
+            )}
           </div>
 
           {/* NEW: End Turn button (under Build) */}
           <div className="hud-card">
             <button
               onClick={handleEndTurn}
-              disabled={!canEndTurn || discardingNow}
+              disabled={!canEndTurn}
               className="btn-accent"
               style={{ ["--accent" as any]: self.color, width: "100%" }}
             >

@@ -230,13 +230,16 @@ def buy_development_card(player_id: int, development_cards: list, players: dict,
 
     if card == "victory_point":
         players[player_id]["victory_points"] += 1
-    return True
+    return card
         
 
-def play_knight(board: Board, player_id: int, target_tile: int, players: dict) -> bool:
-    if not can_play_knight(board, player_id, target_tile, players):
+def play_knight(player_id: int, players: dict, this_turn_cards: dict) -> bool:
+    if not can_play_knight(player_id, players):
         return False
-    move_robber(board, target_tile)
+    
+    if players[player_id]["development_cards"]["knight"] <= this_turn_cards["knight"]:
+        return False
+
     # stealing is handled in steal_resource function
     players[player_id]["played_card_this_turn"] = True
     players[player_id]["played_knights"] += 1
@@ -252,47 +255,50 @@ def play_knight(board: Board, player_id: int, target_tile: int, players: dict) -
                     players[opponent_id]["victory_points"] -= 2
                     players[player_id]["victory_points"] += 2
                 break
+        else:
+            players[player_id]["largest_army"] = True
+            players[player_id]["victory_points"] += 2
     return True
 
 
-def play_road_building(board: Board, player_id: int, roads: list[int], players: dict) -> bool:
-    if not can_play_road_building(board, player_id, roads, players):
+def play_road_building(player_id: int, players: dict, this_turn_cards: list) -> bool:
+    if not can_play_road_building(player_id, players):
         return False
-    for road in roads:
-        place_road(board, road, player_id, players)
+    
+    if players[player_id]["development_cards"]["road_building"] <= this_turn_cards["road_building"]:
+        return False
+
     players[player_id]["development_cards"]["road_building"] -= 1
     players[player_id]["played_card_this_turn"] = True
+
     return True
 
 
-def play_year_of_plenty(player_id: int, resources: list[str], players: dict, bank: dict) -> bool:
-    if not can_play_year_of_plenty(player_id, resources, players, bank):
+def play_year_of_plenty(player_id: int, players: dict, this_turn_cards: list) -> bool:
+    if not can_play_year_of_plenty(player_id, players):
         return False
-    for resource in resources:
-        players[player_id]["hand"][resource] += 1
-        bank[resource] -= 1
+    
+    if players[player_id]["development_cards"]["year_of_plenty"] <= this_turn_cards["year_of_plenty"]:
+        return False
+
     players[player_id]["development_cards"]["year_of_plenty"] -= 1
     players[player_id]["played_card_this_turn"] = True
     return True
 
 
-def play_monopoly(player_id: int, resource: str, players: dict) -> bool:
-    if not can_play_monopoly(player_id, resource, players):
+def play_monopoly(player_id: int, players: dict, this_turn_cards: list) -> bool:
+    if not can_play_monopoly(player_id, players):
         return False
-    total_collected = 0
-    for opponent_id in players:
-        if opponent_id != player_id:
-            total_collected += players[opponent_id]["hand"].get(resource, 0)
-            players[opponent_id]["hand"][resource] = 0
-    players[player_id]["hand"][resource] += total_collected
+    
+    if players[player_id]["development_cards"]["monopoly"] <= this_turn_cards["monopoly"]:
+        return False
+    
     players[player_id]["development_cards"]["monopoly"] -= 1
     players[player_id]["played_card_this_turn"] = True
     return True
     
 
-def can_play_knight(board: Board, player_id: int, target_tile: int, players: dict) -> bool:
-    if target_tile == board.robber_tile:
-        return False
+def can_play_knight(player_id: int, players: dict) -> bool:
     if players[player_id]["development_cards"]["knight"] <= 0:
         return False
     if players[player_id]["played_card_this_turn"] == True:
@@ -302,52 +308,27 @@ def can_play_knight(board: Board, player_id: int, target_tile: int, players: dic
     return True
 
 
-def can_play_road_building(board: Board, player_id: int, roads: list[int], players: dict) -> bool:
-    if len(roads) not in [1, 2]:
-        return False
+def can_play_road_building(player_id: int, players: dict) -> bool:
     if players[player_id]["development_cards"]["road_building"] <= 0:
         return False
     if players[player_id]["played_card_this_turn"] == True:
         return False
-    if not can_place_road(board, roads[0], player_id):
-        return False
-    if len(roads) == 2 and not can_place_road(board, roads[1], player_id):
-        return False
-    if players[player_id]["roads"] < len(roads):
-        return False
     if players[player_id]["current_turn"] == False:
         return False
     return True
 
 
-def can_play_year_of_plenty(player_id: int, resources: list[str], players: dict, bank: dict) -> bool: 
-    if len(resources) not in [1, 2]:
-        return False
+def can_play_year_of_plenty(player_id: int, players: dict) -> bool: 
     if players[player_id]["development_cards"]["year_of_plenty"] <= 0:
         return False
     if players[player_id]["played_card_this_turn"] == True:
         return False
-    if resources[0] not in ["wood", "brick", "sheep", "wheat", "ore"]:
-        return False
-    if len(resources) == 2 and resources[1] not in ["wood", "brick", "sheep", "wheat", "ore"]:
-        return False
-    if bank[resources[0]] <= 0:
-        return False
-    if len(resources) == 2:
-        if resources[0] == resources[1]:
-            if bank[resources[0]] < 2:
-                return False
-        else:
-            if bank[resources[1]] <= 0:
-                return False
     if players[player_id]["current_turn"] == False:
         return False
     return True
 
 
-def can_play_monopoly(player_id: int, resource: str, players: dict) -> bool: 
-    if resource not in ["wood", "brick", "sheep", "wheat", "ore"]:
-        return False
+def can_play_monopoly(player_id: int, players: dict) -> bool: 
     if players[player_id]["development_cards"]["monopoly"] <= 0:
         return False
     if players[player_id]["played_card_this_turn"] == True:

@@ -3,8 +3,6 @@ import json
 from game.action import *
 from game.board import Board
 
-NEXT_ACTION = ["Discard", "Move Robber", "Steal Resource", "Pick Monopoly Target", "Pick Year of Plenty Resources", "Place Road 2", "Place Road 1", None]
-
 # Game Logic file
 class Game:
     def __init__(self):
@@ -24,6 +22,10 @@ class Game:
 
         self.robber_candidates: list[int] = []
         self.pending_robber_tile: int | None = None
+
+        self.cards_bought_this_turn = {"knight": 0, "victory_point": 0, "road_building": 0, "year_of_plenty": 0, "monopoly": 0}
+
+        self.temp_road_building = False # Used to track if the player is in the middle of placing roads from a road building card
 
     def add_player(self, player_id):
         if player_id not in self.players:
@@ -151,7 +153,9 @@ class Game:
             pass
         elif player_id != self.current_turn:
             return False
-      
+
+        if self.forced_action and action_type not in ["discard_resources", "move_robber", "robber_steal", "Year of Plenty", "Monopoly", "place_road"]:
+            return False
 
         
         # Route action (Return False if action is invalid)
@@ -181,6 +185,7 @@ class Game:
                 if end_turn(player_id = player_id, players = self.players):
                     self.number = None
                     self.current_turn = (self.current_turn % len(self.players)) + 1
+                    self.cards_bought_this_turn = {"knight": 0, "victory_point": 0, "road_building": 0, "year_of_plenty": 0, "monopoly": 0}
                     return True
                 else:
                     return False
@@ -242,11 +247,66 @@ class Game:
                 
                 self.robber_candidates = []
                 self.pending_robber_tile = None
+                self.forced_action = None
                 return True
 
             # Building actions
             case "place_road":
-                return place_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players, bank = self.bank)
+                if self.forced_action in ["Place Road 1", "Place Road 2"] and player_id == self.current_turn:
+                    
+                    self.temp_road_building = False
+                    if self.players[player_id]["dice_rolled"] == False:
+                            self.temp_road_building = True
+                            self.players[player_id]["dice_rolled"] = True
+
+                    if self.forced_action == "Place Road 1":
+                        self.players[player_id]["hand"]["wood"] += 1
+                        self.players[player_id]["hand"]["brick"] += 1
+                        self.bank["wood"] -= 1
+                        self.bank["brick"] -= 1
+
+                        if not place_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players, bank = self.bank):
+                            self.players[player_id]["hand"]["wood"] -= 1
+                            self.players[player_id]["hand"]["brick"] -= 1
+                            self.bank["wood"] += 1
+                            self.bank["brick"] += 1
+
+                            if self.temp_road_building:
+                                self.players[player_id]["dice_rolled"] = False
+                            return False
+                        
+                        if self.players[player_id]["roads"] <= 0:
+                            self.forced_action = None
+                        else:
+                            self.forced_action = "Place Road 2"
+                        
+                        if self.temp_road_building:
+                            self.players[player_id]["dice_rolled"] = False
+                        return True
+                    
+                    
+                    else: # Place Road 2
+                        self.players[player_id]["hand"]["wood"] += 1
+                        self.players[player_id]["hand"]["brick"] += 1
+                        self.bank["wood"] -= 1
+                        self.bank["brick"] -= 1
+                        
+                        if not place_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players, bank = self.bank):
+                            self.players[player_id]["hand"]["wood"] -= 1
+                            self.players[player_id]["hand"]["brick"] -= 1
+                            self.bank["wood"] += 1
+                            self.bank["brick"] += 1
+
+                            if self.temp_road_building:
+                                self.players[player_id]["dice_rolled"] = False
+                            return False
+
+                        if self.temp_road_building:
+                            self.players[player_id]["dice_rolled"] = False    
+                        self.forced_action = None
+                        return True
+                else:
+                    return place_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players, bank = self.bank)
             
             case "place_settlement":
                 return place_settlement(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players, bank = self.bank)
@@ -254,25 +314,74 @@ class Game:
             case "place_city":
                 return place_city(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players, bank = self.bank)
             
+            # TODO Cards cant be bought and played in the same turn (Except Victory Point Cards)
             case "buy_development_card":
-                return buy_development_card(player_id= player_id, development_cards = self.development_cards, players = self.players, bank = self.bank)
+                card = buy_development_card(player_id= player_id, development_cards = self.development_cards, players = self.players, bank = self.bank)
+                if not card:
+                    return False
+                self.cards_bought_this_turn[card] += 1
+                return True
 
             # Development Card actions
             case "play_knight_card":
-                if not play_knight(board = self.board, player_id = player_id, players = self.players, target_tile=int(action.get("target_tile"))):
+                if not play_knight(player_id = player_id, players = self.players, this_turn_cards = self.cards_bought_this_turn):
                     return False
-                if not steal_resource(board = self.board, players = self.players, stealer_id = player_id, victim_id = int(action.get("victim_id"))):
-                    return False
+                
+                self.forced_action = "Move Robber"
                 return True
                 
             case "play_road_building_card":
-                return play_road_building(board = self.board, player_id = player_id, players = self.players, roads = action.get("edge_ids", []))
+                if not play_road_building(player_id = player_id, players = self.players, this_turn_cards = self.cards_bought_this_turn):
+                    return False
+                if self.players[player_id]["roads"] <= 0:
+                    return False
+                self.forced_action = "Place Road 1"
+                return True
     
             case "play_year_of_plenty_card":
-                return play_year_of_plenty(player_id = player_id, resources = action.get("resources", []), players = self.players, bank = self.bank)
+                if not play_year_of_plenty(player_id = player_id, players = self.players, this_turn_cards = self.cards_bought_this_turn):
+                    return False
+                self.forced_action = "Year of Plenty"
+                return True
+            
             
             case "play_monopoly_card":
-                return play_monopoly(player_id = player_id, resource = action.get("resource"), players = self.players)
+                if not play_monopoly(player_id = player_id, players = self.players, this_turn_cards = self.cards_bought_this_turn):
+                    return False
+                self.forced_action = "Monopoly"
+                return True
+            
+            case "Year of Plenty":
+                if self.forced_action != "Year of Plenty" or player_id != self.current_turn:
+                    return False
+                resources = action.get("resources", []) or []
+                if len(resources) != 2 or any(r not in ["wood","brick","sheep","wheat","ore"] for r in resources):
+                    return False
+                self.players[player_id]["hand"][resources[0]] += 1
+                self.players[player_id]["hand"][resources[1]] += 1
+                self.bank[resources[0]] -= 1
+                self.bank[resources[1]] -= 1
+                self.forced_action = None
+                return True
+                
+            case "Monopoly":
+                if self.forced_action != "Monopoly" or player_id != self.current_turn:
+                    return False
+                resource = action.get("resource")
+                if resource not in ["wood","brick","sheep","wheat","ore"]:
+                    return False
+                
+                total_collected = 0
+                for opponent_id in self.players:
+                    if opponent_id != player_id:
+                        total_collected += self.players[opponent_id]["hand"][resource]
+                        self.players[opponent_id]["hand"][resource] = 0
+                
+                self.players[player_id]["hand"][resource] += total_collected
+                self.forced_action = None
+                return True
+                
+            
         
             # Trade actions TODO (Trades are not yet fully implemented)
             case "bank_trade": # Bank Trades skip other players
