@@ -266,6 +266,7 @@ export default function App() {
   const [overlay, setOverlay] = useState<BoardOverlay>({ tiles: [], edges: [], vertices: [] });
 
   const [resetBoardSelToken, setResetBoardSelToken] = useState(0);
+  const [gameOver, setGameOver] = useState<{ winner?: number | string; message?: string } | null>(null);
 
   // Self panel
   const [self, setSelf] = useState<SelfPanel>({
@@ -446,6 +447,17 @@ export default function App() {
         setSelf(sp);
         return;
       }
+      if (data?.status === "game_over") {
+        // The server sends winner when a player wins; it may also send a 'message' when game ends early.
+        // Example server code reference: server triggers {"status":"game_over","winner": player_id}
+        // or {"status":"game_over","message":"Not enough players to continue the game"}.
+        // (See server.py websocket loop.) 
+        setGameOver({
+          winner: (typeof data.winner !== "undefined" ? data.winner : undefined),
+          message: (typeof data.message === "string" ? data.message : undefined),
+        });
+        return;
+      }
     };
 
     ws.onclose = () => { /* optionally: setPhase("lobby") */ };
@@ -453,6 +465,20 @@ export default function App() {
 
     return () => { try { ws.close(); } catch { } };
   }, [gameId, playerId]);
+
+
+  // Debug helpers to trigger game over from console
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    (window as any).simGameOver = (winner?: number | string) => {
+      setGameOver({ winner });
+    };
+    (window as any).simGameOverMsg = (msg: string) => {
+      setGameOver({ message: msg });
+    };
+    (window as any).clearGameOver = () => setGameOver(null);
+  }, []);
+
 
   /** ----- REST helpers (same endpoints as in board.html) ----- */
   async function createLobby() {
@@ -605,6 +631,70 @@ export default function App() {
   // ====== GAME PHASE (your existing HUD/board UI) ======
   return (
     <div className="layout">
+      {/* Game Over Overlay */}
+      {gameOver && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            display: "grid",
+            placeItems: "center",
+            backdropFilter: "blur(4px)",
+            background: "rgba(15,23,42,0.55)",
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            style={{
+              width: "min(92vw, 520px)",
+              borderRadius: 16,
+              padding: 24,
+              background: "linear-gradient(180deg,#ffffff,#f1f5f9)",
+              border: "1px solid rgba(100,116,139,.35)",
+              boxShadow: "0 20px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.5)",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: 48, lineHeight: 1, marginBottom: 8 }}>🏆</div>
+            <h2 style={{ margin: "0 0 8px 0", fontSize: 24, letterSpacing: 0.3, color: "black" }}>Game Over</h2>
+
+            <p style={{ margin: "0 0 18px 0", fontSize: 16, opacity: .9, color: "black" }}>
+              {typeof gameOver.winner !== "undefined"
+                ? <>Winner: <strong>Player {gameOver.winner}</strong></>
+                : gameOver.message
+                  ? <>{gameOver.message}</>
+                  : <>Thanks for playing!</>}
+            </p>
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                className="btn-accent"
+                style={{ ["--accent" as any]: "#22c55e", padding: "10px 14px", borderRadius: 10 }}
+                onClick={() => setGameOver(null)}
+                title="Hide"
+              >
+                Close
+              </button>
+
+              <button
+                className="btn-accent"
+                style={{ ["--accent" as any]: "#6366f1", padding: "10px 14px", borderRadius: 10 }}
+                onClick={() => {
+                  // Optional: jump back to lobby quickly.
+                  setGameOver(null);
+                  setPhase("lobby");
+                }}
+                title="Back to Lobby"
+              >
+                Back to Lobby
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main board area */}
       <div className="board">
         {/* LEFT HUD */}
