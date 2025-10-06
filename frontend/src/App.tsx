@@ -1438,7 +1438,7 @@ export default function App() {
             position: "relative",     // create stacking context
             zIndex: 2,                // above the sidebar
             transition: "transform 200ms ease",
-            transform: rightOpen ? "translateX(0)" : "translateX(280px)", // tweak px as desired
+            transform: rightOpen ? "translateX(0)" : "translateX(250px)", // tweak px as desired
           }}
         >
           {/* The actual board, driven by live overlay */}
