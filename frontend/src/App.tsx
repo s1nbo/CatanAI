@@ -1249,10 +1249,10 @@ export default function App() {
 
       {/* Main board area */}
       <div className="board" style={{
-        justifySelf: rightOpen ? "stretch" : "end", // align the grid item to the right
-        inlineSize: rightOpen ? "100%" : "fit-content", // shrink-to-content when sidebar is hidden
-        maxInlineSize: "100%", // prevent overflow on small screens
-        transition: "inline-size 160ms ease, margin 160ms ease",
+        justifySelf: "stretch",
+        width: "100%",
+        transition: "transform 200ms ease",
+        transform: rightOpen ? "translateX(0)" : "translateX(120px)", // <-- shift board right
       }}>
         {/* LEFT HUD */}
         <div className="hud-left">
