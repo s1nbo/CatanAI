@@ -1251,6 +1251,7 @@ export default function App() {
       <div className="board" style={{
         justifySelf: "stretch",
         width: "100%",
+        overflow: "visible",      // allow board to render over the sidebar
       }}>
         {/* LEFT HUD */}
         <div className="hud-left">
@@ -1434,6 +1435,8 @@ export default function App() {
         <div
           className="board-stage"
           style={{
+            position: "relative",     // create stacking context
+            zIndex: 2,                // above the sidebar
             transition: "transform 200ms ease",
             transform: rightOpen ? "translateX(0)" : "translateX(280px)", // tweak px as desired
           }}
@@ -1444,7 +1447,12 @@ export default function App() {
       </div>
 
       {/* Right sidebar: Bank + Players */}
-      <aside className="sidebar">
+      <aside className="sidebar"
+        style={{
+          position: "relative",   // create stacking context
+          zIndex: 1,             
+        }}
+      >
         {/* Right sidebar: Bank + Players (collapsible) */}
         {rightOpen && (
           <aside className="sidebar">
