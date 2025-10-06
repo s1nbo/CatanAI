@@ -22,6 +22,9 @@ class Game:
         self.pending_discard: dict[int, int] = {}  # player_id -> number of cards to discard 
         self.forced_action: str | None = None  # One of NEXT_ACTION
 
+        self.robber_candidates: list[int] = []
+        self.pending_robber_tile: int | None = None
+
     def add_player(self, player_id):
         if player_id not in self.players:
             self.players[player_id] = {
@@ -134,6 +137,7 @@ class Game:
         
         # return a list of game states for all players
         print(self.get_multiplayer_game_state()) # DEBUG
+        print("\n ---- \n")
         return self.get_multiplayer_game_state()
 
 
@@ -183,7 +187,7 @@ class Game:
             
             case "discard_resources":
                  # Only valid during forced Discard phase and only for players who still owe
-                if self.forced_action != "Discard":
+                if self.forced_action != "Discard" or player_id not in self.pending_discard or self.pending_discard[player_id] <= 0:
                     return False
                 owed = self.pending_discard.get(player_id, 0)
                 if owed <= 0:
@@ -209,23 +213,37 @@ class Game:
                 return True
             
             case "move_robber":
-                if self.forced_action != "Move Robber":
+                # Only current player resolves robber
+                if player_id != self.current_turn or self.forced_action != "Move Robber":
+                    return False
+                
+                target_tile = int(action.get("target_tile"))
+                # Step 1: placing the robber (always allowed when called)
+                if not move_robber(board=self.board, new_tile_id=target_tile):
                     return False
 
-                # Only current player may resolve robber
-                if player_id != self.current_turn:
-                    return False
-
-                if not move_robber(board = self.board, target_tile = int(action.get("target_tile"))):
-                    return False
-                if not steal_resource(board = self.board, players = self.players, player_id = player_id, target_player_id = int(action.get("victim_id"))):
-                    return False
-
-                # Robber resolved; resume normal play
-                self.forced_action = None
+                # Figure out eligible victims at this tile (exclude self)
+                cands = self._robbable_players_on_tile(target_tile, player_id)
+                self.pending_robber_tile = target_tile
+                self.robber_candidates = cands
+                self.forced_action = "Steal Resource" if cands else None
                 return True
 
-    
+            case "robber_steal":
+                # Current player must pick among announced candidates
+                if self.forced_action != "Steal Resource" or player_id != self.current_turn:
+                    return False
+                
+                victim = int(action.get("victim_id"))
+                if victim not in (self.robber_candidates or []):
+                    return False
+                if not steal_resource(board=self.board, players=self.players, stealer_id=player_id, victim_id=victim):
+                    return False
+                
+                self.robber_candidates = []
+                self.pending_robber_tile = None
+                return True
+
             # Building actions
             case "place_road":
                 return place_road(board = self.board, edge_id = int(action.get("edge_id")), player_id = player_id, players = self.players, bank = self.bank)
@@ -270,7 +288,17 @@ class Game:
 
             case _:
                 return False
-
+            
+    def _robbable_players_on_tile(self, tile_id: int, current: int) -> list[int]:
+        vertices = self.board.tiles[tile_id].vertices
+        seen = set()
+        for vertex in vertices:
+            if self.board.vertices[vertex].building is not None and self.board.vertices[vertex].owner != current:
+                if sum(self.players[self.board.vertices[vertex].owner]["hand"].values()) > 0:
+                    seen.add(self.board.vertices[vertex].owner)
+        
+        return sorted(seen)
+    
     # Update we always want the full game state for each player (since hidden info) (And send it to everyone)
     def get_multiplayer_game_state(self) -> dict:
         # add total development cards and hand size for all players, so it can be used in public state
@@ -294,8 +322,11 @@ class Game:
                 "current_turn": self.current_turn,
                 "current_roll": self.number,
                 "initial_placement_order": self.initial_placement_order[self.counter] if self.counter < len(self.initial_placement_order) else -1,
+                
                 "forced_action": self.forced_action,
                 "must_discard": must_discard,
+                "robber_candidates": self.robber_candidates,         # [] or [2,3,...]
+                "pending_robber_tile": self.pending_robber_tile,     # int or None
             }
         return result
 

@@ -77,7 +77,9 @@ def move_robber(board: Board , new_tile_id: int) -> bool:
     for vertex in board.tiles[board.robber_tile].vertices:
         board.vertices[vertex].blocked = False
     
+    board.tiles[board.robber_tile].robber = False
     board.robber_tile = new_tile_id
+    board.tiles[new_tile_id].robber = True 
 
     for vertex in board.tiles[new_tile_id].vertices:
         board.vertices[vertex].blocked = True

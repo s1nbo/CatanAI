@@ -90,6 +90,8 @@ function normalizeResources(raw: any): SelfPanel["resources"] {
   };
 }
 
+
+
 function normalizeDevCards(raw: any): string[] {
   const out: string[] = [];
 
@@ -279,6 +281,11 @@ export default function App() {
   const canSubmitDiscard = forcedAction === "Discard" && mustDiscard > 0 && discardTotal === mustDiscard;
 
 
+  // Robber
+  const [robberCandidates, setRobberCandidates] = useState<string[]>([]);
+  const [robberTile, setRobberTile] = useState<number | null>(null);
+
+
   // Self panel
   const [self, setSelf] = useState<SelfPanel>({
     id: "1",
@@ -329,6 +336,10 @@ export default function App() {
     // setDiscardPick({wood:0,brick:0,sheep:0,wheat:0,ore:0});
   }
 
+  function chooseRobberVictim(victimId: string) {
+    sendAction({ type: "robber_steal", victim_id: Number(victimId) });
+  }
+
   function handleEndTurn() { sendAction({ type: "end_turn" }); }
   function handleBuyDev() { sendAction({ type: "buy_development_card" }); }
 
@@ -359,6 +370,10 @@ export default function App() {
           return;
         }
       }
+      if (selected.type === "tile") {
+        sendAction({ type: "move_robber", target_tile: selected.id }); // victim chosen later
+      }
+
     } finally {
       setSelected(null);               // clear parent selection
       setResetBoardSelToken(t => t + 1); // force Board to clear its local highlight
@@ -458,6 +473,17 @@ export default function App() {
         setOverlay(overlay);
         setPlayers(players);
         setBank(bank);
+
+        // Pick up robber victim prompts
+        if (Array.isArray((data as any).robber_candidates)) {
+          // normalize to string IDs to match your Player.id
+          setRobberCandidates((data as any).robber_candidates.map((n: number) => String(n)));
+        } else {
+          setRobberCandidates([]);
+        }
+        setRobberTile(
+          typeof (data as any).pending_robber_tile === "number" ? (data as any).pending_robber_tile : null
+        );
 
         // Discard / forced action handling
         if (typeof data.forced_action === "string" || data.forced_action === null) {
@@ -668,7 +694,6 @@ export default function App() {
             zIndex: 9999,
             display: "grid",
             placeItems: "center",
-            backdropFilter: "blur(4px)",
             background: "rgba(15,23,42,0.55)",
           }}
           role="dialog"
@@ -792,6 +817,51 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Robber Overlay */}
+      {robberCandidates.length > 0 && robberTile !== null && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 9998,
+            display: "grid", placeItems: "center",
+            backdropFilter: "blur(3px)", background: "rgba(15,23,42,.45)"
+          }}
+          role="dialog" aria-modal="true"
+        >
+          <div
+            style={{
+              width: "min(92vw, 440px)", borderRadius: 16, padding: 20,
+              background: "linear-gradient(180deg,#ffffff,#f1f5f9)",
+              border: "1px solid rgba(100,116,139,.35)", color: "#0f172a"
+            }}
+          >
+            <h3 style={{ margin: "0 0 6px 0" }}>Rob someone on tile #{robberTile}</h3>
+            <p style={{ margin: 0, opacity: .8 }}>Choose one adjacent opponent:</p>
+
+            <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+              {players
+                .filter(p => robberCandidates.includes(p.id))
+                .map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => chooseRobberVictim(p.id)}
+                    className="btn-accent"
+                    style={{ ["--accent" as any]: p.color, justifyContent: "flex-start", padding: "10px 12px", borderRadius: 12 }}
+                  >
+                    <span className="dot" style={{ background: p.color, marginRight: 8 }} />
+                    Rob {p.name}
+                  </button>
+                ))
+              }
+            </div>
+
+            {players.filter(p => robberCandidates.includes(p.id)).length === 0 && (
+              <div style={{ marginTop: 8, opacity: .8 }}>No eligible opponents here.</div>
+            )}
+          </div>
+        </div>
+      )}
+
 
 
       {/* Main board area */}
