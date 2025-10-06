@@ -117,12 +117,17 @@ class Game:
         
         if not success:
             return False
+
+        # Calculate longest road, as it can change after any action
+        for player_id in self.players.keys():
+            calculate_longest_road(self.board, player_id, self.players)
+        update_longest_road(self.players)
         
         if self.players[player_id]["victory_points"] >= 10:
-            return True
+            return player_id  # player_id won
         
         # return a list of game states for all players
-        # print(self.get_multiplayer_game_state()) # DEBUG
+        print(self.get_multiplayer_game_state()) # DEBUG
         return self.get_multiplayer_game_state()
 
 

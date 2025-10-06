@@ -159,16 +159,13 @@ def place_road(board: Board, edge_id: int, player_id: int, players: dict, bank: 
         return False    
     if not can_place_road(board, edge_id, player_id):
         return False
-    
-    longest_road(board, player_id, players)
-    
+        
     players[player_id]["roads"] -= 1
     players[player_id]["hand"]["brick"] -= 1
     players[player_id]["hand"]["wood"] -= 1
     bank["brick"] += 1
     bank["wood"] += 1
     board.edges[edge_id].owner = player_id
-
     return True
     
 
@@ -466,45 +463,90 @@ def complete_trade_bank(player_id: int, resource_give: dict, resource_receive: d
 
 
 # Misc Actions
-def longest_road(board, player_id: int, players: dict) -> None: 
+def calculate_longest_road(board, player_id: int, players: dict) -> None: 
     # First Part is caluclate longest road of current player DFS
-    # Need to block paths that go through settlements of other players
-
     max_length = 0
-    
-    for edge in board.edges:
-        if edge.owner != player_id:
-            continue
+    # Redo this algoirthm.
+    # For each vertex. If it has a neighboring edge from player.
+    # Add edge to stack, and the second vertex of that edge (if it is not blocked by other player settlement/city)
+    # Check from the second vertex all neighboring edges and so on until no more edges can be added.
+    # Keep track of visited edges to avoid cycles. and the length of the path. (We can viist a vertex multiple times as long as we dont use the same edge)
+    for vertex in board.vertices:
+        for edge in vertex.edges:
+            if board.edges[edge].owner == player_id:
+                stack = [(edge, vertex.id, 1)]  # (current_edge, visited_edges and current vertex, current_length)
+                visited_edges = {edge}
+                while stack:
+                    current_edge, last_vertex, length = stack.pop()
+                    max_length = max(max_length, length)
 
-        stack = [(edge.id, {edge.id}, 1)]  # (current_edge, visited_edges, current_length)
+                    for vertex_2 in board.edges[current_edge].vertices:
+                        if vertex_2 == last_vertex or (board.vertices[vertex_2].owner not in (None, player_id)):
+                            continue
 
-        while stack:
-            current_edge, visited, length = stack.pop()
-            max_length = max(max_length, length)
-
-            for vertex_id in board.edges[current_edge].vertices:
-                # Vertex is blocked by other player's settlement/city
-                if board.vertices[vertex_id].owner not in (None, player_id):
-                    continue
-
-                for next_edge in board.vertices[vertex_id].edges:
-                    if board.edges[next_edge].owner == player_id and next_edge not in visited:
-                        new_visited = visited | {next_edge}
-                        stack.append((next_edge, new_visited, length + 1))
+                        for next_edge in board.vertices[vertex_2].edges:
+                            if board.edges[next_edge].owner == player_id and next_edge not in visited_edges:
+                                visited_edges.add(next_edge)
+                                stack.append((next_edge, vertex_2, length + 1))
                 
-    
     players[player_id]["longest_road_length"] = max_length
 
-    # Second Part is to check if longest road needs to be updated
-    if players[player_id]["longest_road_length"] >= 5:
-        for opponent_id in players:
-            if players[opponent_id]["longest_road"] == True:
-                if players[opponent_id]["longest_road_length"] < players[player_id]["longest_road_length"]:
+
+def update_longest_road(players: dict) -> None:
+    for player_id in players.keys():
+        opponents = [pid for pid in players.keys() if pid != player_id]
+
+        if players[player_id]["longest_road_length"] < 5 and players[player_id]["longest_road"] == False:
+            continue
+
+        elif players[player_id]["longest_road_length"] < 5 and players[player_id]["longest_road"] == True:
+            players[player_id]["longest_road"] = False
+            players[player_id]["victory_points"] -= 2
+
+        elif players[player_id]["longest_road_length"] >= 5 and players[player_id]["longest_road"] == True:
+            continue
+        
+        elif players[player_id]["longest_road_length"] >= 5 and players[player_id]["longest_road"] == False:
+            for opponent_id in opponents:
+                if players[opponent_id]["longest_road"] == True and players[opponent_id]["longest_road_length"] >= players[player_id]["longest_road_length"]:
+                    break
+                elif players[opponent_id]["longest_road"] == True and players[opponent_id]["longest_road_length"] <= players[player_id]["longest_road_length"]:
                     players[opponent_id]["longest_road"] = False
                     players[player_id]["longest_road"] = True
                     players[opponent_id]["victory_points"] -= 2
                     players[player_id]["victory_points"] += 2
-                break
+                    break
+            else:
+                players[player_id]["longest_road"] = True
+                players[player_id]["victory_points"] += 2
+
+
+    # Second Part is to check if longest road needs to be updated
+        if players[player_id]["longest_road_length"] < 5 and players[player_id]["longest_road"] == True:
+            players[player_id]["longest_road"] = False
+            players[player_id]["victory_points"] -= 2
+            for opponent_id in players.keys():
+                if opponent_id == player_id:
+                    continue
+
+
+        if players[player_id]["longest_road_length"] >= 5:
+            for opponent_id in players.keys():
+                if opponent_id == player_id:
+                    continue
+
+                if players[opponent_id]["longest_road"] == True:
+                    if players[opponent_id]["longest_road_length"] < players[player_id]["longest_road_length"]:
+                        players[opponent_id]["longest_road"] = False
+                        players[player_id]["longest_road"] = True
+                        players[opponent_id]["victory_points"] -= 2
+                        players[player_id]["victory_points"] += 2
+                        break
+                else:
+                    if players[player_id]["longest_road"] == False:
+                        players[player_id]["longest_road"] = True
+                        players[player_id]["victory_points"] += 2
+                        break
 
 
 def steal_resource(board: Board, stealer_id: int, victim_id: int, players: dict) -> bool: 

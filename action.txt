@@ -30,22 +30,26 @@ Action dict example:
 
 
 
+
+
 roll_dice (No input needed) -> {'type': 'roll_dice'}
 end_turn (No input needed) -> {'type': 'end_turn'}
-
-discard_resources (Dict) -> {'type': 'discard_resources', 'resources': {'wood': 1, 'brick': 2}}
-move_robber (Int) -> {'type': 'move_robber', 'target_tile': 5}
 
 place_road (Int) -> {'type': 'place_road', 'edge_id': 12}
 place_settlement (Int) -> {'type': 'place_settlement', 'vertex_id': 8}
 place_city (Int) -> {'type': 'place_city', 'vertex_id': 8}
 buy_development_card (No input needed) -> {'type': 'buy_development_card'}
 
+
+TODO:
+
+discard_resources (Dict) -> {'type': 'discard_resources', 'resources': {'wood': 1, 'brick': 2}}
+move_robber (Int) -> {'type': 'move_robber', 'target_tile': 5}
+
 play_knight (Int) -> {'type': 'play_knight', 'target_tile': 5, 'victim_id': 2}
 play_road_building (List[Int]) -> {'type': 'play_road_building', 'edge_ids': [12, 15]} # can be one or two roads
 play_year_of_plenty (List[Str]) -> {'type': 'play_year_of_plenty', 'resources': ['wood', 'brick']} # can be one or two resources
 play_monopoly (Str) -> {'type': 'play_monopoly', 'resource': 'wood'}
-
 
 propose_trade (Int, Dict, Dict) -> {'type': 'propose_trade', 'trader_id': 2, 'offer': {'wood': 1}, 'request': {'brick': 1}}
 accept_trade (Int) -> {'type': 'accept_trade', 'trader_id': 2}

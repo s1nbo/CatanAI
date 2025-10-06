@@ -3,7 +3,7 @@
 // Tiles: 0–18, Vertices: 0–53, Edges: 0–71
 // Now supports "overlay" props to apply live server state and emits click events for actions.
 
-import React, { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 /** ---- Overlay types coming from server-normalized data ---- */
 export type BoardOverlay = {
@@ -144,7 +144,7 @@ export default function HexBoard({
     const tilesDraft: { cx: number; cy: number; pts: { x: number; y: number }[]; keys: string[] }[] = [];
     const vertexIndex: Record<string, { x: number; y: number }> = {};
 
-    for (const { q, r, cx, cy } of hexesWithIds) {
+    for (const { cx, cy } of hexesWithIds) {
       const pts = [] as { x: number; y: number }[];
       const keys = [] as string[];
       for (let i = 0; i < 6; i++) {

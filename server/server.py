@@ -134,14 +134,14 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
             data = await ws.receive_json()
             
             result = game_instance.call_action(player_id, data)
-            # if result is false the aciton failed, if result is true the player_id won, else the new game state is returned
+            # if result is false the aciton failed, if result is 1,2,3,4 the player has won, else the new game state is returned
             # as dict for each player (since hidden info)
-            if result is False:
+            if result is False: 
                 await ws.send_json({"status": "action_failed"})
-            elif result is True:
+            elif result in [1,2,3,4]: # player_id won
                 for conn in GAMES[game_id]["websockets"].values():
                     if conn:
-                        await conn.send_json({"status": "game_over", "winner": player_id})
+                        await conn.send_json({"status": "game_over", "winner": result})
                         # One Edge case, if you block the longest road and another player gets it and wins with that.
                         # Else The game will always be won by the player whos turn it is.
                         # Maybe TODO: Handle this edge case properly.

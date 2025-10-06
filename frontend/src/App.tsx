@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import "./App.css";
 import HexBoard from "./Board";
-import type { BoardOverlay} from "./Board";
+import type { BoardOverlay } from "./Board";
 
 /** ================== Types ================== */
 type Player = {
@@ -14,8 +14,10 @@ type Player = {
   name: string;
   color: string;
   victoryPoints: number;
-  largestArmy: number;
-  longestRoad: number;
+  largestArmy: boolean;
+  longestRoad: boolean;
+  longest_road_length: number;
+  played_knights: number;
   cities: number;
   settlements: number;
   roads: number;
@@ -224,8 +226,10 @@ function toOverlayFromServer(server: any): {
       name,
       color,
       victoryPoints: raw?.victory_points ?? 0,
-      largestArmy: raw?.largest_army ? 1 : 0,
-      longestRoad: raw?.longest_road ? 1 : 0,
+      largestArmy: raw?.largest_army ? true : false,
+      longestRoad: raw?.longest_road ? true : false,
+      longest_road_length: raw?.longest_road_length ?? 0,
+      played_knights: raw?.played_knights ?? 0,
       cities: raw?.cities ?? 0,
       settlements: raw?.settlements ?? 0,
       roads: raw?.roads ?? 0,
@@ -253,10 +257,10 @@ export default function App() {
 
   /** ----- Game state (existing HUD/board bits) ----- */
   const [players, setPlayers] = useState<Player[]>([
-    { id: "1", name: "Player 1", color: PLAYER_COLORS["1"], victoryPoints: 0, largestArmy: 0, longestRoad: 0, cities: 0, settlements: 0, roads: 0, handSize: 0, devCards: 0 },
-    { id: "2", name: "Player 2", color: PLAYER_COLORS["2"], victoryPoints: 0, largestArmy: 0, longestRoad: 0, cities: 0, settlements: 0, roads: 0, handSize: 0, devCards: 0 },
-    { id: "3", name: "Player 3", color: PLAYER_COLORS["3"], victoryPoints: 0, largestArmy: 0, longestRoad: 0, cities: 0, settlements: 0, roads: 0, handSize: 0, devCards: 0 },
-    { id: "4", name: "Player 4", color: PLAYER_COLORS["4"], victoryPoints: 0, largestArmy: 0, longestRoad: 0, cities: 0, settlements: 0, roads: 0, handSize: 0, devCards: 0 },
+    { id: "1", name: "Player 1", color: PLAYER_COLORS["1"], victoryPoints: 0, largestArmy: false, longestRoad: true, longest_road_length: 0, played_knights: 0, cities: 0, settlements: 0, roads: 0, handSize: 0, devCards: 0 },
+    { id: "2", name: "Player 2", color: PLAYER_COLORS["2"], victoryPoints: 0, largestArmy: false, longestRoad: true, longest_road_length: 0, played_knights: 0, cities: 0, settlements: 0, roads: 0, handSize: 0, devCards: 0 },
+    { id: "3", name: "Player 3", color: PLAYER_COLORS["3"], victoryPoints: 0, largestArmy: false, longestRoad: true, longest_road_length: 0, played_knights: 0, cities: 0, settlements: 0, roads: 0, handSize: 0, devCards: 0 },
+    { id: "4", name: "Player 4", color: PLAYER_COLORS["4"], victoryPoints: 0, largestArmy: false, longestRoad: true, longest_road_length: 0, played_knights: 0, cities: 0, settlements: 0, roads: 0, handSize: 0, devCards: 0 },
   ]);
   const [bank, setBank] = useState<Bank>({ wood: 19, brick: 19, sheep: 19, wheat: 19, ore: 19, devCards: 25, current_roll: null });
   const [overlay, setOverlay] = useState<BoardOverlay>({ tiles: [], edges: [], vertices: [] });
@@ -789,10 +793,11 @@ export default function App() {
             </div>
             <div className="stats-grid">
               <div className="stat"><Trophy /> <span>{p.victoryPoints}</span></div>
-              <div className="stat"><Swords /> <span>{p.largestArmy}</span></div>
+              <div className="stat"><Swords /> <span style={{ color: p.largestArmy ? 'red' : 'black' }}>{p.played_knights}</span></div>
               <div className="stat"><Hand /> <span>{p.handSize}</span></div>
-              <div className="stat"><Route /> <span>{p.longestRoad}</span></div>
+              <div className="stat"><Route /> <span style={{ color: p.longestRoad ? 'red' : 'black' }}>{p.longest_road_length}</span></div>
               <div className="stat"><Layers /> <span>{p.devCards}</span></div>
+
             </div>
             <div className="stats-grid" style={{ marginTop: 4, opacity: .8, fontSize: 12 }}>
               <div>🏘️ Settlements: <strong>{p.settlements}</strong></div>
