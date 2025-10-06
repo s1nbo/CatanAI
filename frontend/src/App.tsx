@@ -1435,7 +1435,7 @@ export default function App() {
           className="board-stage"
           style={{
             transition: "transform 200ms ease",
-            transform: rightOpen ? "translateX(0)" : "translateX(120px)", // tweak px as desired
+            transform: rightOpen ? "translateX(0)" : "translateX(280px)", // tweak px as desired
           }}
         >
           {/* The actual board, driven by live overlay */}
