@@ -794,6 +794,7 @@ export default function App() {
       style={{
         // when right panel is closed, collapse to a single column
         gridTemplateColumns: rightOpen ? undefined : "1fr",
+        justifyItems: rightOpen ? "stretch" : "end",
         transition: "grid-template-columns 160ms ease"
       }}
     >
@@ -1248,9 +1249,10 @@ export default function App() {
 
       {/* Main board area */}
       <div className="board" style={{
-        // when the right sidebar is hidden, push the whole block to the right edge
-        marginLeft: rightOpen ? undefined : "auto",
-        transition: "margin 160ms ease"
+        justifySelf: rightOpen ? "stretch" : "end", // align the grid item to the right
+        inlineSize: rightOpen ? "100%" : "fit-content", // shrink-to-content when sidebar is hidden
+        maxInlineSize: "100%", // prevent overflow on small screens
+        transition: "inline-size 160ms ease, margin 160ms ease",
       }}>
         {/* LEFT HUD */}
         <div className="hud-left">
