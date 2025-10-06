@@ -3,6 +3,8 @@ import json
 from game.action import *
 from game.board import Board
 
+NEXT_ACTION = ["Discard", "Move Robber", "Steal Resource", "Pick Monopoly Target", "Pick Year of Plenty Resources", "Place Road 2", "Place Road 1", None]
+
 # Game Logic file
 class Game:
     def __init__(self):
@@ -15,6 +17,10 @@ class Game:
         self.initial_placement_order = None
         self.counter = 0
         self.last_vertex_initial_placement = None
+
+        # Forced Actions (These have to be done before any other action can be taken)
+        self.pending_discard: dict[int, int] = {}  # player_id -> number of cards to discard 
+        self.forced_action: str | None = None  # One of NEXT_ACTION
 
     def add_player(self, player_id):
         if player_id not in self.players:
@@ -133,9 +139,16 @@ class Game:
 
     def process_action(self, player_id: int, action: dict) -> bool:
         # Validate turn and phase
-        if player_id != self.current_turn:
-            return False
+
         action_type = action.get("type")
+
+        # Unless action is accept trade, decline trade or discard resources (These can be done out of turn) TODO
+        if self.forced_action == "Discard" and action_type == "discard_resources":
+            pass
+        elif player_id != self.current_turn:
+            return False
+      
+
         
         # Route action (Return False if action is invalid)
         # TODO so for the multi input actions we can have one bool that switchws between modes  (e.g. after rolling a 7, discarding resources and moving robber are the only valid actions)
@@ -145,6 +158,19 @@ class Game:
                 self.number = roll_dice(board = self.board, players = self.players, player_id = player_id, bank = self.bank)
                 if self.number is False:
                     return False
+                
+                if self.number == 7:
+                    self.pending_discard.clear()
+                    for pid, pdata in self.players.items():
+                        total_cards = sum(pdata["hand"].values())
+                        if total_cards > 7:
+                            self.pending_discard[pid] = total_cards // 2
+                        
+                    if self.pending_discard:
+                        self.forced_action = "Discard"
+                    else:
+                        self.forced_action = "Move Robber"
+
                 return True
             
             case "end_turn":
@@ -156,14 +182,49 @@ class Game:
                     return False
             
             case "discard_resources":
-                return remove_resources(player_id = player_id, players = self.players, resources = action.get("resources", {}), bank = self.bank)
+                 # Only valid during forced Discard phase and only for players who still owe
+                if self.forced_action != "Discard":
+                    return False
+                owed = self.pending_discard.get(player_id, 0)
+                if owed <= 0:
+                    return False
+
+                # Validate total matches owed
+                resources = action.get("resources", {}) or {}
+                total_to_remove = sum(int(resources.get(k, 0)) for k in ["wood","brick","sheep","wheat","ore"])
+                if total_to_remove != owed:
+                    return False
+
+                ok = remove_resources(player_id = player_id, players = self.players, resources = resources, bank = self.bank)
+                if not ok:
+                    return False
+
+                # Mark this player's discard as satisfied
+                self.pending_discard[player_id] = 0
+
+                # If all finished, advance to robber placement
+                if all(v <= 0 for v in self.pending_discard.values()):
+                    self.forced_action = "Move Robber"
+
+                return True
             
             case "move_robber":
+                if self.forced_action != "Move Robber":
+                    return False
+
+                # Only current player may resolve robber
+                if player_id != self.current_turn:
+                    return False
+
                 if not move_robber(board = self.board, target_tile = int(action.get("target_tile"))):
                     return False
                 if not steal_resource(board = self.board, players = self.players, player_id = player_id, target_player_id = int(action.get("victim_id"))):
                     return False
+
+                # Robber resolved; resume normal play
+                self.forced_action = None
                 return True
+
     
             # Building actions
             case "place_road":
@@ -223,6 +284,8 @@ class Game:
             player_data = {player: json.dumps(self.players[player])}
             public_player_data = self.public_player_state(player)
             players = {**player_data, **public_player_data}
+            must_discard = self.pending_discard.get(player, 0) if self.forced_action == "Discard" else 0
+
             result[player] = {
                 "board": self.board.board_to_json(),
                 "players": players,
@@ -230,7 +293,9 @@ class Game:
                 "development_cards_remaining": len(self.development_cards),
                 "current_turn": self.current_turn,
                 "current_roll": self.number,
-                "initial_placement_order": self.initial_placement_order[self.counter] if self.counter < len(self.initial_placement_order) else -1
+                "initial_placement_order": self.initial_placement_order[self.counter] if self.counter < len(self.initial_placement_order) else -1,
+                "forced_action": self.forced_action,
+                "must_discard": must_discard,
             }
         return result
 

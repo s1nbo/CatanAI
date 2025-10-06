@@ -268,6 +268,17 @@ export default function App() {
   const [resetBoardSelToken, setResetBoardSelToken] = useState(0);
   const [gameOver, setGameOver] = useState<{ winner?: number | string; message?: string } | null>(null);
 
+  // --- Discard flow (after rolling a 7) ---
+  const [mustDiscard, setMustDiscard] = useState(0);
+  const [discardPick, setDiscardPick] = useState<{ wood: number; brick: number; sheep: number; wheat: number; ore: number }>({
+    wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0
+  });
+  const [forcedAction, setForcedAction] = useState<null | "Discard" | "Move Robber">(null);
+
+  const discardTotal = discardPick.wood + discardPick.brick + discardPick.sheep + discardPick.wheat + discardPick.ore;
+  const canSubmitDiscard = forcedAction === "Discard" && mustDiscard > 0 && discardTotal === mustDiscard;
+
+
   // Self panel
   const [self, setSelf] = useState<SelfPanel>({
     id: "1",
@@ -284,6 +295,8 @@ export default function App() {
     const hasRolled = bank.current_roll !== null;
     return isMyTurn && hasRolled;
   }, [players, self.id, bank.current_roll]);
+
+  const discardingNow = forcedAction === "Discard" && mustDiscard > 0;
 
   // NEW: what the board says is currently selected
   const [selected, setSelected] = useState<{ type: 'tile' | 'edge' | 'vertex'; id: number } | null>(null);
@@ -309,7 +322,12 @@ export default function App() {
     return { label: "Vertex occupied", enabled: false };
   }, [selected, overlay]);
 
-
+  function submitDiscard() {
+    if (!canSubmitDiscard) return;
+    sendAction({ type: "discard_resources", resources: discardPick });
+    // leave clearing to server update; optimistic clear is optional:
+    // setDiscardPick({wood:0,brick:0,sheep:0,wheat:0,ore:0});
+  }
 
   function handleEndTurn() { sendAction({ type: "end_turn" }); }
   function handleBuyDev() { sendAction({ type: "buy_development_card" }); }
@@ -440,6 +458,16 @@ export default function App() {
         setOverlay(overlay);
         setPlayers(players);
         setBank(bank);
+
+        // Discard / forced action handling
+        if (typeof data.forced_action === "string" || data.forced_action === null) {
+          setForcedAction(data.forced_action as any);
+        }
+        setMustDiscard(typeof data.must_discard === "number" ? data.must_discard : 0);
+        if (typeof window !== "undefined") {
+          // quick dev hook to simulate UI
+          (window as any).simNeedDiscard = (n: number) => { setForcedAction("Discard"); setMustDiscard(n); };
+        }
 
         // Detect controlling player ID from snapshot
         const detectedSelf = detectSelfFromSnapshot(data, String(playerId));
@@ -694,6 +722,77 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* Discard Overlay */}
+      {mustDiscard > 0 && forcedAction === "Discard" && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 9998,
+            display: "grid", placeItems: "center",
+            background: "rgba(15,23,42,.45)"
+          }}
+          role="dialog" aria-modal="true"
+        >
+          <div
+            style={{
+              width: "min(92vw, 520px)", borderRadius: 16, padding: 20,
+              background: "linear-gradient(180deg,#ffffff,#f1f5f9)",
+              border: "1px solid rgba(100,116,139,.35)", color: "#0f172a"
+            }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: 6 }}>Discard {mustDiscard} card{mustDiscard > 1 ? "s" : ""}</h3>
+            <p style={{ marginTop: 0, opacity: .8 }}>You rolled a 7 (or another player did). Choose exactly {mustDiscard} resource{mustDiscard > 1 ? "s" : ""} to discard.</p>
+
+            <div className="resource-grid" style={{ marginTop: 10 }}>
+              {(["wood", "brick", "sheep", "wheat", "ore"] as const).map((r) => (
+                <div key={r} className="resource-card">
+                  <div className="resource-left">
+                    <span className="resource-emoji">
+                      {r === "wood" ? "🌲" : r === "brick" ? "🧱" : r === "sheep" ? "🐑" : r === "wheat" ? "🌾" : "⛰️"}
+                    </span>
+                    <span style={{ marginLeft: 8, textTransform: "capitalize" }}>{r}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button
+                      className="btn-accent"
+                      style={{ ["--accent" as any]: self.color, padding: "4px 10px", borderRadius: 999 }}
+                      onClick={() => setDiscardPick(s => ({ ...s, [r]: Math.max(0, s[r] - 1) }))}
+                      disabled={discardPick[r] <= 0}
+                      aria-label={`decrease ${r}`}
+                    >–</button>
+                    <div className="count-pill">{discardPick[r]}</div>
+                    <button
+                      className="btn-accent"
+                      style={{ ["--accent" as any]: self.color, padding: "4px 10px", borderRadius: 999 }}
+                      onClick={() => setDiscardPick(s => {
+                        const next = { ...s, [r]: s[r] + 1 };
+                        // keep soft cap at mustDiscard to guide the user
+                        const cap = next.wood + next.brick + next.sheep + next.wheat + next.ore;
+                        return cap > mustDiscard ? s : next;
+                      })}
+                      aria-label={`increase ${r}`}
+                    >+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
+              <div style={{ opacity: .85 }}>
+                Picked: <strong>{discardTotal}</strong> / {mustDiscard}
+              </div>
+              <button
+                onClick={submitDiscard}
+                disabled={!canSubmitDiscard}
+                className="btn-accent"
+                style={{ ["--accent" as any]: self.color, padding: "10px 14px", borderRadius: 10 }}
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Main board area */}
       <div className="board">
@@ -715,7 +814,7 @@ export default function App() {
 
               <button
                 onClick={handleTrade}
-                disabled={!canEndTurn}
+                disabled={!canEndTurn || discardingNow}
                 title="Trade"
                 className="btn-accent"
                 style={{ ["--accent" as any]: self.color }}
@@ -725,7 +824,7 @@ export default function App() {
 
               <button
                 onClick={handleBuyDev}
-                disabled={!canEndTurn}
+                disabled={!canEndTurn || discardingNow}
                 title="Buy Dev"
                 className="btn-accent"
                 style={{ ["--accent" as any]: self.color }}
@@ -832,7 +931,7 @@ export default function App() {
               </div>
               <button
                 onClick={handleBuildClick}
-                disabled={!buildAction.enabled}
+                disabled={!buildAction.enabled || discardingNow}
                 className="btn-accent"
                 /* feed the player color into a CSS variable read by .btn-accent */
                 style={{ ["--accent" as any]: self.color }}
@@ -846,7 +945,7 @@ export default function App() {
           <div className="hud-card">
             <button
               onClick={handleEndTurn}
-              disabled={!canEndTurn}
+              disabled={!canEndTurn || discardingNow}
               className="btn-accent"
               style={{ ["--accent" as any]: self.color, width: "100%" }}
             >
