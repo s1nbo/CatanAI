@@ -1251,8 +1251,6 @@ export default function App() {
       <div className="board" style={{
         justifySelf: "stretch",
         width: "100%",
-        transition: "transform 200ms ease",
-        transform: rightOpen ? "translateX(0)" : "translateX(120px)", // <-- shift board right
       }}>
         {/* LEFT HUD */}
         <div className="hud-left">
@@ -1433,9 +1431,16 @@ export default function App() {
           </div>
 
         </div>
-
-        {/* The actual board, driven by live overlay */}
-        <HexBoard overlay={overlay} onSelect={setSelected} resetSelectionToken={resetBoardSelToken} />
+        <div
+          className="board-stage"
+          style={{
+            transition: "transform 200ms ease",
+            transform: rightOpen ? "translateX(0)" : "translateX(120px)", // tweak px as desired
+          }}
+        >
+          {/* The actual board, driven by live overlay */}
+          <HexBoard overlay={overlay} onSelect={setSelected} resetSelectionToken={resetBoardSelToken} />
+        </div>
       </div>
 
       {/* Right sidebar: Bank + Players */}
