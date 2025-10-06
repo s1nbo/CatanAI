@@ -27,6 +27,12 @@ class Game:
 
         self.temp_road_building = False # Used to track if the player is in the middle of placing roads from a road building card
 
+        # TRADING
+
+        self.pending_trade: dict | None = None
+        # one-shot notifications by player_id -> {"trade_all_declined": True}
+        self.one_shot_notify: dict[int, dict] = {}
+
     def add_player(self, player_id):
         if player_id not in self.players:
             self.players[player_id] = {
@@ -115,9 +121,6 @@ class Game:
         return True
             
 
- 
-
-    
     
     def call_action(self, player_id: int, action: dict) -> bool | dict:
         
@@ -138,28 +141,38 @@ class Game:
             return player_id  # player_id won
         
         # return a list of game states for all players
-        print(self.get_multiplayer_game_state()) # DEBUG
-        print("\n ---- \n")
+        #print(self.get_multiplayer_game_state()) # DEBUG
+        #print("\n ---- \n")
         return self.get_multiplayer_game_state()
 
 
     def process_action(self, player_id: int, action: dict) -> bool:
         # Validate turn and phase
+        
+        #print(f"Processing action from player {player_id}: {action}")  # Debug print
+        #print("\n ---- \n")
 
         action_type = action.get("type")
 
-        # Unless action is accept trade, decline trade or discard resources (These can be done out of turn) TODO
-        if self.forced_action == "Discard" and action_type == "discard_resources":
+        # Out-of-turn actions allowed:
+        if action_type == 'accept_trade' or action_type == 'decline_trade':
+            pass
+        elif self.forced_action == "Discard" and action_type == "discard_resources":
             pass
         elif player_id != self.current_turn:
             return False
+        
 
-        if self.forced_action and action_type not in ["discard_resources", "move_robber", "robber_steal", "Year of Plenty", "Monopoly", "place_road"]:
+        # If a forced action is active, restrict what the current player can do.
+        # Note: proposer cannot end their turn while a trade is pending.
+        if self.forced_action and action_type not in ["discard_resources", "move_robber", "robber_steal", "Year of Plenty", "Monopoly", "place_road", "Trade Pending", "accept_trade", "decline_trade"]:
+            return False
+        if self.pending_trade and player_id == self.current_turn and action_type == "end_turn":
+            # must resolve/cancel the trade first
             return False
 
         
         # Route action (Return False if action is invalid)
-        # TODO so for the multi input actions we can have one bool that switchws between modes  (e.g. after rolling a 7, discarding resources and moving robber are the only valid actions)
         match action_type:
             # General actions
             case "roll_dice": # TODO if seven is rolled ask for discarding ressources and move robber, Game Logic has to be here not the server.
@@ -383,21 +396,102 @@ class Game:
                 
             
         
-            # Trade actions TODO (Trades are not yet fully implemented)
-            case "bank_trade": # Bank Trades skip other players
-                if not can_do_trade_bank(player_id = player_id, resource_give = action.get("offer", {}), resource_receive = action.get("request", {}), players = self.players, bank = self.bank):
+            # Trade actions
+            case "bank_trade":
+                offer = action.get("offer", {}) or {}
+                request = action.get("request", {}) or {}
+                if not can_do_trade_bank(player_id=player_id, resource_give=offer, resource_receive=request, players=self.players, bank=self.bank):
                     return False
-                return complete_trade_bank(player_id = player_id, offer = action.get("offer", {}), request = action.get("request", {}), players = self.players, bank = self.bank)
-            
-            case "propose_trade": # Dont Forget to check what players can do trade (This only checks if there is atleast one possible trade partner) TODO
-                return trade_possible(player_id = player_id, offer = action.get("offer", {}), request = action.get("request", {}), players = self.players, bank = self.bank)
-             
+                return complete_trade_bank(player_id=player_id, resource_give=offer, resource_receive=request, players=self.players, bank=self.bank)
+
+            case "propose_trade":
+                if self.pending_trade is not None:
+                    return False  # only one active proposal at a time
+                offer = action.get("offer", {}) or {}
+                request = action.get("request", {}) or {}
+
+                if not trade_possible(player_id=player_id, offer=offer, request=request, players=self.players, bank=self.bank):
+                    return False
+
+                # Build recipients
+                recipients = [pid for pid in self.players.keys() if pid != player_id]
+                if not recipients:
+                    return False
+
+                self.pending_trade = {
+                    "trader_id": player_id,
+                    "offer": offer,
+                    "request": request,
+                    "awaiting": set(recipients),
+                    "declined": set(),
+                    "accepted_by": None,
+                }
+                # keep the current player's flow "locked" until resolved
+                # (we reuse forced_action string so UI can present a banner if desired)
+                self.forced_action = self.forced_action or "Trade Pending"
+                return True
+
             case "accept_trade":
-                return complete_trade_player(player_id = player_id, trader = int(action.get("trader_id")), offer = action.get("offer", {}), request = action.get("request", {}), players = self.players)
+                if self.pending_trade is None:
+                    return False
+
+                trader = self.pending_trade["trader_id"]
+                offer = self.pending_trade["offer"]
+                request = self.pending_trade["request"]
+                partner = player_id
+                if partner == trader:
+                    return False
+ 
+                # must be one of the invited players
+                if partner not in self.players:
+                    return False
+       
+                # Only one acceptance finalizes; if already accepted, ignore
+                if self.pending_trade["accepted_by"] is not None:
+                    return False
+      
+                # Validate partner can pay request now
+                if not can_do_trade_player(partner, request, self.players):
+                    return False
+   
+
+                # Execute and clear
+                if not complete_trade_player(trader_id=trader, partner_id=partner, offer=offer, request=request, players=self.players):
+                    return False
+
+                self.pending_trade["accepted_by"] = partner
+                self.pending_trade = None
+                # clear any trade-forced flag if it was the only pending thing
+                if self.forced_action == "Trade Pending":
+                    self.forced_action = None
+                return True
+
+            case "decline_trade":
+                if self.pending_trade is None:
+                    return False
+                trader = self.pending_trade["trader_id"]
+                partner = player_id
+                if partner == trader:
+                    return False
+                # mark response
+                if partner in self.pending_trade["awaiting"]:
+                    self.pending_trade["awaiting"].remove(partner)
+                    self.pending_trade["declined"].add(partner)
+
+                # if everyone declined, clear and notify the trader
+                if not self.pending_trade["awaiting"] and self.pending_trade["accepted_by"] is None:
+                    self.pending_trade = None
+                    if self.forced_action == "Trade Pending":
+                        self.forced_action = None
+                    self.one_shot_notify[trader] = {"trade_all_declined": True}
+                return True
+
 
             case _:
                 return False
-            
+
+
+
     def _robbable_players_on_tile(self, tile_id: int, current: int) -> list[int]:
         vertices = self.board.tiles[tile_id].vertices
         seen = set()
@@ -415,6 +509,18 @@ class Game:
             pdata["total_hand"] = sum(pdata["hand"].values())
             pdata["total_development_cards"] = sum(pdata["development_cards"].values())
             pdata["victory_points_without_vp_cards"] = pdata["victory_points"] - pdata["development_cards"]["victory_point"]
+
+        pending_trade_view = None
+        if self.pending_trade is not None:
+            # serialize sets for JSON
+            pending_trade_view = {
+                "trader_id": self.pending_trade["trader_id"],
+                "offer": self.pending_trade["offer"],
+                "request": self.pending_trade["request"],
+                "awaiting": sorted(list(self.pending_trade["awaiting"])),
+                "declined": sorted(list(self.pending_trade["declined"])),
+                "accepted_by": self.pending_trade["accepted_by"],
+            }
 
         result = {}
         for player in self.players.keys():
@@ -436,7 +542,12 @@ class Game:
                 "must_discard": must_discard,
                 "robber_candidates": self.robber_candidates,         # [] or [2,3,...]
                 "pending_robber_tile": self.pending_robber_tile,     # int or None
+
+                "pending_trade": pending_trade_view,
+                "one_shot": self.one_shot_notify.get(player, {}),
             }
+        
+        self.one_shot_notify.clear()
         return result
 
 

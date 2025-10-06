@@ -338,61 +338,40 @@ def can_play_monopoly(player_id: int, players: dict) -> bool:
     return True
 
 
-# Trade Actions TODO revamp trade system
-def trade_possible(player_id: int, resource_0: dict, resource_1: dict, players: dict, bank: dict) -> bool: # could the trade be possible
-    if players[player_id]["dice_rolled"] == False:
-        return False
-    if not can_do_trade_player(player_id, resource_0, players):
-        return False
-    for trader in players:
-        if trader != player_id:
-            if can_do_trade_player(trader, resource_1, players):
-               return True
 
-    return False
-    
+# Trade Actions
 
 def can_do_trade_player(player_id: int, resource_give: dict, players: dict) -> bool:
+    # player must have enough of each offered resource
     for resource, amount in resource_give.items():
         if resource not in ["wood", "brick", "sheep", "wheat", "ore"]:
             return False
         if amount <= 0:
             return False
-        if resource_give[resource] > players[player_id]["hand"].get(resource, 0):
+        if amount > players[player_id]["hand"].get(resource, 0):
             return False
     return True
 
 
+def _port_ratios_for_player(player_id: int, players: dict) -> dict:
+    # defaults
+    ratios = {r: 4 for r in ["wood", "brick", "sheep", "wheat", "ore"]}
+    ports = players[player_id].get("ports", []) or []
+    for port in ports:
+        if port is None:
+            continue
+        if port == "3:1":
+            for k in ratios:
+                ratios[k] = min(ratios[k], 3)
+        else:
+            port_name = port.split(" ")[1].lower()
+            if port_name in ratios and ratios[port_name] > 2:
+                ratios[port_name] = 2
+    return ratios
+
+
 def can_do_trade_bank(player_id: int, resource_give: dict, resource_receive: dict, players: dict, bank: dict) -> bool:
-    # Check what ports the player has if any
-    if players[player_id]["ports"] == []:
-        wood_ratio = 4
-        brick_ratio = 4
-        sheep_ratio = 4
-        wheat_ratio = 4
-        ore_ratio = 4
-    else:
-        for port in players[player_id]["ports"]:
-            if port == None:
-                continue
-            elif port == "3:1":
-                wood_ratio = min(wood_ratio, 3)
-                brick_ratio = min(brick_ratio, 3)
-                sheep_ratio = min(sheep_ratio, 3)
-                wheat_ratio = min(wheat_ratio, 3)
-                ore_ratio = min(ore_ratio, 3)
-            elif port == "wood":
-                wood_ratio = min(wood_ratio, 2)
-            elif port == "brick":
-                brick_ratio = min(brick_ratio, 2)
-            elif port == "sheep":
-                sheep_ratio = min(sheep_ratio, 2)
-            elif port == "wheat":
-                wheat_ratio = min(wheat_ratio, 2)
-            elif port == "ore":
-                ore_ratio = min(ore_ratio, 2)
-    
-    # check if enough resources are in the bank
+    # validate receive side (bank must have enough)
     for resource, amount in resource_receive.items():
         if resource not in ["wood", "brick", "sheep", "wheat", "ore"]:
             return False
@@ -400,38 +379,42 @@ def can_do_trade_bank(player_id: int, resource_give: dict, resource_receive: dic
             return False
         if bank.get(resource, 0) < amount:
             return False
-    
-    # check if player has correct ratios of resources to give
+
+    # validate offer side against ratios and player’s hand
+    ratios = _port_ratios_for_player(player_id, players)
+    # while not strictly required by rules, enforce that offer converts to an integer number of receive cards
+    total_receivable = 0
     for resource, amount in resource_give.items():
-        if resource not in ["wood", "brick", "sheep", "wheat", "ore"]:
-            return False
-        if amount <= 0:
-            return False
-        if resource == "wood":
-            ratio = wood_ratio
-        elif resource == "brick":
-            ratio = brick_ratio
-        elif resource == "sheep":
-            ratio = sheep_ratio
-        elif resource == "wheat":
-            ratio = wheat_ratio
-        elif resource == "ore":
-            ratio = ore_ratio
-        if amount % ratio != 0:
+        if resource not in ratios or amount <= 0:
             return False
         if players[player_id]["hand"].get(resource, 0) < amount:
             return False
-    
+        if amount % ratios[resource] != 0:
+            return False
+        total_receivable += amount // ratios[resource]
+
+    # optional: ensure player isn’t asking for more than computed total_receivable
+    ask_total = sum(resource_receive.values())
+    if ask_total != total_receivable:
+        return False
+
     return True
 
 
-def complete_trade_player(player_0: int, player_1: int, resource_0: dict, resource_1: dict, players: dict) -> bool:
-    for resource, amount in resource_0.items():
-        players[player_0]["hand"][resource] -= amount
-        players[player_1]["hand"][resource] += amount
-    for resource, amount in resource_1.items():
-        players[player_1]["hand"][resource] -= amount
-        players[player_0]["hand"][resource] += amount
+def complete_trade_player(trader_id: int, partner_id: int, offer: dict, request: dict, players: dict) -> bool:
+    # final validation (both sides still have cards)
+    if not can_do_trade_player(trader_id, offer, players):
+        return False
+    if not can_do_trade_player(partner_id, request, players):
+        return False
+
+    # execute transfer
+    for r, a in offer.items():
+        players[trader_id]["hand"][r] -= a
+        players[partner_id]["hand"][r] += a
+    for r, a in request.items():
+        players[partner_id]["hand"][r] -= a
+        players[trader_id]["hand"][r] += a
     return True
 
 
@@ -443,6 +426,20 @@ def complete_trade_bank(player_id: int, resource_give: dict, resource_receive: d
         players[player_id]["hand"][resource] += amount
         bank[resource] -= amount
     return True
+
+
+def trade_possible(player_id: int, offer: dict, request: dict, players: dict, bank: dict) -> bool:
+    # proposer must be able to pay offer
+    if not can_do_trade_player(player_id, offer, players):
+        return False
+    # at least one other player must be able to pay the request
+    for pid in players:
+        if pid == player_id:
+            continue
+        if can_do_trade_player(pid, request, players):
+            return True
+    return False
+
 
 
 # Misc Actions

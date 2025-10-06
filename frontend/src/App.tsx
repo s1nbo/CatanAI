@@ -43,6 +43,7 @@ type SelfPanel = {
   victoryPoints: number;
   resources: { wood: number; brick: number; sheep: number; wheat: number; ore: number };
   devList: string[];
+  ports: string[];
 };
 
 type Phase = "lobby" | "game";
@@ -146,11 +147,12 @@ function extractSelfPanel(playersMap: Record<string, any>, selfId: string, playe
   const rawEntry = playersMap?.[selfId];
   const raw = rawEntry ? (typeof rawEntry === "string" ? JSON.parse(rawEntry) : rawEntry) : {};
   const resources = normalizeResources(raw);
-  const devList = normalizeDevCards(raw); // <-- now includes "VP"
+  const devList = normalizeDevCards(raw);
+  const ports: string[] = Array.isArray(raw?.ports) ? raw.ports as string[] : [];
   const victoryPoints = raw?.victory_points ?? 0;
   const name = `Player ${selfId}`;
   const color = playerColors[selfId] ?? "#94a3b8";
-  return { id: selfId, name, color, victoryPoints, resources, devList };
+  return { id: selfId, name, color, victoryPoints, resources, devList, ports };
 }
 
 function detectSelfFromSnapshot(server: any, fallback: string | null): string {
@@ -270,6 +272,22 @@ export default function App() {
   const [resetBoardSelToken, setResetBoardSelToken] = useState(0);
   const [gameOver, setGameOver] = useState<{ winner?: number | string; message?: string } | null>(null);
 
+  // Trade UI state
+  const [tradeOpen, setTradeOpen] = useState(false);
+  const [tradeGive, setTradeGive] = useState({ wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 });
+  const [tradeReceive, setTradeReceive] = useState({ wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 });
+
+  // Live trade from server
+  const [pendingTrade, setPendingTrade] = useState<null | {
+    trader_id: number;
+    offer: Record<string, number>;
+    request: Record<string, number>;
+    awaiting: number[];
+    declined: number[];
+    accepted_by: number | null;
+  }>(null);
+  const [tradeDeclinedNote, setTradeDeclinedNote] = useState(false);
+
   // --- Discard flow (after rolling a 7) ---
   const [mustDiscard, setMustDiscard] = useState(0);
   const [discardPick, setDiscardPick] = useState<{ wood: number; brick: number; sheep: number; wheat: number; ore: number }>({
@@ -301,6 +319,7 @@ export default function App() {
     victoryPoints: 0,
     resources: { wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 },
     devList: [],
+    ports: [],
   });
 
   const isMyTurn = players.find(p => p.id === self.id)?.isCurrent ?? false;
@@ -369,12 +388,35 @@ export default function App() {
     sendAction({ type: "robber_steal", victim_id: Number(victimId) });
   }
 
+  function portRatios(ports: string[]) {
+    const r = { wood: 4, brick: 4, sheep: 4, wheat: 4, ore: 4 };
+    for (const p of ports || []) {
+      if (!p) continue;
+      if (p === "3:1") {
+        (Object.keys(r) as (keyof typeof r)[]).forEach(k => { r[k] = Math.min(r[k], 3); });
+        // we need to transform "2:1 Wood" → "wood"
+      } else if (p.startsWith("2:1 ")) {
+        const port_name = p.split(" ")[1].toLowerCase();
+        if (port_name in r && r[port_name as keyof typeof r] > 2) {
+          (r as any)[port_name] = 2;
+        }
+      }
+    }
+    return r;
+  }
+  const ratios = portRatios(self.ports || []);
+
+
   function handleEndTurn() { sendAction({ type: "end_turn" }); }
   function handleBuyDev() { sendAction({ type: "buy_development_card" }); }
 
   // Actions (hook up to WS later if you have action routing)
   function handleRollDice() { sendAction({ type: "roll_dice" }); }
-  function handleTrade() { /* send WS action if needed */ }
+  function handleTrade() {
+    setTradeOpen(true);
+    setTradeDeclinedNote(false);
+
+  }
 
   // Play a dev card
   const canPlayDevCards = isMyTurn && !discardingNow && !forcedAction;
@@ -554,6 +596,16 @@ export default function App() {
         const detectedSelf = detectSelfFromSnapshot(data, String(playerId));
         const sp = extractSelfPanel(data.players ?? {}, String(detectedSelf), PLAYER_COLORS);
         setSelf(sp);
+
+        setPendingTrade((data as any).pending_trade ?? null);
+        const note = (data as any).one_shot ?? {};
+        if (note && note.trade_all_declined) {
+          // show a one-time banner/toast – simplest: reopen the trade modal with a little note
+          setTradeDeclinedNote(true);
+        } else {
+          setTradeDeclinedNote(false);
+        }
+
         return;
       }
       if (data?.status === "game_over") {
@@ -1023,7 +1075,165 @@ export default function App() {
         </div>
       )}
 
+      {/* TRADE MODAL — Propose / Bank */}
+      {tradeOpen && !pendingTrade && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "grid", placeItems: "center", background: "rgba(15,23,42,.45)" }} role="dialog" aria-modal="true">
+          <div style={{ width: "min(92vw, 560px)", borderRadius: 16, padding: 20, background: "linear-gradient(180deg,#ffffff,#f1f5f9)", border: "1px solid rgba(100,116,139,.35)", color: "#0f172a" }}>
+            <h3 style={{ margin: "0 0 6px 0" }}>Trade</h3>
+            {tradeDeclinedNote && <div style={{ margin: "6px 0 10px 0", padding: "8px 10px", borderRadius: 8, background: "#fee2e2", color: "#991b1b" }}>
+              All players declined your last offer.
+            </div>}
+            <div style={{ display: "grid", gap: 12 }}>
+              <div className="hud-title" style={{ marginTop: 6 }}>Give</div>
+              <div className="resource-grid">
+                {(["wood", "brick", "sheep", "wheat", "ore"] as const).map((r) => (
+                  <div key={`give-${r}`} className="resource-card">
+                    <div className="resource-left">
+                      <span className="resource-emoji">{r === "wood" ? "🌲" : r === "brick" ? "🧱" : r === "sheep" ? "🐑" : r === "wheat" ? "🌾" : "⛰️"}</span>
+                      <span style={{ marginLeft: 8, textTransform: "capitalize" }}>{r}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <button className="btn-accent" style={{ ["--accent" as any]: self.color, padding: "4px 10px", borderRadius: 999 }}
+                        onClick={() => setTradeGive(s => ({ ...s, [r]: Math.max(0, s[r] - 1) }))}>–</button>
+                      <div className="count-pill">{tradeGive[r]}</div>
+                      <button className="btn-accent" style={{ ["--accent" as any]: self.color, padding: "4px 10px", borderRadius: 999 }}
+                        onClick={() => setTradeGive(s => ({ ...s, [r]: s[r] + 1 }))}>+</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
+              <div className="hud-title">Receive</div>
+              <div className="resource-grid">
+                {(["wood", "brick", "sheep", "wheat", "ore"] as const).map((r) => (
+                  <div key={`recv-${r}`} className="resource-card">
+                    <div className="resource-left">
+                      <span className="resource-emoji">{r === "wood" ? "🌲" : r === "brick" ? "🧱" : r === "sheep" ? "🐑" : r === "wheat" ? "🌾" : "⛰️"}</span>
+                      <span style={{ marginLeft: 8, textTransform: "capitalize" }}>{r}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <button className="btn-accent" style={{ ["--accent" as any]: self.color, padding: "4px 10px", borderRadius: 999 }}
+                        onClick={() => setTradeReceive(s => ({ ...s, [r]: Math.max(0, s[r] - 1) }))}>–</button>
+                      <div className="count-pill">{tradeReceive[r]}</div>
+                      <button className="btn-accent" style={{ ["--accent" as any]: self.color, padding: "4px 10px", borderRadius: 999 }}
+                        onClick={() => setTradeReceive(s => ({ ...s, [r]: s[r] + 1 }))}>+</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Ratios hint */}
+              <div style={{ fontSize: 12, opacity: .8 }}>
+                Bank ratios: {(["wood", "brick", "sheep", "wheat", "ore"] as const).map(r => `${r[0].toUpperCase() + r.slice(1)} ${ratios[r]}:1`).join("  •  ")}
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginTop: 8 }}>
+                <button
+                  className="btn-accent"
+                  style={{ ["--accent" as any]: "#0ea5e9", padding: "10px 14px", borderRadius: 10 }}
+                  onClick={() => {
+                    const offer = Object.fromEntries(Object.entries(tradeGive).filter(([, v]) => v > 0));
+                    const request = Object.fromEntries(Object.entries(tradeReceive).filter(([, v]) => v > 0));
+                    sendAction({ type: "bank_trade", offer, request });
+                    setTradeOpen(false);
+                    setTradeGive({ wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 });
+                    setTradeReceive({ wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 });
+                  }}
+                >
+                  Trade with Bank
+                </button>
+
+                <button
+                  className="btn-accent"
+                  style={{ ["--accent" as any]: "#22c55e", padding: "10px 14px", borderRadius: 10 }}
+                  onClick={() => {
+                    const offer = Object.fromEntries(Object.entries(tradeGive).filter(([, v]) => v > 0));
+                    const request = Object.fromEntries(Object.entries(tradeReceive).filter(([, v]) => v > 0));
+                    sendAction({ type: "propose_trade", offer, request });
+                    setTradeOpen(false);
+                    // The “waiting” UI comes from pending_trade snapshot
+                  }}
+                >
+                  Propose to Players
+                </button>
+
+                <button className="btn-accent" style={{ ["--accent" as any]: "#ef4444", padding: "10px 14px", borderRadius: 10 }}
+                  onClick={() => setTradeOpen(false)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INCOMING TRADE — Accept/Decline */}
+      {pendingTrade && String(pendingTrade.trader_id) !== self.id && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "grid", placeItems: "center", background: "rgba(15,23,42,.45)" }} role="dialog" aria-modal="true">
+          <div style={{ width: "min(92vw, 520px)", borderRadius: 16, padding: 20, background: "linear-gradient(180deg,#ffffff,#f1f5f9)", border: "1px solid rgba(100,116,139,.35)", color: "#0f172a" }}>
+            <h3 style={{ margin: "0 0 8px 0" }}>Trade Offer from Player {pendingTrade.trader_id}</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <div className="hud-title">They Give</div>
+                <ul style={{ margin: "6px 0 0 18px" }}>
+                  {Object.entries(pendingTrade.offer).map(([r, a]) => <li key={r}>{a} × {r}</li>)}
+                </ul>
+              </div>
+              <div>
+                <div className="hud-title">You Give</div>
+                <ul style={{ margin: "6px 0 0 18px" }}>
+                  {Object.entries(pendingTrade.request).map(([r, a]) => <li key={r}>{a} × {r}</li>)}
+                </ul>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+              <button
+                className="btn-accent"
+                style={{ ["--accent" as any]: "#22c55e", padding: "10px 14px", borderRadius: 10 }}
+                onClick={() => sendAction({ type: "accept_trade", trader_id: pendingTrade.trader_id, offer: pendingTrade.offer, request: pendingTrade.request })}
+              >
+                Accept
+              </button>
+              <button
+                className="btn-accent"
+                style={{ ["--accent" as any]: "#ef4444", padding: "10px 14px", borderRadius: 10 }}
+                onClick={() => sendAction({ type: "decline_trade", trader_id: pendingTrade.trader_id })}
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* TRADE PENDING — Waiting for responses */}
+      {pendingTrade && String(pendingTrade.trader_id) === self.id && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "grid", placeItems: "center", background: "rgba(15,23,42,.45)" }} role="dialog" aria-modal="true">
+          <div style={{ width: "min(92vw, 520px)", borderRadius: 16, padding: 20, background: "linear-gradient(180deg,#ffffff,#f1f5f9)", border: "1px solid rgba(100,116,139,.35)", color: "#0f172a" }}>
+            <h3 style={{ margin: "0 0 8px 0" }}>Waiting for responses…</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <div className="hud-title">Offer</div>
+                <ul style={{ margin: "6px 0 0 18px" }}>
+                  {Object.entries(pendingTrade.offer).map(([r, a]) => <li key={r}>{a} × {r}</li>)}
+                </ul>
+              </div>
+              <div>
+                <div className="hud-title">Request</div>
+                <ul style={{ margin: "6px 0 0 18px" }}>
+                  {Object.entries(pendingTrade.request).map(([r, a]) => <li key={r}>{a} × {r}</li>)}
+                </ul>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 10, fontSize: 14 }}>
+              <div><strong>Awaiting:</strong> {pendingTrade.awaiting.length ? pendingTrade.awaiting.map(id => `P${id}`).join(", ") : "—"}</div>
+              <div><strong>Declined:</strong> {pendingTrade.declined.length ? pendingTrade.declined.map(id => `P${id}`).join(", ") : "—"}</div>
+              <div><strong>Accepted By:</strong> {pendingTrade.accepted_by ? `Player ${pendingTrade.accepted_by}` : "—"}</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main board area */}
       <div className="board">
@@ -1045,7 +1255,7 @@ export default function App() {
 
               <button
                 onClick={handleTrade}
-                disabled={!!forcedAction || !canEndTurn}
+                disabled={!!forcedAction || !canEndTurn || bank.current_roll === null}
                 title="Trade"
                 className="btn-accent"
                 style={{ ["--accent" as any]: self.color }}
@@ -1122,7 +1332,7 @@ export default function App() {
                 const title =
                   isVP ? "Victory Point (kept secret; not playable)"
                     : !canPlayDevCards ? "You can't play a dev card right now"
-                    : `Play ${type}`;
+                      : `Play ${type}`;
                 return (
                   <button
                     key={type}
