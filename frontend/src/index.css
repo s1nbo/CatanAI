@@ -1,3 +1,4 @@
+/* ---------- Base / Reset ---------- */
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -5,7 +6,7 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #2A66A0; 
+  background-color: #2A66A0;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,39 +14,24 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ADD THIS RULE */
 html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  box-sizing: border-box; /* Good practice for layout */
 }
+
+*, *::before, *::after { box-sizing: border-box; }
 
 a {
   font-weight: 500;
   color: #646cff;
   text-decoration: inherit;
 }
-a:hover {
-  color: #535bf2;
-}
+a:hover { color: #535bf2; }
 
 body {
-  /* These properties are now handled by the rule above */
-  /* margin: 0; */
   min-width: 320px;
-  /* min-height: 100vh; */
 }
-
-.board-scale {
- /* transform: scale(0.5); */
-
-  display: block;
-  width: 100%;
-  height: 100%;
-
-}
-
 
 h1 {
   font-size: 3.2em;
@@ -63,321 +49,32 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
-button:hover {
-  border-color: #646cff;
-}
+button:hover { border-color: #646cff; }
 button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
+button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
 
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
-    background-color: #e0f2fe; /* #e0f2fe */
+    background-color: #e0f2fe;
   }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+  a:hover { color: #747bff; }
+  button { background-color: #f9f9f9; }
 }
 
-
-
-
-
-/* Page layout (deduped below) */
-
-/* Right pane: sidebar */
-.sidebar {
-  width: 320px;
-  padding: 16px;
-  overflow-y: auto;
-  background: transparent;        /* keep your blue page bg if you want */
+/* ---------- Page Layout ---------- */
+.layout {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  height: 100%;
+  min-height: 100vh;
 }
 
-/* Section titles shown directly in the sidebar */
-.section-title {
-  color: #ffffff;                 /* visible over blue bg */
-  font-weight: 800;
-  font-size: 1.25rem;
-  margin: 4px 0;
-}
-
-/* Cards (Bank + Players) — clear contrast vs blue background */
-.card {
-  background: #ffffff;
-  border: 1px solid #d1d5db;      /* gray-300 */
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-  padding: 12px;
-  color: #0f172a;                 /* slate-900 to override global white text */
-}
-
-.card-title {
-  margin: 0 0 8px 0;
-  font-weight: 800;
-  font-size: 1.1rem;
-}
-
-/* Bank grid: two columns */
-.bank-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 12px;
-  font-size: 0.95rem;
-}
-
-/* Player header */
-.player-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.player-name { font-weight: 700; }
-.dot {
-  width: 14px; height: 14px; border-radius: 50%;
-  border: 1px solid rgba(0,0,0,0.2);
-}
-
-/* Stats grid: 2 columns × 4 rows */
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 12px;
-}
-
-/* Each stat cell: icon + number */
-.stat {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.95rem;
-}
-.stat svg {
-  width: 16px; height: 16px;
-  color: #334155;                 /* slate-700 */
-  flex-shrink: 0;
-}
-.stat span { font-weight: 600; }
-
+/* Board (main canvas) */
 .board {
+  position: relative;          /* for HUD overlay */
   flex: 1;
-  background: #e5e7eb;
-  display: flex;
-  align-items: stretch;   /* was: center */
-  justify-content: stretch; /* was: center */
-  overflow: hidden;       /* keep board inside on scales */
-}
-
-/* SVG sizing handled in final section below */
-
-
-/* Deduped: see final layout section */
-
-/* Final, deduped layout rules */
-html, body, #root { height: 100%; margin: 0; padding: 0; }
-.layout { display: flex; height: 100%; min-height: 100vh; }
-.board {
-  flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
   display: flex;
   align-items: stretch;
-  justify-content: stretch;
-  overflow: hidden;
-  background: #2A66A0;
-}
-.board > * { flex: 1 1 auto; min-height: 0; }
-.board svg { width: 100%; height: 100%; display: block; }
-
-
-/* --- In-board left HUD --- */
-.board { position: relative; } /* ensure overlay can be absolutely positioned */
-
-.hud-left {
-  position: absolute;
-  inset: 12px auto 12px 12px;   /* top/right/bottom/left */
-  width: 300px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 10;
-  pointer-events: auto;
-}
-
-.hud-card {
-  background: #ffffffcc;        /* slight translucency */
-  backdrop-filter: blur(4px);
-  border: 1px solid #d1d5db;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-  padding: 12px;
-  color: #0f172a;
-}
-
-.hud-title {
-  margin: 0 0 8px 0;
-  font-weight: 800;
-  font-size: 1.05rem;
-}
-
-
-
-.dev-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-
-.dev-card {
-  min-width: 64px;
-  height: 84px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 6px;
-  font-weight: 700;
-  cursor: pointer;
-  user-select: none;
-}
-.dev-card:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
-
-.vp-stack {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.vp-badge {
-  width: 36px; height: 48px;
-  border: 2px solid #eab308;     /* golden edge */
-  border-radius: 8px;
-  background: #fef3c7;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-}
-
-.resource-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.resource-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #fff;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 700;
-}
-.resource-left { display: flex; align-items: center; gap: 8px; }
-.resource-emoji { font-size: 1.1rem; }
-.count-pill {
-  min-width: 28px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid #d1d5db;
-  background: #f8fafc;
-  text-align: center;
-  font-weight: 800;
-}
-
-
-
-.dev-emoji {
-  font-size: 1.6rem;
-  line-height: 1;
-}
-
-
-/* make dev cards positionable + add a tiny count badge */
-.dev-card { position: relative; }
-.dev-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: #111827;   /* almost black */
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #ffffff;
-}
-
-
-
-/*
-.roll-row { margin-top: 10px; display: flex; align-items: center; gap: 10px; }
-.roll-label { font-weight: 700; opacity: .8; }
-.roll-pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 999px; background: #fff; font-weight: 800; }
-.roll-dice { font-size: 1.2rem; line-height: 1; }
-.hud-left .actions-grid button:disabled { opacity: .6; cursor: not-allowed; }
-*/
-
-
-/* Accent outline on hover (color comes from --accent) */
-.btn-accent {
-  border: 1px solid transparent;
-  transition: box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease;
-}
-.btn-accent:hover {
-  /* small colored outline */
-  box-shadow: 0 0 0 3px var(--accent, currentColor);
-  border-color: var(--accent, currentColor);
-}
-.btn-accent:disabled,
-.btn-accent[disabled] {
-  box-shadow: none;
-  border-color: transparent;
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-
-/* Layout: 3 equal buttons */
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-
-/* Roll number pill */
-.roll-badge {
-  display: inline-block;
-  min-width: 3.2rem;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-  font-weight: 700;
-  border-radius: 999px;
-  border: 1px solid #000;
-  background: #000;
-  color: #fff;
-  padding: 4px 10px;
-}
-
-
+  /* Note: justify-content: stretch is not valid for flex; using f*

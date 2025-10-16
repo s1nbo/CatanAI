@@ -5,7 +5,6 @@ import {
   Bot, UserPlus, UserMinus, Play, KeyRound, Users,
   ChevronLeft, ChevronRight
 } from "lucide-react";
-import "./App.css";
 import HexBoard from "./Board";
 import type { BoardOverlay } from "./Board";
 
