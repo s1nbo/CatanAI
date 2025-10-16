@@ -1459,19 +1459,13 @@ export default function App() {
                     <div className="dot" style={{ backgroundColor: p.color }} />
                     <span className="player-name">{p.name}</span>
                   </div>
-                  
-                  <div style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, 1fr)",
-                    gap: 8,
-                    marginTop: 8,
-                    fontSize: 14
-                  }}>
-                    <div><Trophy size={14} /> {p.victoryPoints}</div>
-                    <div><Swords size={14} /><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
-                    <div><Hand size={14} /> {p.handSize}</div>
-                    <div><Route size={14} /> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
-                    <div><Layers size={14} /> {p.devCards}</div>
+
+                  <div className="stats-grid">
+                    <div className="stat"><Trophy/> {p.victoryPoints}</div>
+                    <div className="stat"><Swords/><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
+                    <div className="stat"><Hand/> {p.handSize}</div>
+                    <div className="stat"><Route/> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
+                    <div className="stat"><Layers/> {p.devCards}</div>
                   </div>
                 </div>
               ))}
