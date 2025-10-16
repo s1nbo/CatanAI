@@ -1455,10 +1455,11 @@ export default function App() {
                     outline: p.isCurrent ? `6px solid ${p.color}` : undefined,
                   }}
                 >
-                  <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 6 }}>
-                    <div className="dot" style={{ backgroundColor: self.color }} />
-                    <h3 className="hud-title"> {p.name}</h3>
+                  <div className="player-header">
+                    <div className="dot" style={{ backgroundColor: p.color }} />
+                    <span className="player-name">{p.name}</span>
                   </div>
+                  
                   <div style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(2, 1fr)",
