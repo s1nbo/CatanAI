@@ -422,3 +422,46 @@ button:focus-visible {
     font-size: 0.9rem;
   }
 }
+
+
+/* The main board container already exists; make sure it's relative */
+.board {
+  position: relative;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  background: #2A66A0;
+  overflow: hidden;
+}
+
+/* New: a viewport that reserves space for left HUD and (optional) right sidebar */
+.board-viewport {
+  width: 100%;
+  height: 100%;
+  /* Reserve space so the centered SVG never sits under overlays */
+  padding-left: var(--leftHud, 300px);
+  padding-right: var(--rightPane, 320px);
+
+  /* Center the SVG within the remaining safe area */
+  display: grid;
+  place-items: center;
+}
+
+/* Make the SVG scale nicely inside the safe area */
+.board-viewport svg {
+  width: min(100%, 1200px);
+  height: auto;
+  max-height: 90vh;
+  display: block;
+}
+
+/* Mobile tweaks: shrink the reserved HUD width so the board stays centered and visible */
+@media (max-width: 900px) {
+  .hud-left { width: 220px; }
+  .board-viewport { padding-left: 220px; }
+}
+@media (max-width: 700px) {
+  .hud-left { width: 180px; }
+  .board-viewport { padding-left: 180px; }
+}

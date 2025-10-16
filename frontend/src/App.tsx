@@ -1418,26 +1418,25 @@ export default function App() {
       </div>
 
       {/* Main board area */}
-      <div className="board" style={{
-        justifySelf: "stretch",
-        width: "100%",
-        overflow: "visible",      // allow board to render over the sidebar
-      }}>
-
-
-        <div
-          className="board-stage"
-          style={{
-            position: "relative",     // create stacking context
-            zIndex: 2,                // above the sidebar
-            transition: "transform 200ms ease",
-            transform: rightOpen ? "translateX(0)" : "translateX(280px)", // tweak px as desired
-          }}
-        >
-          {/* The actual board, driven by live overlay */}
-          <HexBoard overlay={overlay} onSelect={setSelected} resetSelectionToken={resetBoardSelToken} />
+      <div
+        className="board"
+        style={
+          {
+            // expose HUD/Sidebar widths as CSS vars
+            ["--leftHud" as any]: "300px",                // matches .hud-left width
+            ["--rightPane" as any]: rightOpen ? "320px" : "0px", // matches .sidebar width
+          } as React.CSSProperties
+        }
+      >
+        <div className="board-viewport">
+          <HexBoard
+            overlay={overlay}
+            onSelect={setSelected}
+            resetSelectionToken={resetBoardSelToken}
+          />
         </div>
       </div>
+
 
       {/* Right sidebar: Bank + Players */}
       <aside className="sidebar"
@@ -1506,7 +1505,7 @@ export default function App() {
           alignItems: "center",
           gap: 6,
           background: "white"
-          
+
         }}
       >
         {rightOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
