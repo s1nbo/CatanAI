@@ -778,9 +778,6 @@ export default function App() {
 
     <div
       className="layout"
-      style={{
-        // when right panel is closed, collapse to a single column
-      }}
     >
       {/* Game Over Overlay */}
       {gameOver && (
@@ -1419,7 +1416,7 @@ export default function App() {
           {
             // expose HUD/Sidebar widths as CSS vars
             ["--leftHud" as any]: "300px",                // matches .hud-left width
-            ["--rightPane" as any]: "320px" // matches .sidebar width
+            ["--rightPane" as any]: "400px" // matches .sidebar width
           } as React.CSSProperties
         }
       >
@@ -1454,8 +1451,6 @@ export default function App() {
                 <div>🎴 Dev Cards: <strong>{bank.devCards}</strong></div>
               </div>
             </div>
-
-            <h2 className="section-title">Players</h2>
             {players.map((p) => (
               <div className="card" key={p.id} style={p.isCurrent ? { outline: `6px solid ${p.color}` } : undefined}>
                 <div className="player-header">
