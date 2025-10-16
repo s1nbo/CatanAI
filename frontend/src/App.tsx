@@ -1478,6 +1478,7 @@ export default function App() {
         marginTop: 8,
         fontSize: 14
       }}>
+        <div><Trophy size={14} /> Rank: {p.victoryPoints}</div>
         <div><Swords size={14} /> Knights: {p.played_knights}</div>
         <div><Route size={14} /> Longest: <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
         <div><Hand size={14} /> Hand: {p.handSize}</div>
