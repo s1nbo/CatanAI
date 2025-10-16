@@ -58,7 +58,7 @@ class Board:
             '3:1', '3:1', '3:1', '3:1',
             '2:1 Sheep', '2:1 Wheat', '2:1 Wood', '2:1 Brick', '2:1 Ore'
         ]
-        #WATER = ['Water' for _ in range(9)]
+
         NUMBERS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
         
 
@@ -66,10 +66,7 @@ class Board:
         random.shuffle(PORTS)
         random.shuffle(NUMBERS)
 
-        #for i in range(9):
-        #    PORTS.insert(i*2, WATER[i])
-
-        # Create Objects
+        # Here we want to change board generation TODO
 
         for i in range(19):
             resource = HEXES[i]

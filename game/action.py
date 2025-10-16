@@ -1,16 +1,6 @@
 from game import Board
 import random
 
-# Possible Actions + Validaitiy Checks
-
-# Every Action follows this pattern
-# What Action is being attempted
-# Data needed to perform the action
-# Is Action Valid
-# Make the Action
-# Return the result of the action (success/failure and any relevant data)
-
-
 # Basic Actions
 def roll_dice(board: Board, players, player_id: int, bank: dict) -> int: 
     if players[player_id]["dice_rolled"] == True or players[player_id]["current_turn"] == False:
@@ -50,17 +40,7 @@ def roll_dice(board: Board, players, player_id: int, bank: dict) -> int:
     return number
 
 
-def amount_lose_resource(player_id: int, players: dict) -> int: 
-    total_cards = sum(players[player_id]["hand"].values())
-    if total_cards <= 7: return 0
-    return total_cards // 2
-
-
 def remove_resources(player_id: int, players: dict, resources: dict, bank: dict) -> bool:
-    # check if player removes enough ressources
-    total_remove = sum(resources.values())
-    if total_remove < amount_lose_resource(player_id, players):
-        return False
     for resource, amount in resources.items():
         if players[player_id]["hand"].get(resource, 0) < amount:
             return False
@@ -338,7 +318,6 @@ def can_play_monopoly(player_id: int, players: dict) -> bool:
     return True
 
 
-
 # Trade Actions
 
 def can_do_trade_player(player_id: int, resource_give: dict, players: dict) -> bool:
@@ -353,7 +332,7 @@ def can_do_trade_player(player_id: int, resource_give: dict, players: dict) -> b
     return True
 
 
-def _port_ratios_for_player(player_id: int, players: dict) -> dict:
+def port_ratios_for_player(player_id: int, players: dict) -> dict:
     # defaults
     ratios = {r: 4 for r in ["wood", "brick", "sheep", "wheat", "ore"]}
     ports = players[player_id].get("ports", []) or []
@@ -381,7 +360,7 @@ def can_do_trade_bank(player_id: int, resource_give: dict, resource_receive: dic
             return False
 
     # validate offer side against ratios and player’s hand
-    ratios = _port_ratios_for_player(player_id, players)
+    ratios = port_ratios_for_player(player_id, players)
     # while not strictly required by rules, enforce that offer converts to an integer number of receive cards
     total_receivable = 0
     for resource, amount in resource_give.items():
@@ -393,7 +372,6 @@ def can_do_trade_bank(player_id: int, resource_give: dict, resource_receive: dic
             return False
         total_receivable += amount // ratios[resource]
 
-    # optional: ensure player isn’t asking for more than computed total_receivable
     ask_total = sum(resource_receive.values())
     if ask_total != total_receivable:
         return False
@@ -441,16 +419,9 @@ def trade_possible(player_id: int, offer: dict, request: dict, players: dict, ba
     return False
 
 
-
 # Misc Actions
 def calculate_longest_road(board, player_id: int, players: dict) -> None: 
-    # First Part is caluclate longest road of current player DFS
     max_length = 0
-    # Redo this algoirthm.
-    # For each vertex. If it has a neighboring edge from player.
-    # Add edge to stack, and the second vertex of that edge (if it is not blocked by other player settlement/city)
-    # Check from the second vertex all neighboring edges and so on until no more edges can be added.
-    # Keep track of visited edges to avoid cycles. and the length of the path. (We can viist a vertex multiple times as long as we dont use the same edge)
     for vertex in board.vertices:
         for edge in vertex.edges:
             if board.edges[edge].owner == player_id:
@@ -473,64 +444,38 @@ def calculate_longest_road(board, player_id: int, players: dict) -> None:
 
 
 def update_longest_road(players: dict) -> None:
+    # find the player with the longest road
+    longest_road_length = 0
+    longest_road_player = None
+    longest_road_holder = None
     for player_id in players.keys():
-        opponents = [pid for pid in players.keys() if pid != player_id]
+        if players[player_id]["longest_road_length"] > longest_road_length:
+            longest_road_length = players[player_id]["longest_road_length"]
+            longest_road_player = player_id
+        if players[player_id]["longest_road"] == True:
+            longest_road_holder = player_id
+    
+    # check if we need to update
+    if longest_road_length < 5 and longest_road_holder is not None:
+        players[longest_road_holder]["longest_road"] = False
+        players[longest_road_holder]["victory_points"] -= 2
+        return
 
-        if players[player_id]["longest_road_length"] < 5 and players[player_id]["longest_road"] == False:
-            continue
-
-        elif players[player_id]["longest_road_length"] < 5 and players[player_id]["longest_road"] == True:
-            players[player_id]["longest_road"] = False
-            players[player_id]["victory_points"] -= 2
-
-        elif players[player_id]["longest_road_length"] >= 5 and players[player_id]["longest_road"] == True:
-            continue
-        
-        elif players[player_id]["longest_road_length"] >= 5 and players[player_id]["longest_road"] == False:
-            for opponent_id in opponents:
-                if players[opponent_id]["longest_road"] == True and players[opponent_id]["longest_road_length"] >= players[player_id]["longest_road_length"]:
-                    break
-                elif players[opponent_id]["longest_road"] == True and players[opponent_id]["longest_road_length"] <= players[player_id]["longest_road_length"]:
-                    players[opponent_id]["longest_road"] = False
-                    players[player_id]["longest_road"] = True
-                    players[opponent_id]["victory_points"] -= 2
-                    players[player_id]["victory_points"] += 2
-                    break
-            else:
-                players[player_id]["longest_road"] = True
-                players[player_id]["victory_points"] += 2
-
-
-    # Second Part is to check if longest road needs to be updated
-        if players[player_id]["longest_road_length"] < 5 and players[player_id]["longest_road"] == True:
-            players[player_id]["longest_road"] = False
-            players[player_id]["victory_points"] -= 2
-            for opponent_id in players.keys():
-                if opponent_id == player_id:
-                    continue
-
-
-        if players[player_id]["longest_road_length"] >= 5:
-            for opponent_id in players.keys():
-                if opponent_id == player_id:
-                    continue
-
-                if players[opponent_id]["longest_road"] == True:
-                    if players[opponent_id]["longest_road_length"] < players[player_id]["longest_road_length"]:
-                        players[opponent_id]["longest_road"] = False
-                        players[player_id]["longest_road"] = True
-                        players[opponent_id]["victory_points"] -= 2
-                        players[player_id]["victory_points"] += 2
-                        break
-                else:
-                    if players[player_id]["longest_road"] == False:
-                        players[player_id]["longest_road"] = True
-                        players[player_id]["victory_points"] += 2
-                        break
+    elif longest_road_length >= 5:
+        if longest_road_holder is None:
+            players[longest_road_player]["longest_road"] = True
+            players[longest_road_player]["victory_points"] += 2
+            return
+        elif longest_road_holder != longest_road_player and players[longest_road_holder]["longest_road_length"] < longest_road_length:
+            players[longest_road_holder]["longest_road"] = False
+            players[longest_road_holder]["victory_points"] -= 2
+            players[longest_road_player]["longest_road"] = True
+            players[longest_road_player]["victory_points"] += 2
+            return
 
 
 def steal_resource(board: Board, stealer_id: int, victim_id: int, players: dict) -> bool: 
-    if not can_steal(board, stealer_id, victim_id, players):
+    if not can_steal(board, stealer_id, victim_id):
         return False
     if sum(players[victim_id]["hand"].values()) == 0: # No resources to steal
         return True
@@ -545,7 +490,7 @@ def steal_resource(board: Board, stealer_id: int, victim_id: int, players: dict)
     return True
 
 
-def can_steal(board: Board, stealer_id: int, victim_id: int, players: dict) -> bool: 
+def can_steal(board: Board, stealer_id: int, victim_id: int) -> bool: 
     # robber must be on a tile adjacent to a settlement/city of the victim
     if stealer_id == victim_id:
         return False
@@ -556,6 +501,15 @@ def can_steal(board: Board, stealer_id: int, victim_id: int, players: dict) -> b
             return True
     return False 
 
+def robbable_players_on_tile(board: Board, players: dict, tile_id: int, current: int) -> list[int]:
+    vertices = board.tiles[tile_id].vertices
+    seen = set()
+    for vertex in vertices:
+        if board.vertices[vertex].building is not None and board.vertices[vertex].owner != current:
+            if sum(players[board.vertices[vertex].owner]["hand"].values()) > 0:
+                seen.add(board.vertices[vertex].owner)
+    
+    return sorted(seen)
 
 
 def initial_placement_round(board: Board, vertex_id: int, player_id: int, players: dict) -> bool:

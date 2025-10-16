@@ -6,12 +6,15 @@ from game.board import Board
 # Game Logic file
 class Game:
     def __init__(self):
+        # Main Game State
         self.players = {}
         self.bank = {"wood": 19, "brick": 19, "sheep": 19, "wheat": 19, "ore": 19}
         self.development_cards = ["knight"] * 14 + ["victory_point"] * 5 + ["road_building"] * 2 + ["year_of_plenty"] * 2 + ["monopoly"] * 2
         random.shuffle(self.development_cards)
         self.number = None
         self.board = Board()
+
+        # Inital Placement Phase
         self.initial_placement_order = None
         self.counter = 0
         self.last_vertex_initial_placement = None
@@ -27,11 +30,10 @@ class Game:
 
         self.temp_road_building = False # Used to track if the player is in the middle of placing roads from a road building card
 
-        # TRADING
-
+        # Trading
         self.pending_trade: dict | None = None
-        # one-shot notifications by player_id -> {"trade_all_declined": True}
-        self.one_shot_notify: dict[int, dict] = {}
+        self.no_partner: dict[int, dict] = {}
+
 
     def add_player(self, player_id):
         if player_id not in self.players:
@@ -51,9 +53,10 @@ class Game:
                 "dice_rolled": False,
                 "current_turn": False,
                 
-                "total_hand": 0,  # For public state
-                "total_development_cards": 0,  # For public state
-                "victory_points_without_vp_cards": 0  # For public state
+                # For public state
+                "total_hand": 0,  
+                "total_development_cards": 0,
+                "victory_points_without_vp_cards": 0  
             }
     
     def remove_player(self, player_id):
@@ -65,7 +68,6 @@ class Game:
             return False
         current_turn = random.choice(list(self.players.keys()))
         self.players[current_turn]["current_turn"] = True
-        # make initial placement phase pattern  (1,2,3,4,4,3,2,1) (based on player ids) (1 = current turn player)
         order = list(range(1, len(self.players)+1))
         order = order[current_turn-1:] + order[:current_turn-1]
         order += order[::-1]
@@ -102,7 +104,6 @@ class Game:
         else: # road
             if not action.get("type") == "place_road":
                 return False
-            
             # check if edge is connected to last placed settlement
             if self.last_vertex_initial_placement is None:
                 return False
@@ -115,15 +116,12 @@ class Game:
             
             self.last_vertex_initial_placement = None
         
-        
-        
         self.counter += 1
         return True
             
 
     
     def call_action(self, player_id: int, action: dict) -> bool | dict:
-        
         if self.counter < len(self.initial_placement_order): # only allow initial placement actions
             success = self.initial_placement_phase(player_id, action)
         else:
@@ -141,17 +139,11 @@ class Game:
             return player_id  # player_id won
         
         # return a list of game states for all players
-        #print(self.get_multiplayer_game_state()) # DEBUG
-        #print("\n ---- \n")
         return self.get_multiplayer_game_state()
 
 
     def process_action(self, player_id: int, action: dict) -> bool:
         # Validate turn and phase
-        
-        #print(f"Processing action from player {player_id}: {action}")  # Debug print
-        #print("\n ---- \n")
-
         action_type = action.get("type")
 
         # Out-of-turn actions allowed:
@@ -164,18 +156,16 @@ class Game:
         
 
         # If a forced action is active, restrict what the current player can do.
-        # Note: proposer cannot end their turn while a trade is pending.
         if self.forced_action and action_type not in ["discard_resources", "move_robber", "robber_steal", "Year of Plenty", "Monopoly", "place_road", "Trade Pending", "accept_trade", "decline_trade"]:
             return False
         if self.pending_trade and player_id == self.current_turn and action_type == "end_turn":
-            # must resolve/cancel the trade first
             return False
 
         
         # Route action (Return False if action is invalid)
         match action_type:
             # General actions
-            case "roll_dice": # TODO if seven is rolled ask for discarding ressources and move robber, Game Logic has to be here not the server.
+            case "roll_dice":
                 self.number = roll_dice(board = self.board, players = self.players, player_id = player_id, bank = self.bank)
                 if self.number is False:
                     return False
@@ -211,14 +201,15 @@ class Game:
                 if owed <= 0:
                     return False
 
-                # Validate total matches owed
+                # Validate discard request
                 resources = action.get("resources", {}) or {}
                 total_to_remove = sum(int(resources.get(k, 0)) for k in ["wood","brick","sheep","wheat","ore"])
                 if total_to_remove != owed:
                     return False
 
-                ok = remove_resources(player_id = player_id, players = self.players, resources = resources, bank = self.bank)
-                if not ok:
+                # Attempt to remove resources
+                success = remove_resources(player_id = player_id, players = self.players, resources = resources, bank = self.bank)
+                if not success:
                     return False
 
                 # Mark this player's discard as satisfied
@@ -241,7 +232,7 @@ class Game:
                     return False
 
                 # Figure out eligible victims at this tile (exclude self)
-                cands = self._robbable_players_on_tile(target_tile, player_id)
+                cands = robbable_players_on_tile(board = self.board, players= self.players, tile_id=target_tile, current=player_id)
                 self.pending_robber_tile = target_tile
                 self.robber_candidates = cands
                 self.forced_action = "Steal Resource" if cands else None
@@ -327,7 +318,6 @@ class Game:
             case "place_city":
                 return place_city(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players, bank = self.bank)
             
-            # TODO Cards cant be bought and played in the same turn (Except Victory Point Cards)
             case "buy_development_card":
                 card = buy_development_card(player_id= player_id, development_cards = self.development_cards, players = self.players, bank = self.bank)
                 if not card:
@@ -394,8 +384,7 @@ class Game:
                 self.forced_action = None
                 return True
                 
-            
-        
+
             # Trade actions
             case "bank_trade":
                 offer = action.get("offer", {}) or {}
@@ -413,7 +402,6 @@ class Game:
                 if not trade_possible(player_id=player_id, offer=offer, request=request, players=self.players, bank=self.bank):
                     return False
 
-                # Build recipients
                 recipients = [pid for pid in self.players.keys() if pid != player_id]
                 if not recipients:
                     return False
@@ -427,7 +415,6 @@ class Game:
                     "accepted_by": None,
                 }
                 # keep the current player's flow "locked" until resolved
-                # (we reuse forced_action string so UI can present a banner if desired)
                 self.forced_action = self.forced_action or "Trade Pending"
                 return True
 
@@ -461,7 +448,6 @@ class Game:
 
                 self.pending_trade["accepted_by"] = partner
                 self.pending_trade = None
-                # clear any trade-forced flag if it was the only pending thing
                 if self.forced_action == "Trade Pending":
                     self.forced_action = None
                 return True
@@ -483,25 +469,14 @@ class Game:
                     self.pending_trade = None
                     if self.forced_action == "Trade Pending":
                         self.forced_action = None
-                    self.one_shot_notify[trader] = {"trade_all_declined": True}
+                    self.no_partner[trader] = {"trade_all_declined": True}
                 return True
 
 
             case _:
                 return False
 
-
-
-    def _robbable_players_on_tile(self, tile_id: int, current: int) -> list[int]:
-        vertices = self.board.tiles[tile_id].vertices
-        seen = set()
-        for vertex in vertices:
-            if self.board.vertices[vertex].building is not None and self.board.vertices[vertex].owner != current:
-                if sum(self.players[self.board.vertices[vertex].owner]["hand"].values()) > 0:
-                    seen.add(self.board.vertices[vertex].owner)
-        
-        return sorted(seen)
-    
+   
     # Update we always want the full game state for each player (since hidden info) (And send it to everyone)
     def get_multiplayer_game_state(self) -> dict:
         # add total development cards and hand size for all players, so it can be used in public state
@@ -538,16 +513,17 @@ class Game:
                 "current_roll": self.number,
                 "initial_placement_order": self.initial_placement_order[self.counter] if self.counter < len(self.initial_placement_order) else -1,
                 
+                # Game flow 
                 "forced_action": self.forced_action,
                 "must_discard": must_discard,
                 "robber_candidates": self.robber_candidates,         # [] or [2,3,...]
                 "pending_robber_tile": self.pending_robber_tile,     # int or None
 
                 "pending_trade": pending_trade_view,
-                "one_shot": self.one_shot_notify.get(player, {}),
+                "no_partner": self.no_partner.get(player, {}),
             }
         
-        self.one_shot_notify.clear()
+        self.no_partner.clear()
         return result
 
 

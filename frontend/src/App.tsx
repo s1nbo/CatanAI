@@ -601,7 +601,7 @@ export default function App() {
         setSelf(sp);
 
         setPendingTrade((data as any).pending_trade ?? null);
-        const note = (data as any).one_shot ?? {};
+        const note = (data as any).no_partner ?? {};
         if (note && note.trade_all_declined) {
           // show a one-time banner/toast – simplest: reopen the trade modal with a little note
           setTradeDeclinedNote(true);

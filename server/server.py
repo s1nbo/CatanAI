@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
 from game.logic import Game
-from game.board import Board
 from game.action import *
 
 
@@ -20,7 +19,7 @@ class GameIdRequest(BaseModel):
     game_id: int
 
 origins = [
-    "https://catanai-frontend.onrender.com",  # your frontend URL
+    "https://catanai-frontend.onrender.com",  # frontend URL
 ]
 
 app.add_middleware(
@@ -114,7 +113,7 @@ async def start_game(req: GameIdRequest):
 async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
     origin = ws.headers.get("origin")
     if origin != "https://catanai-frontend.onrender.com":
-        await ws.close(code=1008)  # Policy Violation
+        await ws.close(code=1008) 
         return
     
     await ws.accept()
@@ -143,17 +142,14 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
             data = await ws.receive_json()
             
             result = game_instance.call_action(player_id, data)
+            
             # if result is false the aciton failed, if result is 1,2,3,4 the player has won, else the new game state is returned
-            # as dict for each player (since hidden info)
             if result is False: 
                 await ws.send_json({"status": "action_failed"})
             elif result in [1,2,3,4]: # player_id won
                 for conn in GAMES[game_id]["websockets"].values():
                     if conn:
                         await conn.send_json({"status": "game_over", "winner": result})
-                        # One Edge case, if you block the longest road and another player gets it and wins with that.
-                        # Else The game will always be won by the player whos turn it is.
-                        # Maybe TODO: Handle this edge case properly.
             else:
                 for pid, conn in GAMES[game_id]["websockets"].items():
                     if conn:
