@@ -1440,48 +1440,48 @@ export default function App() {
         {/* Right sidebar: Bank + Players */}
         {(
           <aside className="sidebar">
-           {/* RIGHT HUD (match left style) */}
-<div className="hud-right">
-  {/* Bank */}
-  <div className="hud-card">
-    <h3 className="hud-title">Bank</h3>
-    <div className="resource-grid">
-      <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌲</span></div><div className="count-pill">{bank.wood}</div></div>
-      <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🧱</span></div><div className="count-pill">{bank.brick}</div></div>
-      <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🐑</span></div><div className="count-pill">{bank.sheep}</div></div>
-      <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌾</span></div><div className="count-pill">{bank.wheat}</div></div>
-      <div className="resource-card"><div className="resource-left"><span className="resource-emoji">⛰️</span></div><div className="count-pill">{bank.ore}</div></div>
-      <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🎴</span></div><div className="count-pill">{bank.devCards}</div></div>
-    </div>
-  </div>
+            {/* RIGHT HUD (match left style) */}
+            <div className="hud-right">
+              {/* Bank */}
+              <div className="hud-card">
+                <h3 className="hud-title">Bank</h3>
+                <div className="resource-grid">
+                  <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌲</span></div><div className="count-pill">{bank.wood}</div></div>
+                  <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🧱</span></div><div className="count-pill">{bank.brick}</div></div>
+                  <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🐑</span></div><div className="count-pill">{bank.sheep}</div></div>
+                  <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌾</span></div><div className="count-pill">{bank.wheat}</div></div>
+                  <div className="resource-card"><div className="resource-left"><span className="resource-emoji">⛰️</span></div><div className="count-pill">{bank.ore}</div></div>
+                  <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🎴</span></div><div className="count-pill">{bank.devCards}</div></div>
+                </div>
+              </div>
 
-  {/* Player Stats */}
-  {players.map((p) => (
-    <div
-      key={p.id}
-      className="hud-card"
-      style={{
-      borderLeft: `6px solid ${p.color}`,
-      outline: p.isCurrent ? `6px solid ${p.color}` : undefined,
-      }}
-    >
-      <h3 className="hud-title">{p.name}</h3>
-      <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(2, 1fr)",
-      gap: 8,
-      marginTop: 8,
-      fontSize: 14
-      }}>
-      <div><Trophy size={14} /> {p.victoryPoints}</div>
-      <div><Swords size={14} /><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
-      <div><Hand size={14} /> {p.handSize}</div>
-      <div><Route size={14} /> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
-      <div><Layers size={14} /> {p.devCards}</div>
-      </div>
-    </div>
-  ))}
-</div>
+              {/* Player Stats */}
+              {players.map((p) => (
+                <div
+                  key={p.id}
+                  className="hud-card"
+                  style={{
+                    outline: p.isCurrent ? `6px solid ${p.color}` : undefined,
+                  }}
+                >
+                  <div className="dot" style={{ backgroundColor: p.color }} />
+                  <h3 className="hud-title"> {p.name}</h3>
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 1fr)",
+                    gap: 8,
+                    marginTop: 8,
+                    fontSize: 14
+                  }}>
+                    <div><Trophy size={14} /> {p.victoryPoints}</div>
+                    <div><Swords size={14} /><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
+                    <div><Hand size={14} /> {p.handSize}</div>
+                    <div><Route size={14} /> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
+                    <div><Layers size={14} /> {p.devCards}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
           </aside>
         )}
