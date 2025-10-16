@@ -1462,15 +1462,10 @@ export default function App() {
       className="hud-card"
       style={{
         borderLeft: `6px solid ${p.color}`,
-        boxShadow: p.isCurrent ? `0 0 10px ${p.color}` : undefined,
+        boxShadow: p.isCurrent ? `0 0 30px ${p.color}` : undefined,
       }}
     >
       <h3 className="hud-title">{p.name}</h3>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-        <div className="dot" style={{ background: p.color }} />
-        <div>VP: <strong>{p.victoryPoints}</strong></div>
-      </div>
-
       <div style={{
         display: "grid",
         gridTemplateColumns: "repeat(2, 1fr)",
@@ -1478,11 +1473,11 @@ export default function App() {
         marginTop: 8,
         fontSize: 14
       }}>
-        <div><Trophy size={14} /> Rank: {p.victoryPoints}</div>
-        <div><Swords size={14} /> Knights: {p.played_knights}</div>
-        <div><Route size={14} /> Longest: <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
-        <div><Hand size={14} /> Hand: {p.handSize}</div>
-        <div><Layers size={14} /> Dev: {p.devCards}</div>
+        <div><Trophy size={14} /> {p.victoryPoints}</div>
+        <div><Swords size={14} /><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
+        <div><Route size={14} /> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
+        <div><Hand size={14} /> {p.handSize}</div>
+        <div><Layers size={14} /> {p.devCards}</div>
       </div>
     </div>
   ))}
