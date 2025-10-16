@@ -1461,23 +1461,23 @@ export default function App() {
       key={p.id}
       className="hud-card"
       style={{
-        borderLeft: `6px solid ${p.color}`,
-        boxShadow: p.isCurrent ? `0 0 30px ${p.color}` : undefined,
+      borderLeft: `6px solid ${p.color}`,
+      outline: p.isCurrent ? `6px solid ${p.color}` : undefined,
       }}
     >
       <h3 className="hud-title">{p.name}</h3>
       <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap: 8,
-        marginTop: 8,
-        fontSize: 14
+      display: "grid",
+      gridTemplateColumns: "repeat(2, 1fr)",
+      gap: 8,
+      marginTop: 8,
+      fontSize: 14
       }}>
-        <div><Trophy size={14} /> {p.victoryPoints}</div>
-        <div><Swords size={14} /><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
-        <div><Route size={14} /> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
-        <div><Hand size={14} /> {p.handSize}</div>
-        <div><Layers size={14} /> {p.devCards}</div>
+      <div><Trophy size={14} /> {p.victoryPoints}</div>
+      <div><Swords size={14} /><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
+      <div><Hand size={14} /> {p.handSize}</div>
+      <div><Route size={14} /> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
+      <div><Layers size={14} /> {p.devCards}</div>
       </div>
     </div>
   ))}
