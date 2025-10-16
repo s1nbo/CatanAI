@@ -544,3 +544,13 @@ button:focus-visible {
   display: block;
 }
 
+.hud-right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+}

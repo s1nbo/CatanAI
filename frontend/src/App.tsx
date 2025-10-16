@@ -1440,41 +1440,53 @@ export default function App() {
         {/* Right sidebar: Bank + Players */}
         {(
           <aside className="sidebar">
-            <div className="card">
-              <h2 className="card-title">Bank</h2>
-              <div className="bank-grid">
-                <div>🌲 Wood: <strong>{bank.wood}</strong></div>
-                <div>🧱 Brick: <strong>{bank.brick}</strong></div>
-                <div>🐑 Sheep: <strong>{bank.sheep}</strong></div>
-                <div>🌾 Wheat: <strong>{bank.wheat}</strong></div>
-                <div>⛰️ Ore: <strong>{bank.ore}</strong></div>
-                <div>🎴 Dev Cards: <strong>{bank.devCards}</strong></div>
-              </div>
-            </div>
-            {players.map((p) => (
-              <div className="card" key={p.id} style={p.isCurrent ? { outline: `6px solid ${p.color}` } : undefined}>
-                <div className="player-header">
-                  <div className="dot" style={{ backgroundColor: p.color }} />
-                  <span className="player-name">{p.name}</span>
-                </div>
-                <div className="stats-grid">
-                  <div className="stat"><Trophy /> <span>{p.victoryPoints}</span></div>
-                  <div className="stat"><Swords /> <span style={{ color: p.largestArmy ? 'red' : 'black' }}>{p.played_knights}</span></div>
-                  <div className="stat"><Hand /> <span>{p.handSize}</span></div>
-                  <div className="stat"><Route /> <span style={{ color: p.longestRoad ? 'red' : 'black' }}>{p.longest_road_length}</span></div>
-                  <div className="stat"><Layers /> <span>{p.devCards}</span></div>
-                </div>
+           {/* RIGHT HUD (match left style) */}
+<div className="hud-right">
+  {/* Bank */}
+  <div className="hud-card">
+    <h3 className="hud-title">Bank</h3>
+    <div className="resource-grid">
+      <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌲</span></div><div className="count-pill">{bank.wood}</div></div>
+      <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🧱</span></div><div className="count-pill">{bank.brick}</div></div>
+      <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🐑</span></div><div className="count-pill">{bank.sheep}</div></div>
+      <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌾</span></div><div className="count-pill">{bank.wheat}</div></div>
+      <div className="resource-card"><div className="resource-left"><span className="resource-emoji">⛰️</span></div><div className="count-pill">{bank.ore}</div></div>
+      <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🎴</span></div><div className="count-pill">{bank.devCards}</div></div>
+    </div>
+  </div>
 
-                {/* 
-                <div className="stats-grid" style={{ marginTop: 4, opacity: .8, fontSize: 12 }}>
-                  <div>🏘️ Settlements: <strong>{p.settlements}</strong></div>
-                  <div>🏙️ Cities: <strong>{p.cities}</strong></div>
-                  <div>🛣️ Roads: <strong>{p.roads}</strong></div>
-                </div> 
-                */}
+  {/* Player Stats */}
+  {players.map((p) => (
+    <div
+      key={p.id}
+      className="hud-card"
+      style={{
+        borderLeft: `6px solid ${p.color}`,
+        boxShadow: p.isCurrent ? `0 0 10px ${p.color}` : undefined,
+      }}
+    >
+      <h3 className="hud-title">{p.name}</h3>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+        <div className="dot" style={{ background: p.color }} />
+        <div>VP: <strong>{p.victoryPoints}</strong></div>
+      </div>
 
-              </div>
-            ))}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 1fr)",
+        gap: 8,
+        marginTop: 8,
+        fontSize: 14
+      }}>
+        <div><Swords size={14} /> Knights: {p.played_knights}</div>
+        <div><Route size={14} /> Longest: <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
+        <div><Hand size={14} /> Hand: {p.handSize}</div>
+        <div><Layers size={14} /> Dev: {p.devCards}</div>
+      </div>
+    </div>
+  ))}
+</div>
+
           </aside>
         )}
 
