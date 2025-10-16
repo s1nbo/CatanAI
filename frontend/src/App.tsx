@@ -412,8 +412,9 @@ export default function App() {
   function handleEndTurn() { sendAction({ type: "end_turn" }); }
   function handleBuyDev() { sendAction({ type: "buy_development_card" }); }
 
-  // Actions (hook up to WS later if you have action routing)
+
   function handleRollDice() { sendAction({ type: "roll_dice" }); }
+
   function handleTrade() {
     setTradeOpen(true);
     setTradeDeclinedNote(false);
@@ -619,24 +620,13 @@ export default function App() {
       }
     };
 
-    ws.onclose = () => { /* optionally: setPhase("lobby") */ };
-    ws.onerror = () => { /* optional log */ };
+
 
     return () => { try { ws.close(); } catch { } };
   }, [gameId, playerId]);
 
 
-  // Debug helpers to trigger game over from console
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    (window as any).simGameOver = (winner?: number | string) => {
-      setGameOver({ winner });
-    };
-    (window as any).simGameOverMsg = (msg: string) => {
-      setGameOver({ message: msg });
-    };
-    (window as any).clearGameOver = () => setGameOver(null);
-  }, []);
+
 
 
   /** ----- REST helpers (same endpoints as in board.html) ----- */
@@ -1246,191 +1236,195 @@ export default function App() {
         </div>
       )}
 
+
+      {/* LEFT HUD */}
+      <div className="hud-left">
+        {/* Actions */}
+        <div className="hud-card">
+          <h3 className="hud-title">Actions</h3>
+          <div className="actions-grid">
+            <button
+              onClick={handleRollDice}
+              disabled={!isMyTurn || bank.current_roll !== null || !!forcedAction}
+              title="Roll Dice"
+              className="btn-accent hud-btn-primary"
+              style={{ ["--accent" as any]: self.color }}
+            >
+              Roll
+            </button>
+
+            <button
+              onClick={handleTrade}
+              disabled={!!forcedAction || !canEndTurn || bank.current_roll === null}
+              title="Trade"
+              className="btn-accent"
+              style={{ ["--accent" as any]: self.color }}
+            >
+              Trade
+            </button>
+
+            <button
+              onClick={handleBuyDev}
+              disabled={!!forcedAction || !canEndTurn}
+              title="Buy Dev"
+              className="btn-accent"
+              style={{ ["--accent" as any]: self.color }}
+            >
+              Buy Dev
+            </button>
+          </div>
+
+          <div
+            style={{
+              marginTop: 14,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              paddingTop: 8,
+            }}
+          >
+            <span style={{ fontSize: 14, opacity: 0.85 }}>Current Roll:</span>
+
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 64,
+                height: 36,
+                padding: "0 14px",
+                borderRadius: 9999,
+                fontWeight: 700,
+                letterSpacing: 0.3,
+                background:
+                  "linear-gradient(180deg, rgba(241,245,249,.6), rgba(226,232,240,.6))",
+                border: `1px solid rgba(100,116,139,.35)`,
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,.35)",
+                color: "#0f172a",
+              }}
+            >
+              {bank.current_roll ?? "—"}
+            </span>
+          </div>
+        </div>
+
+        {/* YOU panel */}
+        <div className="hud-card" style={{ borderLeft: `6px solid ${self.color}` }}>
+          <h3 className="hud-title">You — {self.name}</h3>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 6 }}>
+            <div className="dot" style={{ background: self.color }} />
+            <div>Victory Points: <strong>{self.victoryPoints}</strong></div>
+          </div>
+        </div>
+
+        {/* Development Cards (playable) */}
+        <div className="dev-row">
+          {self.devList.length > 0 ? (
+            Object.entries(
+              self.devList.reduce((acc: Record<string, number>, name) => {
+                acc[name] = (acc[name] ?? 0) + 1;
+                return acc;
+              }, {})
+            ).map(([type, count]) => {
+              const isVP = type === "VP";
+              const disabled = !canPlayDevCards || isVP;
+              const title =
+                isVP ? "Victory Point (kept secret; not playable)"
+                  : !canPlayDevCards ? "You can't play a dev card right now"
+                    : `Play ${type}`;
+              return (
+                <button
+                  key={type}
+                  className="dev-card"
+                  title={title}
+                  onClick={() => playDevCard(type)}
+                  disabled={disabled}
+                  style={{ cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1 }}
+                >
+                  <span className="dev-emoji">
+                    {type === "Knight" ? "⚔️" :
+                      type === "Road Building" ? "🛣️" :
+                        type === "Year of Plenty" ? "🎁" :
+                          type === "Monopoly" ? "🎩" :
+                            type === "VP" ? "⭐" : "❓"}
+                  </span>
+                  {count > 1 && <span className="dev-badge">{count}</span>}
+                </button>
+              );
+            })
+          ) : (
+            <div style={{ opacity: .7 }}>No dev cards</div>
+          )}
+        </div>
+
+        {/* Resources (your hand) */}
+        <div className="hud-card">
+          <h3 className="hud-title">Your Hand</h3>
+          <div className="resource-grid">
+            <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌲</span></div><div className="count-pill">{self.resources.wood}</div></div>
+            <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🧱</span></div><div className="count-pill">{self.resources.brick}</div></div>
+            <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🐑</span></div><div className="count-pill">{self.resources.sheep}</div></div>
+            <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌾</span></div><div className="count-pill">{self.resources.wheat}</div></div>
+            <div className="resource-card"><div className="resource-left"><span className="resource-emoji">⛰️</span></div><div className="count-pill">{self.resources.ore}</div></div>
+          </div>
+        </div>
+
+        {/* NEW: Single context-aware build button */}
+        <div className="hud-card">
+          <h3 className="hud-title">Build</h3>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ opacity: selected ? 1 : 0.7 }}>
+              {selected
+                ? (selected.type === "tile" && <>Tile <strong>#{selected.id}</strong></>) ||
+                (selected.type === "edge" && <>Edge <strong>#{selected.id}</strong></>) ||
+                (selected.type === "vertex" && <>Node <strong>#{selected.id}</strong></>)
+                : <>Nothing selected</>}
+            </div>
+            <button
+              onClick={handleBuildClick}
+              disabled={!buildAction.enabled || discardingNow}
+              className="btn-accent"
+              /* feed the player color into a CSS variable read by .btn-accent */
+              style={{ ["--accent" as any]: self.color }}
+            >
+              {buildAction.label}
+            </button>
+          </div>
+          {(forcedAction === "Place Road 1" || forcedAction === "Place Road 2") && (
+            <div style={{ marginTop: 8, fontSize: 12, opacity: .85 }}>
+              Road Building: {forcedAction === "Place Road 1" ? "First" : "Second"} free road — select an empty edge and click <em>Build Road</em>.
+            </div>
+          )}
+          {forcedAction === "Move Robber" && (
+            <div style={{ marginTop: 8, fontSize: 12, opacity: .85 }}>
+              Knight/Seven: select a tile to move the robber.
+            </div>
+          )}
+        </div>
+
+        {/* NEW: End Turn button (under Build) */}
+        <div className="hud-card">
+          <button
+            onClick={handleEndTurn}
+            disabled={!canEndTurn}
+            className="btn-accent"
+            style={{ ["--accent" as any]: self.color, width: "100%" }}
+          >
+            End Turn
+          </button>
+        </div>
+
+      </div>
+
       {/* Main board area */}
       <div className="board" style={{
         justifySelf: "stretch",
         width: "100%",
         overflow: "visible",      // allow board to render over the sidebar
       }}>
-        {/* LEFT HUD */}
-        <div className="hud-left">
-          {/* Actions */}
-          <div className="hud-card">
-            <h3 className="hud-title">Actions</h3>
-            <div className="actions-grid">
-              <button
-                onClick={handleRollDice}
-                disabled={!isMyTurn || bank.current_roll !== null || !!forcedAction}
-                title="Roll Dice"
-                className="btn-accent hud-btn-primary"
-                style={{ ["--accent" as any]: self.color }}
-              >
-                Roll
-              </button>
 
-              <button
-                onClick={handleTrade}
-                disabled={!!forcedAction || !canEndTurn || bank.current_roll === null}
-                title="Trade"
-                className="btn-accent"
-                style={{ ["--accent" as any]: self.color }}
-              >
-                Trade
-              </button>
 
-              <button
-                onClick={handleBuyDev}
-                disabled={!!forcedAction || !canEndTurn}
-                title="Buy Dev"
-                className="btn-accent"
-                style={{ ["--accent" as any]: self.color }}
-              >
-                Buy Dev
-              </button>
-            </div>
-
-            <div
-              style={{
-                marginTop: 14,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                paddingTop: 8,
-              }}
-            >
-              <span style={{ fontSize: 14, opacity: 0.85 }}>Current Roll:</span>
-
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minWidth: 64,
-                  height: 36,
-                  padding: "0 14px",
-                  borderRadius: 9999,
-                  fontWeight: 700,
-                  letterSpacing: 0.3,
-                  background:
-                    "linear-gradient(180deg, rgba(241,245,249,.6), rgba(226,232,240,.6))",
-                  border: `1px solid rgba(100,116,139,.35)`,
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,.35)",
-                  color: "#0f172a",
-                }}
-              >
-                {bank.current_roll ?? "—"}
-              </span>
-            </div>
-          </div>
-
-          {/* YOU panel */}
-          <div className="hud-card" style={{ borderLeft: `6px solid ${self.color}` }}>
-            <h3 className="hud-title">You — {self.name}</h3>
-            <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 6 }}>
-              <div className="dot" style={{ background: self.color }} />
-              <div>Victory Points: <strong>{self.victoryPoints}</strong></div>
-            </div>
-          </div>
-
-          {/* Development Cards (playable) */}
-          <div className="dev-row">
-            {self.devList.length > 0 ? (
-              Object.entries(
-                self.devList.reduce((acc: Record<string, number>, name) => {
-                  acc[name] = (acc[name] ?? 0) + 1;
-                  return acc;
-                }, {})
-              ).map(([type, count]) => {
-                const isVP = type === "VP";
-                const disabled = !canPlayDevCards || isVP;
-                const title =
-                  isVP ? "Victory Point (kept secret; not playable)"
-                    : !canPlayDevCards ? "You can't play a dev card right now"
-                      : `Play ${type}`;
-                return (
-                  <button
-                    key={type}
-                    className="dev-card"
-                    title={title}
-                    onClick={() => playDevCard(type)}
-                    disabled={disabled}
-                    style={{ cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1 }}
-                  >
-                    <span className="dev-emoji">
-                      {type === "Knight" ? "⚔️" :
-                        type === "Road Building" ? "🛣️" :
-                          type === "Year of Plenty" ? "🎁" :
-                            type === "Monopoly" ? "🎩" :
-                              type === "VP" ? "⭐" : "❓"}
-                    </span>
-                    {count > 1 && <span className="dev-badge">{count}</span>}
-                  </button>
-                );
-              })
-            ) : (
-              <div style={{ opacity: .7 }}>No dev cards</div>
-            )}
-          </div>
-
-          {/* Resources (your hand) */}
-          <div className="hud-card">
-            <h3 className="hud-title">Your Hand</h3>
-            <div className="resource-grid">
-              <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌲</span></div><div className="count-pill">{self.resources.wood}</div></div>
-              <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🧱</span></div><div className="count-pill">{self.resources.brick}</div></div>
-              <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🐑</span></div><div className="count-pill">{self.resources.sheep}</div></div>
-              <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌾</span></div><div className="count-pill">{self.resources.wheat}</div></div>
-              <div className="resource-card"><div className="resource-left"><span className="resource-emoji">⛰️</span></div><div className="count-pill">{self.resources.ore}</div></div>
-            </div>
-          </div>
-
-          {/* NEW: Single context-aware build button */}
-          <div className="hud-card">
-            <h3 className="hud-title">Build</h3>
-            <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ opacity: selected ? 1 : 0.7 }}>
-                {selected
-                  ? (selected.type === "tile" && <>Tile <strong>#{selected.id}</strong></>) ||
-                  (selected.type === "edge" && <>Edge <strong>#{selected.id}</strong></>) ||
-                  (selected.type === "vertex" && <>Node <strong>#{selected.id}</strong></>)
-                  : <>Nothing selected</>}
-              </div>
-              <button
-                onClick={handleBuildClick}
-                disabled={!buildAction.enabled || discardingNow}
-                className="btn-accent"
-                /* feed the player color into a CSS variable read by .btn-accent */
-                style={{ ["--accent" as any]: self.color }}
-              >
-                {buildAction.label}
-              </button>
-            </div>
-            {(forcedAction === "Place Road 1" || forcedAction === "Place Road 2") && (
-              <div style={{ marginTop: 8, fontSize: 12, opacity: .85 }}>
-                Road Building: {forcedAction === "Place Road 1" ? "First" : "Second"} free road — select an empty edge and click <em>Build Road</em>.
-              </div>
-            )}
-            {forcedAction === "Move Robber" && (
-              <div style={{ marginTop: 8, fontSize: 12, opacity: .85 }}>
-                Knight/Seven: select a tile to move the robber.
-              </div>
-            )}
-          </div>
-
-          {/* NEW: End Turn button (under Build) */}
-          <div className="hud-card">
-            <button
-              onClick={handleEndTurn}
-              disabled={!canEndTurn}
-              className="btn-accent"
-              style={{ ["--accent" as any]: self.color, width: "100%" }}
-            >
-              End Turn
-            </button>
-          </div>
-
-        </div>
         <div
           className="board-stage"
           style={{
@@ -1512,6 +1506,7 @@ export default function App() {
           alignItems: "center",
           gap: 6,
           background: "white"
+          
         }}
       >
         {rightOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
