@@ -1362,10 +1362,11 @@ export default function App() {
           </div>
         </div>
 
-        {/* NEW: Single context-aware build button */}
+        {/*Single context-aware build button */}
         <div className="hud-card">
           <h3 className="hud-title">Build</h3>
           <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
+            {/*}
             <div style={{ opacity: selected ? 1 : 0.7 }}>
               {selected
                 ? (selected.type === "tile" && <>Tile <strong>#{selected.id}</strong></>) ||
@@ -1373,6 +1374,7 @@ export default function App() {
                 (selected.type === "vertex" && <>Node <strong>#{selected.id}</strong></>)
                 : <>Nothing selected</>}
             </div>
+            */}
             <button
               onClick={handleBuildClick}
               disabled={!buildAction.enabled || discardingNow}
