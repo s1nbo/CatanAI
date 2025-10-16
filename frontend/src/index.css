@@ -14,20 +14,29 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
   padding: 0;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
 a {
   font-weight: 500;
   color: #646cff;
   text-decoration: inherit;
 }
-a:hover { color: #535bf2; }
+
+a:hover {
+  color: #535bf2;
+}
 
 body {
   min-width: 320px;
@@ -49,17 +58,29 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
-button:hover { border-color: #646cff; }
+
+button:hover {
+  border-color: #646cff;
+}
+
 button:focus,
-button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
 
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
     background-color: #e0f2fe;
   }
-  a:hover { color: #747bff; }
-  button { background-color: #f9f9f9; }
+
+  a:hover {
+    color: #747bff;
+  }
+
+  button {
+    background-color: #f9f9f9;
+  }
 }
 
 /* ---------- Page Layout ---------- */
@@ -71,20 +92,24 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
 
 /* Board (main canvas) */
 .board {
-  position: relative;          /* for HUD overlay */
   flex: 1;
-  min-width: 0;
-  min-height: 0;
   display: flex;
-  align-items: stretch;
-  /* Note: justify-content: stretch is not valid for flex; using flex-start */
-  justify-content: flex-start;
-  /* If you want multi-line rows to stretch, use align-content on wrapping containers */
-  overflow: hidden;
+  justify-content: center;
+  align-items: center;
   background: #2A66A0;
+  overflow: hidden;
 }
-.board > * { flex: 1; min-height: 0; }
-.board svg { width: 100%; height: 100%; display: block; }
+
+.board>* {
+  flex: 1;
+  min-height: 0;
+}
+
+.board svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
 
 /* Optional scale wrapper for the board */
 .board-scale {
@@ -117,10 +142,11 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   background: #fff;
   border: 1px solid #d1d5db;
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   padding: 12px;
   color: #0f172a;
 }
+
 .card-title {
   margin: 0 0 8px 0;
   font-weight: 800;
@@ -142,10 +168,16 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   gap: 8px;
   margin-bottom: 8px;
 }
-.player-name { font-weight: 700; }
+
+.player-name {
+  font-weight: 700;
+}
+
 .dot {
-  width: 14px; height: 14px; border-radius: 50%;
-  border: 1px solid rgba(0,0,0,0.2);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
 /* Stats grid */
@@ -154,18 +186,24 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   grid-template-columns: 1fr 1fr;
   gap: 8px 12px;
 }
+
 .stat {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 0.95rem;
 }
+
 .stat svg {
-  width: 16px; height: 16px;
+  width: 16px;
+  height: 16px;
   color: #334155;
   flex-shrink: 0;
 }
-.stat span { font-weight: 600; }
+
+.stat span {
+  font-weight: 600;
+}
 
 /* ---------- HUD (in-board, left) ---------- */
 .hud-left {
@@ -178,15 +216,17 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   z-index: 10;
   pointer-events: auto;
 }
+
 .hud-card {
   background: #ffffffcc;
   backdrop-filter: blur(4px);
   border: 1px solid #d1d5db;
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   padding: 12px;
   color: #0f172a;
 }
+
 .hud-title {
   margin: 0 0 8px 0;
   font-weight: 800;
@@ -201,6 +241,7 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   overflow-x: auto;
   padding-bottom: 2px;
 }
+
 .dev-card {
   position: relative;
   min-width: 64px;
@@ -208,7 +249,7 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -219,9 +260,16 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   user-select: none;
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
-.dev-card:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
 
-.dev-emoji { font-size: 1.6rem; line-height: 1; }
+.dev-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.dev-emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+}
 
 .dev-badge {
   position: absolute;
@@ -247,8 +295,10 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   align-items: center;
   gap: 10px;
 }
+
 .vp-badge {
-  width: 36px; height: 48px;
+  width: 36px;
+  height: 48px;
   border: 2px solid #eab308;
   border-radius: 8px;
   background: #fef3c7;
@@ -263,6 +313,7 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
+
 .resource-card {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -273,8 +324,17 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   justify-content: space-between;
   font-weight: 700;
 }
-.resource-left { display: flex; align-items: center; gap: 8px; }
-.resource-emoji { font-size: 1.1rem; }
+
+.resource-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.resource-emoji {
+  font-size: 1.1rem;
+}
+
 .count-pill {
   min-width: 28px;
   padding: 2px 8px;
@@ -290,10 +350,12 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   border: 1px solid transparent;
   transition: box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease;
 }
+
 .btn-accent:hover {
   box-shadow: 0 0 0 3px var(--accent, currentColor);
   border-color: var(--accent, currentColor);
 }
+
 .btn-accent:disabled,
 .btn-accent[disabled] {
   box-shadow: none;
@@ -322,4 +384,41 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   background: #000;
   color: #fff;
   padding: 4px 10px;
+}
+
+
+
+.board-wrapper {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1.1 / 1;
+  /* roughly the Catan hex layout ratio */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.board-svg {
+  width: 100%;
+  height: auto;
+  max-height: 90vh;
+  /* keep it inside viewport */
+}
+
+@media (max-width: 900px) {
+  .hud-left {
+    width: 220px;
+    inset: 8px auto 8px 8px;
+  }
+
+  .sidebar {
+    width: 260px;
+  }
+}
+
+@media (max-width: 700px) {
+  .hud-left {
+    width: 180px;
+    font-size: 0.9rem;
+  }
 }

@@ -80,7 +80,7 @@ const RESOURCE_ALIASES: Record<string, keyof typeof RESOURCE_COLORS> = {
   Brick: "Brick", brick: "Brick",
   Sheep: "Sheep", sheep: "Sheep",
   Wheat: "Wheat", wheat: "Wheat",
-  Ore:  "Ore",  ore:  "Ore",
+  Ore: "Ore", ore: "Ore",
   Desert: "Desert", desert: "Desert",
   null: "null",
 };
@@ -318,7 +318,7 @@ export default function HexBoard({
         viewBox={`${minX} ${minY} ${width} ${height}`}
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="xMidYMid meet"
-        className="w-full h-full block"
+        className="board-svg"
         onClick={() => { setSelected(null); onSelect?.(null); }}
       >
         <defs>
