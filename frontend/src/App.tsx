@@ -2,8 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Trophy, Swords, Route, Hand, Layers,
-  Bot, UserPlus, UserMinus, Play, KeyRound, Users,
-  ChevronLeft, ChevronRight
+  Bot, UserPlus, UserMinus, Play, KeyRound, Users
 } from "lucide-react";
 import HexBoard from "./Board";
 import type { BoardOverlay } from "./Board";
