@@ -57,7 +57,7 @@ interface Geometry { tiles: TileG[]; vertices: Record<number, VertexG>; edges: R
 
 type LastClick = { type: 'tile' | 'edge' | 'vertex'; id: number } | null;
 
-const HEX_SIZE = 512;
+const HEX_SIZE = 64;
 const VERTEX_ROW_COUNTS = [7, 9, 11, 11, 9, 7];
 const SNAP_K = 1000;
 const EDGE_STROKE = 6;

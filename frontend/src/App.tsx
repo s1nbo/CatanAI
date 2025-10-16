@@ -1464,11 +1464,15 @@ export default function App() {
                   <div className="stat"><Route /> <span style={{ color: p.longestRoad ? 'red' : 'black' }}>{p.longest_road_length}</span></div>
                   <div className="stat"><Layers /> <span>{p.devCards}</span></div>
                 </div>
+
+                {/* 
                 <div className="stats-grid" style={{ marginTop: 4, opacity: .8, fontSize: 12 }}>
                   <div>🏘️ Settlements: <strong>{p.settlements}</strong></div>
                   <div>🏙️ Cities: <strong>{p.cities}</strong></div>
                   <div>🛣️ Roads: <strong>{p.roads}</strong></div>
-                </div>
+                </div> 
+                */}
+
               </div>
             ))}
           </aside>
