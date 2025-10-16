@@ -333,7 +333,6 @@ export default function App() {
 
   // NEW: what the board says is currently selected
   const [selected, setSelected] = useState<{ type: 'tile' | 'edge' | 'vertex'; id: number } | null>(null);
-  const [rightOpen, setRightOpen] = useState(true);
 
 
   // NEW: compute the context-aware action label + enabled flag
@@ -782,9 +781,6 @@ export default function App() {
       className="layout"
       style={{
         // when right panel is closed, collapse to a single column
-        gridTemplateColumns: rightOpen ? undefined : "1fr",
-        justifyItems: rightOpen ? "stretch" : "end",
-        transition: "grid-template-columns 160ms ease"
       }}
     >
       {/* Game Over Overlay */}
@@ -1424,7 +1420,7 @@ export default function App() {
           {
             // expose HUD/Sidebar widths as CSS vars
             ["--leftHud" as any]: "300px",                // matches .hud-left width
-            ["--rightPane" as any]: rightOpen ? "320px" : "0px", // matches .sidebar width
+            ["--rightPane" as any]: "320px" // matches .sidebar width
           } as React.CSSProperties
         }
       >
@@ -1445,8 +1441,8 @@ export default function App() {
           zIndex: 1,
         }}
       >
-        {/* Right sidebar: Bank + Players (collapsible) */}
-        {rightOpen && (
+        {/* Right sidebar: Bank + Players */}
+        {(
           <aside className="sidebar">
             <div className="card">
               <h2 className="card-title">Bank</h2>
@@ -1486,31 +1482,6 @@ export default function App() {
 
       </aside>
 
-      <button
-        onClick={() => setRightOpen(v => !v)}
-        aria-label={rightOpen ? "Collapse right sidebar" : "Expand right sidebar"}
-        title={rightOpen ? "Collapse sidebar" : "Expand sidebar"}
-        className="btn-accent"
-        style={{
-          ["--accent" as any]: self.color,
-          position: "fixed",
-          right: 8,
-          top: "50%",
-          transform: "translateY(-50%)",
-          borderRadius: 999,
-          padding: "8px 10px",
-          zIndex: 9997,
-          boxShadow: "0 6px 16px rgba(0,0,0,.25)",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          background: "white"
-
-        }}
-      >
-        {rightOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        <span style={{ fontSize: 12, fontWeight: 600 }}>{rightOpen ? "Hide" : "Show"}</span>
-      </button>
     </div>
   );
 }
