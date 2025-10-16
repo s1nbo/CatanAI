@@ -1365,26 +1365,6 @@ export default function App() {
         {/*Single context-aware build button */}
         <div className="hud-card">
           <h3 className="hud-title">Build</h3>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
-            {/*}
-            <div style={{ opacity: selected ? 1 : 0.7 }}>
-              {selected
-                ? (selected.type === "tile" && <>Tile <strong>#{selected.id}</strong></>) ||
-                (selected.type === "edge" && <>Edge <strong>#{selected.id}</strong></>) ||
-                (selected.type === "vertex" && <>Node <strong>#{selected.id}</strong></>)
-                : <>Nothing selected</>}
-            </div>
-            */}
-            <button
-              onClick={handleBuildClick}
-              disabled={!buildAction.enabled || discardingNow}
-              className="btn-accent"
-              /* feed the player color into a CSS variable read by .btn-accent */
-              style={{ ["--accent" as any]: self.color }}
-            >
-              {buildAction.label}
-            </button>
-          </div>
           {(forcedAction === "Place Road 1" || forcedAction === "Place Road 2") && (
             <div style={{ marginTop: 8, fontSize: 12, opacity: .85 }}>
               Road Building: {forcedAction === "Place Road 1" ? "First" : "Second"} free road — select an empty edge and click <em>Build Road</em>.
@@ -1395,6 +1375,15 @@ export default function App() {
               Knight/Seven: select a tile to move the robber.
             </div>
           )}
+          <button
+            onClick={handleBuildClick}
+            disabled={!buildAction.enabled || discardingNow}
+            className="btn-accent"
+            /* feed the player color into a CSS variable read by .btn-accent */
+            style={{ ["--accent" as any]: self.color }}
+          >
+            {buildAction.label}
+          </button>
         </div>
 
         {/* NEW: End Turn button (under Build) */}
@@ -1466,8 +1455,10 @@ export default function App() {
                     outline: p.isCurrent ? `6px solid ${p.color}` : undefined,
                   }}
                 >
-                  <div className="dot" style={{ backgroundColor: p.color }} />
-                  <h3 className="hud-title"> {p.name}</h3>
+                  <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 6 }}>
+                    <div className="dot" style={{ backgroundColor: self.color }} />
+                    <h3 className="hud-title"> {p.name}</h3>
+                  </div>
                   <div style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(2, 1fr)",
