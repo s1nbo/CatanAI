@@ -5,6 +5,7 @@ import asyncio
 import random
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 from game.logic import Game
 from game.action import *
@@ -18,13 +19,15 @@ GAMES = {} # game_id -> {"game_state": game_state, "websockets": {player_id: web
 class GameIdRequest(BaseModel):
     game_id: int
 
-origins = [
-    "https://catanai-frontend.onrender.com",  # frontend URL
-]
+
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "https://catanai-frontend.onrender.com,http://127.0.0.1:5173,http://localhost:5173"
+).split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -112,7 +115,7 @@ async def start_game(req: GameIdRequest):
 @app.websocket("/ws/{game_id}/{player_id}")
 async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
     origin = ws.headers.get("origin")
-    if origin != "https://catanai-frontend.onrender.com":
+    if origin not in ALLOWED_ORIGINS:
         await ws.close(code=1008) 
         return
     
