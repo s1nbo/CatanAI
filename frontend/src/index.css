@@ -75,14 +75,19 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
 
 /* Board (main canvas) */
 .board {
+  /* Main board container */
   position: relative;
   flex: 1;
   height: 100vh;
   display: flex;
-  justify-content: center;
-  align-items: stretch;
+  justify-content: center;      /* keep horizontal centering if needed */
+  align-items: stretch;         /* stretch child vertically */
   background: #2A66A0;
   overflow: hidden;
+
+  /* Center board exactly between HUDs when needed */
+  padding-left: var(--leftHud, 0px);
+  padding-right: var(--rightPane, 0px);
 }
 
 /* Optional scale wrapper for the board */
@@ -95,6 +100,7 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
 
 /* Right pane: hud-right */
 .hud-right {
+  /* Right HUD shared defaults - concrete positioning applied later */
   width: 400px;
   padding: 20px 18px;
   background: transparent;
@@ -346,44 +352,49 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
 
 /* ---------- Board Sizing Helpers ---------- */
 .board-wrapper {
-  width: auto;
-  height: auto;
-  aspect-ratio: 1.1 / 1; /* roughly the Catan hex layout ratio */
+  width: 100%;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .board-svg {
-  width: auto;
-  height: auto;
-  
+  width: 100%;
+  height: 100%;
+  max-width: 100vw;
+  max-height: 100vh;
+  object-fit: contain;
 }
 
 /* ---------- Main Board Viewport ---------- */
 /* Final cascade uses flex centering, 100vh height, and current padding defaults */
 .board-viewport {
-  width: auto;
-  height: auto;                 /* fill the viewport vertically */
+  /* Inner viewport that centers the SVG/content and accounts for HUD padding */
+  width: 100%;
+  height: 100%;                 /* fill the .board */
   display: flex;                 /* center using flexbox */
   justify-content: center;
   align-items: center;
   background: #2A66A0;
-
-  /* breathing space around HUDs */
-  padding-left: var(--leftHud, 300px);
-  padding-right: var(--rightPane, 320px);
+  padding-left: var(--leftHud, 0px);
+  padding-right: var(--rightPane, 0px);
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Final SVG sizing used by the last ruleset */
-.board-viewport svg {
-  width:auto;
+.board-viewport svg,
+.board > svg {
+  width: min(100%, 1800px);
   height: auto;
+  max-height: 95vh;
   display: block;
 }
 
 /* ---------- Right HUD ---------- */
 .hud-right {
+  /* positioned HUD on the right - overrides earlier defaults */
   position: absolute;
   top: 0;
   right: 0;
