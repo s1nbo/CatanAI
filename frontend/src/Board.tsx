@@ -313,7 +313,7 @@ export default function HexBoard({
   const height = maxY - minY;
 
   return (
-    <div className="w-full h-full">
+    <div className="board-wrapper">
       <svg
         viewBox={`${minX} ${minY} ${width} ${height}`}
         xmlns="http://www.w3.org/2000/svg"

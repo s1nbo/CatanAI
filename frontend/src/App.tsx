@@ -1407,7 +1407,7 @@ export default function App() {
           {
             // expose HUD/Sidebar widths as CSS vars
             ["--leftHud" as any]: "300px",                // matches .hud-left width
-            ["--rightPane" as any]: "400px" // matches .sidebar width
+            ["--rightPane" as any]: "100px" // matches .hud-right width
           } as React.CSSProperties
         }
       >
@@ -1421,16 +1421,16 @@ export default function App() {
       </div>
 
 
-      {/* Right sidebar: Bank + Players */}
-      <aside className="sidebar"
+      {/* Right hud-right: Bank + Players */}
+      <aside className="hud-right"
         style={{
           position: "relative",   // create stacking context
           zIndex: 1,
         }}
       >
-        {/* Right sidebar: Bank + Players */}
+        {/* Right hud-right: Bank + Players */}
         {(
-          <aside className="sidebar">
+          <aside className="hud-right">
             {/* RIGHT HUD (match left style) */}
             <div className="hud-right">
               {/* Bank */}

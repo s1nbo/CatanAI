@@ -33,14 +33,9 @@ a {
   color: #646cff;
   text-decoration: inherit;
 }
+a:hover { color: #535bf2; }
 
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  min-width: 320px;
-}
+body { min-width: 320px; }
 
 h1 {
   font-size: 3.2em;
@@ -58,29 +53,17 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
-
-button:hover {
-  border-color: #646cff;
-}
-
+button:hover { border-color: #646cff; }
 button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
+button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
 
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
     background-color: #e0f2fe;
   }
-
-  a:hover {
-    color: #747bff;
-  }
-
-  button {
-    background-color: #f9f9f9;
-  }
+  a:hover { color: #747bff; }
+  button { background-color: #f9f9f9; }
 }
 
 /* ---------- Page Layout ---------- */
@@ -92,23 +75,14 @@ button:focus-visible {
 
 /* Board (main canvas) */
 .board {
+  position: relative;
   flex: 1;
+  height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
   background: #2A66A0;
   overflow: hidden;
-}
-
-.board>* {
-  flex: 1;
-  min-height: 0;
-}
-
-.board svg {
-  width: 100%;
-  height: 100%;
-  display: block;
 }
 
 /* Optional scale wrapper for the board */
@@ -119,15 +93,15 @@ button:focus-visible {
   /* transform: scale(0.5); */
 }
 
-/* Right pane: sidebar */
-.sidebar {
-  width: 320px;
-  padding: 16px;
-  overflow-y: auto;
+/* Right pane: hud-right */
+.hud-right {
+  width: 400px;
+  padding: 20px 18px;
   background: transparent;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  overflow: visible; /* no scrollbars */
 }
 
 .section-title {
@@ -168,10 +142,7 @@ button:focus-visible {
   gap: 8px;
   margin-bottom: 8px;
 }
-
-.player-name {
-  font-weight: 700;
-}
+.player-name { font-weight: 700; }
 
 .dot {
   width: 14px;
@@ -193,7 +164,6 @@ button:focus-visible {
   gap: 6px;
   font-size: 0.95rem;
 }
-
 .stat svg {
   width: 16px;
   height: 16px;
@@ -201,9 +171,6 @@ button:focus-visible {
   flex-shrink: 0;
 }
 
-.stat span {
-  font-weight: 600;
-}
 
 /* ---------- HUD (in-board, left) ---------- */
 .hud-left {
@@ -260,16 +227,11 @@ button:focus-visible {
   user-select: none;
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
-
 .dev-card:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
-
-.dev-emoji {
-  font-size: 1.6rem;
-  line-height: 1;
-}
+.dev-emoji { font-size: 1.6rem; line-height: 1; }
 
 .dev-badge {
   position: absolute;
@@ -331,9 +293,7 @@ button:focus-visible {
   gap: 8px;
 }
 
-.resource-emoji {
-  font-size: 1.1rem;
-}
+.resource-emoji { font-size: 1.1rem; }
 
 .count-pill {
   min-width: 28px;
@@ -350,12 +310,10 @@ button:focus-visible {
   border: 1px solid transparent;
   transition: box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease;
 }
-
 .btn-accent:hover {
   box-shadow: 0 0 0 3px var(--accent, currentColor);
   border-color: var(--accent, currentColor);
 }
-
 .btn-accent:disabled,
 .btn-accent[disabled] {
   box-shadow: none;
@@ -386,164 +344,45 @@ button:focus-visible {
   padding: 4px 10px;
 }
 
-
-
+/* ---------- Board Sizing Helpers ---------- */
 .board-wrapper {
-  width: 100%;
+  width: auto;
   height: auto;
-  aspect-ratio: 1.1 / 1;
-  /* roughly the Catan hex layout ratio */
+  aspect-ratio: 1.1 / 1; /* roughly the Catan hex layout ratio */
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .board-svg {
-  width: 100%;
+  width: auto;
   height: auto;
-  max-height: 90vh;
-  /* keep it inside viewport */
+  
 }
-
-@media (max-width: 900px) {
-  .hud-left {
-    width: 220px;
-    inset: 8px auto 8px 8px;
-  }
-
-  .sidebar {
-    width: 260px;
-  }
-}
-
-@media (max-width: 700px) {
-  .hud-left {
-    width: 180px;
-    font-size: 0.9rem;
-  }
-}
-
-
-/* The main board container already exists; make sure it's relative */
-.board {
-  position: relative;
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  background: #2A66A0;
-  overflow: hidden;
-}
-
-/* New: a viewport that reserves space for left HUD and (optional) right sidebar */
-.board-viewport {
-  width: 100%;
-  height: 100%;
-  /* Reserve space so the centered SVG never sits under overlays */
-  padding-left: var(--leftHud, 300px);
-  padding-right: var(--rightPane, 320px);
-
-  /* Center the SVG within the remaining safe area */
-  display: grid;
-  place-items: center;
-}
-
-/* Make the SVG scale nicely inside the safe area */
-.board-viewport svg {
-  width: min(100%, 1200px);
-  height: auto;
-  max-height: 90vh;
-  display: block;
-}
-
-/* Mobile tweaks: shrink the reserved HUD width so the board stays centered and visible */
-@media (max-width: 900px) {
-  .hud-left { width: 220px; }
-  .board-viewport { padding-left: 220px; }
-}
-@media (max-width: 700px) {
-  .hud-left { width: 180px; }
-  .board-viewport { padding-left: 180px; }
-}
-
-
-/* Centering container that also reserves space for HUD + sidebar */
-.board-viewport {
-  width: 100%;
-  height: 100vh;                      /* fill the screen vertically */
-  padding-left: var(--leftHud, 300px);
-  padding-right: var(--rightPane, 320px);
-  display: grid;
-  place-items: center;                /* center the SVG in the safe area */
-}
-
-/* Make the SVG large, but never overflow the viewport */
-.board-viewport svg {
-  width: min(100%, 1600px);           /* allow a much wider board */
-  height: auto;
-  max-height: calc(100vh - 24px);     /* keep some breathing room */
-  display: block;
-}
-
-/* Ensure the main board area itself fills the screen */
-.board {
-  position: relative;
-  flex: 1;
-  height: 100vh;                      /* <-- important: full height */
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  background: #2A66A0;
-  overflow: hidden;
-}
-
-/* (optional) scale HUD on smaller screens */
-@media (max-width: 900px) {
-  .hud-left { width: 220px; }
-  .board-viewport { padding-left: 220px; padding-right: 320px; }
-}
-@media (max-width: 700px) {
-  .hud-left { width: 180px; }
-  .board-viewport { padding-left: 180px; padding-right: 300px; }
-}
-
-/* ---------- Right Sidebar ---------- */
-.sidebar {
-  width: 400px;                  /* was 320px — gives more breathing room */
-  padding: 20px 18px;
-  background: transparent;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  overflow: visible;             /* no scrollbars */
-}
-
-@media (max-width: 1200px) {
-  .sidebar { width: 360px; }
-}
-@media (max-width: 1000px) {
-  .sidebar { width: 320px; }
-}
-
 
 /* ---------- Main Board Viewport ---------- */
+/* Final cascade uses flex centering, 100vh height, and current padding defaults */
 .board-viewport {
-  width: 100%;
-  height: 100vh;                         /* full height */
+  width: auto;
+  height: auto;                 /* fill the viewport vertically */
+  display: flex;                 /* center using flexbox */
+  justify-content: center;
+  align-items: center;
+  background: #2A66A0;
+
+  /* breathing space around HUDs */
   padding-left: var(--leftHud, 300px);
-  padding-right: var(--rightPane, 400px); /* matches new sidebar width */
-  display: grid;
-  place-items: center;                   /* always center board */
+  padding-right: var(--rightPane, 320px);
 }
 
-/* SVG size — double visually while keeping responsive */
+/* Final SVG sizing used by the last ruleset */
 .board-viewport svg {
-  width: min(100%, 2400px);              /* 2× previous 1200px max width */
+  width:auto;
   height: auto;
-  max-height: calc(100vh - 32px);
   display: block;
 }
 
+/* ---------- Right HUD ---------- */
 .hud-right {
   position: absolute;
   top: 0;
@@ -553,4 +392,95 @@ button:focus-visible {
   flex-direction: column;
   gap: 16px;
   padding: 12px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1200px) {
+  .hud-right { width: 360px; }
+}
+@media (max-width: 1000px) {
+  .hud-right { width: 320px; }
+}
+@media (max-width: 900px) {
+  .hud-left { width: 220px; inset: 8px auto 8px 8px; }
+  .hud-right { width: 260px; }
+  .board-viewport { padding-left: 220px; padding-right: 320px; }
+}
+@media (max-width: 700px) {
+  .hud-left { width: 180px; font-size: 0.9rem; }
+  .board-viewport { padding-left: 180px; padding-right: 300px; }
+}
+
+
+.board {
+  position: relative;
+  flex: 1;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center; /* center vertically too */
+  background: #2A66A0;
+  overflow: hidden;
+
+  /* Center board exactly between HUDs */
+  padding-left: var(--leftHud, 0px);
+  padding-right: var(--rightPane, 0px);
+}
+
+.board > svg,
+.board-viewport > svg {
+  width: min(100%, 1800px);
+  height: auto;
+  max-height: 95vh;
+  display: block;
+}
+
+
+.board-svg {
+  width: 100%;
+  height: 100%;
+  max-width: 100vw;
+  max-height: 100vh;
+  object-fit: contain;
+}
+
+.board-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+
+/* Board should stretch its child to full height, not center it */
+.board {
+  position: relative;
+  flex: 1;
+  height: 100vh;
+  display: flex;
+  justify-content: center;      /* keep horizontal centering if needed */
+  align-items: stretch;         /* <— revert from center to stretch */
+  background: #2A66A0;
+  overflow: hidden;
+}
+
+/* New/confirmed inner container that handles centering + padding */
+.board-viewport {
+  width: 100%;
+  height: 100%;                 /* fill the .board */
+  display: flex;
+  justify-content: center;
+  align-items: center;          /* center your SVG/content */
+  padding-left: var(--leftHud, 0px);
+  padding-right: var(--rightPane, 0px);
+}
+
+/* Your board graphics/content */
+.board-viewport > svg {
+  width: min(100%, 1800px);
+  height: auto;
+  max-height: 95vh;
+  display: block;
 }
