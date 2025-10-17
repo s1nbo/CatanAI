@@ -313,13 +313,12 @@ export default function HexBoard({
   const height = maxY - minY;
 
   return (
-    <div className="board-wrapper">
-      <svg
-        viewBox={`${minX} ${minY} ${width} ${height}`}
-        xmlns="http://www.w3.org/2000/svg"
-        preserveAspectRatio="xMidYMid meet"
-        className="board-svg"
-        onClick={() => { setSelected(null); onSelect?.(null); }}
+  <div className="board-wrapper" style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+    <svg
+      viewBox={`${minX} ${minY} ${width} ${height}`}
+      preserveAspectRatio="xMidYMid meet"
+      className="board-svg"
+      style={{ maxWidth: '100%', height: 'auto' }}
       >
         <defs>
           <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
