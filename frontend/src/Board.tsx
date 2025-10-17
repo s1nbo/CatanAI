@@ -313,7 +313,7 @@ export default function HexBoard({
   const height = maxY - minY;
 
   return (
-  <div className="board-wrapper" style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+  <div className="board-wrapper" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
     <svg
       viewBox={`${minX} ${minY} ${width} ${height}`}
       preserveAspectRatio="xMidYMid meet"

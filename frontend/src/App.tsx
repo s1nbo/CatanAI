@@ -1406,8 +1406,8 @@ export default function App() {
         style={
           {
             // expose HUD/Sidebar widths as CSS vars
-            ["--leftHud" as any]: "300px",                // matches .hud-left width
-            ["--rightPane" as any]: "100px" // matches .hud-right width
+            ["--leftHud" as any]: "312px",                // matches .hud-left width
+
           } as React.CSSProperties
         }
       >

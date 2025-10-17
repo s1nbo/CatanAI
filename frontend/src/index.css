@@ -12,7 +12,14 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --hud-left: 300px;
+  --hud-right: 300px;
 }
+
+.hud-left { width: var(--hud-left); }   /* was a fixed width */
+.hud-right { width: var(--hud-right); } /* was a fixed width */
+
 
 html,
 body,
@@ -521,4 +528,58 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
     width: auto;          /* scale down to fit */
     height: auto;
   }
+}
+
+
+
+.board {
+  position: relative;
+  flex: 1;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #2A66A0;
+  overflow: hidden;
+
+  /* dynamically space between HUDs */
+  padding-left: var(--leftHud, 320px);
+  padding-right: var(--rightHud, 320px);
+}
+
+.board-viewport {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  background: #2A66A0;
+  overflow: hidden;
+}
+
+.board-viewport svg,
+.board > svg {
+  width: min(100%, 2000px); /* make the board larger */
+  height: auto;
+  max-height: 95vh;
+  display: block;
+  transform: scale(4);   /* scale up board size */
+  transform-origin: center center;
+}
+
+
+.board { overflow: visible; }        /* was hidden */
+.board-viewport { overflow: visible; }  /* was hidden in a few places */
+
+@media (max-width: 1200px) {
+  :root { --hud-right: 360px; }
+}
+@media (max-width: 1000px) {
+  :root { --hud-right: 320px; }
+}
+@media (max-width: 900px) {
+  :root { --hud-left: 220px; --hud-right: 320px; }
+}
+@media (max-width: 700px) {
+  :root { --hud-left: 180px; --hud-right: 300px; }
 }
