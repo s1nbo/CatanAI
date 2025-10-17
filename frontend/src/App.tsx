@@ -1366,12 +1366,12 @@ export default function App() {
         <div className="hud-card">
           <h3 className="hud-title">Build</h3>
           {(forcedAction === "Place Road 1" || forcedAction === "Place Road 2") && (
-            <div style={{ marginTop: 8, fontSize: 12, opacity: .85 }}>
+            <div style={{ marginTop: 8, fontSize: 12, opacity: .85, width: "100%" }}>
               Road Building: {forcedAction === "Place Road 1" ? "First" : "Second"} free road — select an empty edge and click <em>Build Road</em>.
             </div>
           )}
           {forcedAction === "Move Robber" && (
-            <div style={{ marginTop: 8, fontSize: 12, opacity: .85 }}>
+            <div style={{ marginTop: 8, fontSize: 12, opacity: .85, width: "100%" }}>
               Knight/Seven: select a tile to move the robber.
             </div>
           )}
@@ -1380,7 +1380,7 @@ export default function App() {
             disabled={!buildAction.enabled || discardingNow}
             className="btn-accent"
             /* feed the player color into a CSS variable read by .btn-accent */
-            style={{ ["--accent" as any]: self.color }}
+            style={{ ["--accent" as any]: self.color, width: "100%" }}
           >
             {buildAction.label}
           </button>
