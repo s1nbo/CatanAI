@@ -1408,25 +1408,20 @@ export default function App() {
 
           <div style={{ marginTop: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, opacity: 0.8, marginBottom: 6 }}>
-              <span>More HUD</span>
-              <span>More Board</span>
+              <span>Board Zoom: {(zoom).toFixed(2)}×</span>
             </div>
             <input
               type="range"
               min={0}
-              max={200}
+              max={500}
               value={uiMix}
               onChange={(e) => setUiMix(Number(e.target.value))}
               style={{ width: "100%" }}
-              aria-label="Resize HUD and Board"
+              aria-label="Resize Board"
             />
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginTop: 6, opacity: 0.8 }}>
-              <span>HUD: {Math.round(hudWidth)}px</span>
-              <span>Zoom: {(zoom).toFixed(2)}×</span>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Main board area */}
       <div
