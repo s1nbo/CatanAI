@@ -22,10 +22,12 @@
 }
 /* was a fixed width */
 
+
+
+/* Play aroun with fonts here */
 body {
   font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
-
 
 * {
   font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
