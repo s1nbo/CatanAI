@@ -330,11 +330,29 @@ export default function App() {
 
   const discardingNow = forcedAction === "Discard" && mustDiscard > 0;
 
-  // NEW: what the board says is currently selected
+
+  // Compute scale dynamically
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    function handleResize() {
+      const width = window.innerWidth;
+      // Adjust these breakpoints and scale values as you like
+      if (width < 600) setScale(0.55);
+      else if (width < 900) setScale(0.75);
+      else if (width < 1200) setScale(0.9);
+      else setScale(1);
+    }
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+
   const [selected, setSelected] = useState<{ type: 'tile' | 'edge' | 'vertex'; id: number } | null>(null);
 
 
-  // NEW: compute the context-aware action label + enabled flag
+
   const buildAction = useMemo(() => {
     if (!selected) {
       if (forcedAction === "Place Road 1" || forcedAction === "Place Road 2") {
@@ -506,7 +524,7 @@ export default function App() {
       let data: any;
       try { data = JSON.parse(ev.data); } catch { data = ev.data; }
 
-      // --- NEW: full snapshot for late joiners ---
+
       if (data?.type === "lobby_state" && Array.isArray(data.players)) {
         setObservedPlayers(new Set<number>(data.players.map((n: number) => Number(n))));
         return;
@@ -1386,7 +1404,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* NEW: End Turn button (under Build) */}
+        { /* End Turn button (under Build) */}
         <div className="hud-card">
           <button
             onClick={handleEndTurn}
@@ -1411,7 +1429,13 @@ export default function App() {
           } as React.CSSProperties
         }
       >
-        <div className="board-viewport">
+        <div className="board-viewport"
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: "center center",
+            width: "100%",
+            height: "100%",
+          }}>
           <HexBoard
             overlay={overlay}
             onSelect={setSelected}
@@ -1461,11 +1485,11 @@ export default function App() {
                   </div>
 
                   <div className="stats-grid">
-                    <div className="stat"><Trophy/> {p.victoryPoints}</div>
-                    <div className="stat"><Swords/><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
-                    <div className="stat"><Hand/> {p.handSize}</div>
-                    <div className="stat"><Route/> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
-                    <div className="stat"><Layers/> {p.devCards}</div>
+                    <div className="stat"><Trophy /> {p.victoryPoints}</div>
+                    <div className="stat"><Swords /><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
+                    <div className="stat"><Hand /> {p.handSize}</div>
+                    <div className="stat"><Route /> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
+                    <div className="stat"><Layers /> {p.devCards}</div>
                   </div>
                 </div>
               ))}

@@ -127,7 +127,7 @@ export default function HexBoard({
   onVertexClick?: (p: ClickVertexPayload) => void;
   onEdgeClick?: (p: ClickEdgePayload) => void;
   onSelect?: (sel: LastClick) => void;
-  resetSelectionToken?: unknown; // ← NEW
+  resetSelectionToken?: unknown;
 }) {
   const hexes = useMemo(() => generateHexes(radius), [radius]);
 
@@ -275,7 +275,7 @@ export default function HexBoard({
     setSelected((prev) => {
       const same = prev && prev.type === next.type && prev.id === next.id;
       const updated = same ? null : next;
-      onSelect?.(updated);     // NEW: bubble up
+      onSelect?.(updated); 
       return updated;
     });
   };
@@ -313,12 +313,16 @@ export default function HexBoard({
   const height = maxY - minY;
 
   return (
-  <div className="board-wrapper" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
-    <svg
-      viewBox={`${minX} ${minY} ${width} ${height}`}
-      preserveAspectRatio="xMidYMid meet"
-      className="board-svg"
-      style={{ maxWidth: '100%', height: 'auto' }}
+    <div className="board-wrapper" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+      <svg
+        viewBox={`${minX} ${minY} ${width} ${height}`}
+        preserveAspectRatio="xMidYMid meet"
+        className="board-svg"
+        style={{
+          width: "min(100%, 1200px)",
+          height: "auto",
+          maxHeight: "90vh",
+        }}
       >
         <defs>
           <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">

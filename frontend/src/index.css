@@ -3,22 +3,24 @@
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
   background-color: #2A66A0;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
   --hud-left: 300px;
   --hud-right: 300px;
 }
-
-.hud-left { width: var(--hud-left); }   /* was a fixed width */
-.hud-right { width: var(--hud-right); } /* was a fixed width */
+.hud-left {
+  width: var(--hud-left);
+}
+/* was a fixed width */
+.hud-right {
+  width: var(--hud-right);
+}
+/* was a fixed width */
 
 
 html,
@@ -28,27 +30,26 @@ body,
   margin: 0;
   padding: 0;
 }
-
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
-
 a {
   font-weight: 500;
   color: #646cff;
   text-decoration: inherit;
 }
-a:hover { color: #535bf2; }
-
-body { min-width: 320px; }
-
+a:hover {
+  color: #535bf2;
+}
+body {
+  min-width: 320px;
+}
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
-
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -60,26 +61,32 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
-button:hover { border-color: #646cff; }
+button:hover {
+  border-color: #646cff;
+}
 button:focus,
-button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
-
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
 @media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #e0f2fe;
-  }
-  a:hover { color: #747bff; }
-  button { background-color: #f9f9f9; }
+:root {
+  color: #213547;
+  background-color: #e0f2fe;
+}
+a:hover {
+  color: #747bff;
+}
+button {
+  background-color: #f9f9f9;
 }
 
+}
 /* ---------- Page Layout ---------- */
 .layout {
   display: flex;
   height: 100%;
   min-height: 100vh;
 }
-
 /* Board (main canvas) */
 .board {
   /* Main board container */
@@ -87,24 +94,22 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   flex: 1;
   height: 100vh;
   display: flex;
-  justify-content: center;      /* keep horizontal centering if needed */
-  align-items: stretch;         /* stretch child vertically */
+  justify-content: center;
+  /* keep horizontal centering if needed */
+  align-items: stretch;
+  /* stretch child vertically */
   background: #2A66A0;
   overflow: hidden;
-
   /* Center board exactly between HUDs when needed */
   padding-left: var(--leftHud, 0px);
   padding-right: var(--rightPane, 0px);
 }
 
-/* Optional scale wrapper for the board */
 .board-scale {
   display: block;
   width: 100%;
   height: 100%;
-  /* transform: scale(0.5); */
 }
-
 /* Right pane: hud-right */
 .hud-right {
   /* Right HUD shared defaults - concrete positioning applied later */
@@ -114,16 +119,14 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   display: flex;
   flex-direction: column;
   gap: 14px;
-  overflow: visible; /* no scrollbars */
+  overflow: visible;
 }
-
 .section-title {
   color: #fff;
   font-weight: 800;
   font-size: 1.25rem;
   margin: 4px 0;
 }
-
 /* ---------- Cards / UI ---------- */
 .card {
   background: #fff;
@@ -133,13 +136,11 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   padding: 12px;
   color: #0f172a;
 }
-
 .card-title {
   margin: 0 0 8px 0;
   font-weight: 800;
   font-size: 1.1rem;
 }
-
 /* Bank grid */
 .bank-grid {
   display: grid;
@@ -147,7 +148,6 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   gap: 6px 12px;
   font-size: 0.95rem;
 }
-
 /* Player header */
 .player-header {
   display: flex;
@@ -155,22 +155,21 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   gap: 8px;
   margin-bottom: 8px;
 }
-.player-name { font-weight: 700; }
-
+.player-name {
+  font-weight: 700;
+}
 .dot {
   width: 14px;
   height: 14px;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.2);
 }
-
 /* Stats grid */
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px 12px;
 }
-
 .stat {
   display: flex;
   align-items: center;
@@ -183,8 +182,6 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   color: #334155;
   flex-shrink: 0;
 }
-
-
 /* ---------- HUD (in-board, left) ---------- */
 .hud-left {
   position: absolute;
@@ -196,7 +193,6 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   z-index: 10;
   pointer-events: auto;
 }
-
 .hud-card {
   background: #ffffffcc;
   backdrop-filter: blur(4px);
@@ -206,13 +202,11 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   padding: 12px;
   color: #0f172a;
 }
-
 .hud-title {
   margin: 0 0 8px 0;
   font-weight: 800;
   font-size: 1.05rem;
 }
-
 /* ---------- Dev row / tokens ---------- */
 .dev-row {
   display: flex;
@@ -221,7 +215,6 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   overflow-x: auto;
   padding-bottom: 2px;
 }
-
 .dev-card {
   position: relative;
   min-width: 64px;
@@ -244,8 +237,10 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
-.dev-emoji { font-size: 1.6rem; line-height: 1; }
-
+.dev-emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+}
 .dev-badge {
   position: absolute;
   top: -6px;
@@ -263,14 +258,12 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   justify-content: center;
   border: 2px solid #fff;
 }
-
 /* ---------- Resources ---------- */
 .vp-stack {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-
 .vp-badge {
   width: 36px;
   height: 48px;
@@ -282,13 +275,11 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   justify-content: center;
   font-weight: 800;
 }
-
 .resource-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
-
 .resource-card {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -299,15 +290,14 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   justify-content: space-between;
   font-weight: 700;
 }
-
 .resource-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-
-.resource-emoji { font-size: 1.1rem; }
-
+.resource-emoji {
+  font-size: 1.1rem;
+}
 .count-pill {
   min-width: 28px;
   padding: 2px 8px;
@@ -317,7 +307,6 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   text-align: center;
   font-weight: 800;
 }
-
 /* ---------- Buttons / Actions ---------- */
 .btn-accent {
   border: 1px solid transparent;
@@ -334,14 +323,12 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   opacity: 0.6;
   cursor: not-allowed;
 }
-
 /* 3 equal buttons layout */
 .actions-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
-
 /* Roll number pill */
 .roll-badge {
   display: inline-block;
@@ -356,7 +343,6 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   color: #fff;
   padding: 4px 10px;
 }
-
 /* ---------- Board Sizing Helpers ---------- */
 .board-wrapper {
   width: 100%;
@@ -365,7 +351,6 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   justify-content: center;
   align-items: center;
 }
-
 .board-svg {
   width: 100%;
   height: 100%;
@@ -373,14 +358,15 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   max-height: 100vh;
   object-fit: contain;
 }
-
 /* ---------- Main Board Viewport ---------- */
 /* Final cascade uses flex centering, 100vh height, and current padding defaults */
 .board-viewport {
   /* Inner viewport that centers the SVG/content and accounts for HUD padding */
   width: 100%;
-  height: 100%;                 /* fill the .board */
-  display: flex;                 /* center using flexbox */
+  height: 100%;
+  /* fill the .board */
+  display: flex;
+  /* center using flexbox */
   justify-content: center;
   align-items: center;
   background: #2A66A0;
@@ -389,7 +375,6 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   min-height: 0;
   overflow: hidden;
 }
-
 /* Final SVG sizing used by the last ruleset */
 .board-viewport svg,
 .board > svg {
@@ -398,7 +383,6 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   max-height: 95vh;
   display: block;
 }
-
 /* ---------- Right HUD ---------- */
 .hud-right {
   /* positioned HUD on the right - overrides earlier defaults */
@@ -411,7 +395,6 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   gap: 16px;
   padding: 12px;
 }
-
 /* ---------- Responsive ---------- */
 @media (max-width: 1200px) {
   .hud-right { width: 360px; }
@@ -530,8 +513,6 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   }
 }
 
-
-
 .board {
   position: relative;
   flex: 1;
@@ -563,7 +544,7 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
   height: auto;
   max-height: 95vh;
   display: block;
-  transform: scale(4);   /* scale up board size */
+  transform: scale(1.5);   /* scale up board size */
   transform-origin: center center;
 }
 
@@ -582,4 +563,31 @@ button:focus-visible { outline: 4px auto -webkit-focus-ring-color; }
 }
 @media (max-width: 700px) {
   :root { --hud-left: 180px; --hud-right: 300px; }
+}
+
+
+@media (max-width: 768px) {
+  .board {
+    height: auto;
+    min-height: 80vh;
+    padding: 0;
+  }
+
+  .board-wrapper,
+  .board-viewport {
+    width: 100%;
+    height: auto;
+    min-height: 80vh;
+    overflow: visible;
+  }
+
+  .board-svg {
+    width: 95vw;
+    height: auto;
+  }
+
+  .hud-left,
+  .hud-right {
+    display: none; /* optional: hide HUDs on small screens */
+  }
 }
