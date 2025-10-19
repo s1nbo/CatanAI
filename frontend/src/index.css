@@ -407,21 +407,7 @@ button {
   padding: 12px;
 }
 /* ---------- Responsive ---------- */
-@media (max-width: 1200px) {
-  .hud-right { width: 360px; }
-}
-@media (max-width: 1000px) {
-  .hud-right { width: 320px; }
-}
-@media (max-width: 900px) {
-  .hud-left { width: 220px; inset: 8px auto 8px 8px; }
-  .hud-right { width: 260px; }
-  .board-viewport { padding-left: 220px; padding-right: 320px; }
-}
-@media (max-width: 700px) {
-  .hud-left { width: 180px; font-size: 0.9rem; }
-  .board-viewport { padding-left: 180px; padding-right: 300px; }
-}
+
 
 
 .board {
@@ -511,18 +497,7 @@ button {
 
 }
 
-@media (max-width: 900px) {
-  .board-viewport {
-    padding-left: 0;
-    padding-right: 0;
-    height: auto;            /* let it shrink naturally */
-    min-height: 60vh;        /* still visible on phones */
-  }
-  .board-svg {
-    width: auto;          /* scale down to fit */
-    height: auto;
-  }
-}
+
 
 .board {
   position: relative;
@@ -563,42 +538,6 @@ button {
 .board { overflow: visible; }        /* was hidden */
 .board-viewport { overflow: visible; }  /* was hidden in a few places */
 
-@media (max-width: 1200px) {
-  :root { --hud-right: 360px; }
-}
-@media (max-width: 1000px) {
-  :root { --hud-right: 320px; }
-}
-@media (max-width: 900px) {
-  :root { --hud-left: 220px; --hud-right: 320px; }
-}
-@media (max-width: 700px) {
-  :root { --hud-left: 180px; --hud-right: 300px; }
-}
 
 
-@media (max-width: 768px) {
-  .board {
-    height: auto;
-    min-height: 80vh;
-    padding: 0;
-  }
 
-  .board-wrapper,
-  .board-viewport {
-    width: 100%;
-    height: auto;
-    min-height: 80vh;
-    overflow: visible;
-  }
-
-  .board-svg {
-    width: 95vw;
-    height: auto;
-  }
-
-  .hud-left,
-  .hud-right {
-    display: none; /* optional: hide HUDs on small screens */
-  }
-}
