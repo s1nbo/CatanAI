@@ -255,6 +255,13 @@ export default function App() {
   const [playerId, setPlayerId] = useState<number | null>(null);
   const [joinCode, setJoinCode] = useState<string>("");
 
+
+  // Dynamic UI sizing mix
+  const [uiMix, setUiMix] = useState(50);          // 0..100 (0 = big HUDs, small board; 100 = big board, slim HUDs)
+  const hudWidth = useMemo(() => 360 - (120 * uiMix) / 100, [uiMix]);      // 360px → 240px
+  const zoom = useMemo(() => 0.8 + (0.6 * uiMix) / 100, [uiMix]);          // 0.8x → 1.4x
+
+
   // Observed players in lobby (server only sends join/leave events pre-start)
   const [observedPlayers, setObservedPlayers] = useState<Set<number>>(new Set());
 
@@ -331,22 +338,6 @@ export default function App() {
   const discardingNow = forcedAction === "Discard" && mustDiscard > 0;
 
 
-  // Compute scale dynamically
-  const [scale, setScale] = useState(1);
-
-  useEffect(() => {
-    function handleResize() {
-      const width = window.innerWidth;
-      // Adjust these breakpoints and scale values as you like
-      if (width < 600) setScale(0.55);
-      else if (width < 900) setScale(0.75);
-      else if (width < 1200) setScale(0.9);
-      else setScale(1);
-    }
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
 
   const [selected, setSelected] = useState<{ type: 'tile' | 'edge' | 'vertex'; id: number } | null>(null);
@@ -1414,8 +1405,27 @@ export default function App() {
           >
             End Turn
           </button>
-        </div>
 
+          <div style={{ marginTop: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, opacity: 0.8, marginBottom: 6 }}>
+              <span>More HUD</span>
+              <span>More Board</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={200}
+              value={uiMix}
+              onChange={(e) => setUiMix(Number(e.target.value))}
+              style={{ width: "100%" }}
+              aria-label="Resize HUD and Board"
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginTop: 6, opacity: 0.8 }}>
+              <span>HUD: {Math.round(hudWidth)}px</span>
+              <span>Zoom: {(zoom).toFixed(2)}×</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main board area */}
@@ -1431,11 +1441,12 @@ export default function App() {
       >
         <div className="board-viewport"
           style={{
-            transform: `scale(${scale})`,
+            transform: `scale(${zoom})`,   // <-- was scale
             transformOrigin: "center center",
             width: "100%",
             height: "100%",
-          }}>
+          }}
+        >
           <HexBoard
             overlay={overlay}
             onSelect={setSelected}
@@ -1500,6 +1511,6 @@ export default function App() {
 
       </aside>
 
-    </div>
+    </div >
   );
 }
