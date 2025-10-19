@@ -530,7 +530,7 @@ button {
   height: auto;
   max-height: 95vh;
   display: block;
-  transform: scale(1.5);   /* scale up board size */
+  transform: scale(4);   /* scale up board size */
   transform-origin: center center;
 }
 
