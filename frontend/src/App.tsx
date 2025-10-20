@@ -419,7 +419,12 @@ export default function App() {
   function handleBuyDev() { sendAction({ type: "buy_development_card" }); }
 
 
-  function handleRollDice() { sendAction({ type: "roll_dice" }); }
+  function handleRollDice() {
+    const audio = new Audio("sound/dice.mp3");
+    audio.volume = 0.7; // optional
+    audio.play().catch((err) => console.warn("Audio playback failed:", err));
+    sendAction({ type: "roll_dice" });
+  }
 
   function handleTrade() {
     setTradeOpen(true);
@@ -1418,9 +1423,9 @@ export default function App() {
               style={{ width: "100%" }}
               aria-label="Resize Board"
             />
-            </div>
           </div>
         </div>
+      </div>
 
       {/* Main board area */}
       <div
