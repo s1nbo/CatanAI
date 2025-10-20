@@ -275,7 +275,7 @@ export default function HexBoard({
     setSelected((prev) => {
       const same = prev && prev.type === next.type && prev.id === next.id;
       const updated = same ? null : next;
-      onSelect?.(updated); 
+      onSelect?.(updated);
       return updated;
     });
   };
@@ -359,8 +359,22 @@ export default function HexBoard({
                 {/* Number token */}
                 {number && (
                   <g>
-                    <circle cx={tile.cx} cy={tile.cy - 2} r={14} fill="#fff" stroke="#111827" strokeWidth={1.5} />
-                    <text x={tile.cx} y={tile.cy + 3} textAnchor="middle" fontSize={12} fontWeight={700} fill="#111827" pointerEvents="none">
+                    <circle cx={tile.cx} cy={tile.cy - 1} r={14} fill="#fff" stroke="#111827" strokeWidth={1.5} />
+                    <text x={tile.cx} y={tile.cy + 5} textAnchor="middle" fontWeight={
+                      number === 6 || number === 8
+                        ? 1000
+                        : number === 5 || number === 9
+                          ? 1000
+                          : number === 4 || number === 10
+                            ? 500
+                            : number === 3 || number === 11
+                              ? 200
+                              : number === 2 || number === 12
+                                ? 200
+                                : 1200
+                    }
+                      fill={number === 6 || number === 8 ? "red" : "#111827"}
+                      pointerEvents="none">
                       {number}
                     </text>
                   </g>

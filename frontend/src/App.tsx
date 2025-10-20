@@ -7,7 +7,7 @@ import {
 import HexBoard from "./Board";
 import type { BoardOverlay } from "./Board";
 
-/** ================== Types ================== */
+/* Types */
 type Player = {
   id: string;
   name: string;
@@ -47,7 +47,8 @@ type SelfPanel = {
 
 type Phase = "lobby" | "game";
 
-/** ================== Constants ================== */
+
+/* Constants */
 const API_URL = (import.meta as any).env?.VITE_API_URL ?? "http://localhost:8000";
 const WS_URL = (import.meta as any).env?.VITE_WS_URL_BASE ?? "ws://localhost:8000"; // we append /ws/{gid}/{pid}
 
@@ -788,10 +789,10 @@ export default function App() {
 
   // ====== GAME PHASE (your existing HUD/board UI) ======
   return (
-
     <div
       className="layout"
     >
+     
       {/* Game Over Overlay */}
       {gameOver && (
         <div
