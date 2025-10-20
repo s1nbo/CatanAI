@@ -258,7 +258,6 @@ export default function App() {
 
   // Dynamic UI sizing mix
   const [uiMix, setUiMix] = useState(50);          // 0..100 (0 = big HUDs, small board; 100 = big board, slim HUDs)
-  const hudWidth = useMemo(() => 360 - (120 * uiMix) / 100, [uiMix]);      // 360px → 240px
   const zoom = useMemo(() => 0.8 + (0.6 * uiMix) / 100, [uiMix]);          // 0.8x → 1.4x
 
 
