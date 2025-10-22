@@ -421,8 +421,8 @@ export default function App() {
 
 
   function handleRollDice() {
-    const audio = new Audio("sound/dice.mp3");
-    audio.volume = 0.7; // optional
+    const audio = new Audio("/sound/dice.mp3");
+    audio.volume = 0.7; 
     audio.play().catch((err) => console.warn("Audio playback failed:", err));
     sendAction({ type: "roll_dice" });
   }
