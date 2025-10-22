@@ -361,17 +361,7 @@ export default function HexBoard({
                   <g>
                     <circle cx={tile.cx} cy={tile.cy - 1} r={14} fill="#fff" stroke="#111827" strokeWidth={1.5} />
                     <text x={tile.cx} y={tile.cy + 5} textAnchor="middle" fontWeight={
-                      number === 6 || number === 8
-                        ? 1000
-                        : number === 5 || number === 9
-                          ? 1000
-                          : number === 4 || number === 10
-                            ? 500
-                            : number === 3 || number === 11
-                              ? 200
-                              : number === 2 || number === 12
-                                ? 200
-                                : 1200
+                      number === 6 || number === 8 || number === 5 || number === 9 ? 1000 : 500
                     }
                       fill={number === 6 || number === 8 ? "red" : "#111827"}
                       pointerEvents="none">
