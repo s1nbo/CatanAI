@@ -59,6 +59,14 @@ const PLAYER_COLORS: Record<string, string> = {
   4: "#780000",
 };
 
+const EMOJI: Record<string, string> = {
+  wood: "🌲",
+  brick: "🧱",
+  sheep: "🐑",
+  wheat: "🌾",
+  ore: "⛰️",
+};
+
 
 /** ================== Helpers for server snapshots ================== */
 function parseMaybeJSONString<T = any>(v: any): T {
@@ -890,7 +898,7 @@ export default function App() {
                         return cap > mustDiscard ? s : next;
                       })}
                       aria-label={`increase ${r}`}
-                    >+</button>
+                    >＋</button>
                   </div>
                 </div>
               ))}
@@ -960,7 +968,7 @@ export default function App() {
                         return cap > 2 ? s : next;
                       })}
                       aria-label={`increase ${r}`}
-                    >+</button>
+                    >＋</button>
                   </div>
                 </div>
               ))}
@@ -1092,7 +1100,7 @@ export default function App() {
                         onClick={() => setTradeGive(s => ({ ...s, [r]: Math.max(0, s[r] - 1) }))}>–</button>
                       <div className="count-pill">{tradeGive[r]}</div>
                       <button className="btn-accent" style={{ ["--accent" as any]: self.color, padding: "4px 10px", borderRadius: 999 }}
-                        onClick={() => setTradeGive(s => ({ ...s, [r]: s[r] + 1 }))}>+</button>
+                        onClick={() => setTradeGive(s => ({ ...s, [r]: s[r] + 1 }))}>＋</button>
                     </div>
                   </div>
                 ))}
@@ -1111,7 +1119,7 @@ export default function App() {
                         onClick={() => setTradeReceive(s => ({ ...s, [r]: Math.max(0, s[r] - 1) }))}>–</button>
                       <div className="count-pill">{tradeReceive[r]}</div>
                       <button className="btn-accent" style={{ ["--accent" as any]: self.color, padding: "4px 10px", borderRadius: 999 }}
-                        onClick={() => setTradeReceive(s => ({ ...s, [r]: s[r] + 1 }))}>+</button>
+                        onClick={() => setTradeReceive(s => ({ ...s, [r]: s[r] + 1 }))}>＋</button>
                     </div>
                   </div>
                 ))}
@@ -1119,7 +1127,7 @@ export default function App() {
 
               {/* Ratios hint */}
               <div style={{ fontSize: 12, opacity: .8 }}>
-                Bank ratios: {(["wood", "brick", "sheep", "wheat", "ore"] as const).map(r => `${r[0].toUpperCase() + r.slice(1)} ${ratios[r]}:1`).join("  •  ")}
+                Bank ratios: {(["wood", "brick", "sheep", "wheat", "ore"] as const).map(r => `${EMOJI[r]} ${ratios[r]}:1`).join("  •  ")}
               </div>
 
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginTop: 8 }}>
@@ -1164,18 +1172,18 @@ export default function App() {
       {pendingTrade && String(pendingTrade.trader_id) !== self.id && (
         <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "grid", placeItems: "center", background: "rgba(15,23,42,.45)" }} role="dialog" aria-modal="true">
           <div style={{ width: "min(92vw, 520px)", borderRadius: 16, padding: 20, background: "linear-gradient(180deg,#ffffff,#f1f5f9)", border: "1px solid rgba(100,116,139,.35)", color: "#0f172a" }}>
-            <h3 style={{ margin: "0 0 8px 0" }}>Trade Offer from Player {pendingTrade.trader_id}</h3>
+            <h3 style={{ margin: "0 0 8px 0" }}>Trade offer from Player {pendingTrade.trader_id}</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <div className="hud-title">They Give</div>
                 <ul style={{ margin: "6px 0 0 18px" }}>
-                  {Object.entries(pendingTrade.offer).map(([r, a]) => <li key={r}>{a} × {r}</li>)}
+                  {Object.entries(pendingTrade.offer).map(([r, a]) => <li key={r}>{a} × {EMOJI[r]}</li>)}
                 </ul>
               </div>
               <div>
                 <div className="hud-title">You Give</div>
                 <ul style={{ margin: "6px 0 0 18px" }}>
-                  {Object.entries(pendingTrade.request).map(([r, a]) => <li key={r}>{a} × {r}</li>)}
+                  {Object.entries(pendingTrade.request).map(([r, a]) => <li key={r}>{a} × {EMOJI[r]}</li>)}
                 </ul>
               </div>
             </div>
@@ -1210,13 +1218,13 @@ export default function App() {
               <div>
                 <div className="hud-title">Offer</div>
                 <ul style={{ margin: "6px 0 0 18px" }}>
-                  {Object.entries(pendingTrade.offer).map(([r, a]) => <li key={r}>{a} × {r}</li>)}
+                  {Object.entries(pendingTrade.offer).map(([r, a]) => <li key={r}>{a} × {EMOJI[r]}</li>)}
                 </ul>
               </div>
               <div>
                 <div className="hud-title">Request</div>
                 <ul style={{ margin: "6px 0 0 18px" }}>
-                  {Object.entries(pendingTrade.request).map(([r, a]) => <li key={r}>{a} × {r}</li>)}
+                  {Object.entries(pendingTrade.request).map(([r, a]) => <li key={r}>{a} × {EMOJI[r]}</li>)}
                 </ul>
               </div>
             </div>
@@ -1224,7 +1232,7 @@ export default function App() {
             <div style={{ marginTop: 10, fontSize: 14 }}>
               <div><strong>Awaiting:</strong> {pendingTrade.awaiting.length ? pendingTrade.awaiting.map(id => `P${id}`).join(", ") : "—"}</div>
               <div><strong>Declined:</strong> {pendingTrade.declined.length ? pendingTrade.declined.map(id => `P${id}`).join(", ") : "—"}</div>
-              <div><strong>Accepted By:</strong> {pendingTrade.accepted_by ? `Player ${pendingTrade.accepted_by}` : "—"}</div>
+              <div><strong>Accepted by:</strong> {pendingTrade.accepted_by ? `Player ${pendingTrade.accepted_by}` : "—"}</div>
             </div>
           </div>
         </div>
@@ -1484,11 +1492,11 @@ export default function App() {
                   </div>
 
                   <div className="stats-grid">
-                    <div className="stat"><Trophy /> {p.victoryPoints}</div>
-                    <div className="stat"><Swords /><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
-                    <div className="stat"><Hand /> {p.handSize}</div>
-                    <div className="stat"><Route /> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
-                    <div className="stat"><Layers /> {p.devCards}</div>
+                    <div className="stat" title="Victory points"><Trophy /> {p.victoryPoints}</div>
+                    <div className="stat" title="Knights played"><Swords /><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
+                    <div className="stat" title="Cards in hand"><Hand /> {p.handSize}</div>
+                    <div className="stat" title="Road length"><Route /> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
+                    <div className="stat" title="Development cards"><Layers /> {p.devCards}</div>
                   </div>
                 </div>
               ))}
