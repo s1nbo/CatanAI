@@ -832,23 +832,11 @@ export default function App() {
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <button
                 className="btn-accent"
-                style={{ ["--accent" as any]: "#22c55e", padding: "10px 14px", borderRadius: 10 }}
+                style={{ ["--accent" as any]: self.color, padding: "10px 14px", borderRadius: 10 }}
                 onClick={() => setGameOver(null)}
                 title="Hide"
               >
                 Close
-              </button>
-
-              <button
-                className="btn-accent"
-                style={{ ["--accent" as any]: "#6366f1", padding: "10px 14px", borderRadius: 10 }}
-                onClick={() => {
-                  setGameOver(null);
-                  setPhase("lobby");
-                }}
-                title="Back to Lobby"
-              >
-                Back to Lobby
               </button>
             </div>
           </div>

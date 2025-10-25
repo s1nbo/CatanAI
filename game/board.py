@@ -1,6 +1,5 @@
 import random
 from game import static_board
-import json
 '''
 Analysis:
 A board has 19 Hexagon: (TILES)
@@ -52,30 +51,44 @@ class Board:
             'wood', 'wood', 'wood', 'wood',
             'brick', 'brick', 'brick',
             'ore', 'ore', 'ore',
-            'Desert'
         ]
         PORTS = [
             '3:1', '3:1', '3:1', '3:1',
             '2:1 Sheep', '2:1 Wheat', '2:1 Wood', '2:1 Brick', '2:1 Ore'
         ]
 
-        NUMBERS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
+        NUMBERS = [0, 2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
         
-
         random.shuffle(HEXES)
         random.shuffle(PORTS)
-        random.shuffle(NUMBERS)
 
-        # Here we want to change board generation TODO
+        # Check that 6 and 8 are not adjacent
+        def six_eight_placement() -> bool:
+            idx_six_eight = {i for i, v in enumerate(NUMBERS) if v in (6,8)}
+
+            return not any(
+                (neighbor in idx_six_eight)
+                for idx in idx_six_eight
+                for neighbor in static_board.TILE_TILE[idx]
+            ) # for every idx in idx_six_eight check if any neighbor is also in idx_six_eight
+
+          
+        valid_tiles_numbers = False
+        while not valid_tiles_numbers:
+            random.shuffle(NUMBERS)
+            valid_tiles_numbers = six_eight_placement()
+          
 
         for i in range(19):
-            resource = HEXES[i]
+            number = NUMBERS[i]
 
-            if resource == 'Desert':
-                number = 0
+
+            if number == 0:
+                resource = 'Desert'
                 self.robber_tile = i
             else:
-                number = NUMBERS.pop()
+                resource = HEXES.pop()
+                
             
             self.tiles[i] = static_board.Tile(resource, number, i)
 
