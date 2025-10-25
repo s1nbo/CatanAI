@@ -194,11 +194,3 @@ class Board:
             print(f"  Adjacent Edges: {edge.edges}")
             print()
     
-
-
-if __name__ == "__main__":
-    BOARD = Board()
-    BOARD.print_board()
-    # test the json safe it to a file
-    with open("board.json", "w") as f:
-        json.dump(BOARD.board_to_json(), f, indent=4)
