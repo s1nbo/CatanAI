@@ -298,9 +298,12 @@ export default function App() {
     request: Record<string, number>;
     awaiting: number[];
     declined: number[];
-    accepted_by: number | null;
+    accepted_by: number[];
+    target: number | null;
   }>(null);
   const [tradeDeclinedNote, setTradeDeclinedNote] = useState(false);
+  const [selectedTradePartner, setSelectedTradePartner] = useState<number | null>(null);
+
 
   // --- Discard flow (after rolling a 7) ---
   const [mustDiscard, setMustDiscard] = useState(0);
@@ -430,7 +433,7 @@ export default function App() {
 
   function handleRollDice() {
     const audio = new Audio("/sound/dice.mp3");
-    audio.volume = 0.7; 
+    audio.volume = 0.7;
     audio.play().catch((err) => console.warn("Audio playback failed:", err));
     sendAction({ type: "roll_dice" });
   }
@@ -800,7 +803,7 @@ export default function App() {
     <div
       className="layout"
     >
-     
+
       {/* Game Over Overlay */}
       {gameOver && (
         <div
@@ -1209,34 +1212,149 @@ export default function App() {
       )}
 
 
-      {/* TRADE PENDING — Waiting for responses */}
+      {/* TRADE PENDING — Proposer chooses partner or ends trade */}
       {pendingTrade && String(pendingTrade.trader_id) === self.id && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 9998, display: "grid", placeItems: "center", background: "rgba(15,23,42,.45)" }} role="dialog" aria-modal="true">
-          <div style={{ width: "min(92vw, 520px)", borderRadius: 16, padding: 20, background: "linear-gradient(180deg,#ffffff,#f1f5f9)", border: "1px solid rgba(100,116,139,.35)", color: "#0f172a" }}>
-            <h3 style={{ margin: "0 0 8px 0" }}>Waiting for responses…</h3>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9998,
+            display: "grid",
+            placeItems: "center",
+            background: "rgba(15,23,42,.45)",
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            style={{
+              width: "min(92vw, 560px)",
+              borderRadius: 16,
+              padding: 20,
+              background: "linear-gradient(180deg,#ffffff,#f1f5f9)",
+              border: "1px solid rgba(100,116,139,.35)",
+              color: "#0f172a",
+            }}
+          >
+            <h3 style={{ margin: "0 0 8px 0" }}>Trade responses</h3>
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <div className="hud-title">Offer</div>
                 <ul style={{ margin: "6px 0 0 18px" }}>
-                  {Object.entries(pendingTrade.offer).map(([r, a]) => <li key={r}>{a} × {EMOJI[r]}</li>)}
+                  {Object.entries(pendingTrade.offer).map(([r, a]) => (
+                    <li key={r}>
+                      {a} × {EMOJI[r as keyof typeof EMOJI]}
+                    </li>
+                  ))}
                 </ul>
               </div>
               <div>
                 <div className="hud-title">Request</div>
                 <ul style={{ margin: "6px 0 0 18px" }}>
-                  {Object.entries(pendingTrade.request).map(([r, a]) => <li key={r}>{a} × {EMOJI[r]}</li>)}
+                  {Object.entries(pendingTrade.request).map(([r, a]) => (
+                    <li key={r}>
+                      {a} × {EMOJI[r as keyof typeof EMOJI]}
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
 
+            {/* Response summary */}
             <div style={{ marginTop: 10, fontSize: 14 }}>
-              <div><strong>Awaiting:</strong> {pendingTrade.awaiting.length ? pendingTrade.awaiting.map(id => `P${id}`).join(", ") : "—"}</div>
-              <div><strong>Declined:</strong> {pendingTrade.declined.length ? pendingTrade.declined.map(id => `P${id}`).join(", ") : "—"}</div>
-              <div><strong>Accepted by:</strong> {pendingTrade.accepted_by ? `Player ${pendingTrade.accepted_by}` : "—"}</div>
+              <div>
+                <strong>Awaiting:</strong>{" "}
+                {pendingTrade.awaiting.length
+                  ? pendingTrade.awaiting.map((id) => `P${id}`).join(", ")
+                  : "—"}
+              </div>
+              <div>
+                <strong>Declined:</strong>{" "}
+                {pendingTrade.declined.length
+                  ? pendingTrade.declined.map((id) => `P${id}`).join(", ")
+                  : "—"}
+              </div>
+            </div>
+
+            {/* Pick from accepting players */}
+            <div style={{ marginTop: 14 }}>
+              <div className="hud-title" style={{ marginBottom: 6 }}>
+                Choose a partner:
+              </div>
+
+              <div style={{ display: "grid", gap: 8 }}>
+                {players
+                  .filter((p) =>
+                    (pendingTrade.accepted_by || []).includes(Number(p.id))
+                  )
+                  .map((p) => {
+                    const picked = selectedTradePartner === Number(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelectedTradePartner(Number(p.id))}
+                        className="btn-accent"
+                        style={{
+                          ["--accent" as any]: p.color,
+                          justifyContent: "flex-start",
+                          padding: "10px 12px",
+                          borderRadius: 12,
+                          outline: picked ? `3px solid ${p.color}` : undefined,
+                        }}
+                        title={`Select ${p.name}`}
+                      >
+                        <span className="dot" style={{ background: p.color, marginRight: 8 }} />
+                        {picked ? "✅ " : ""} {p.name}
+                      </button>
+                    );
+                  })}
+
+                {/* When no one has accepted (yet) */}
+                {(!pendingTrade.accepted_by ||
+                  pendingTrade.accepted_by.length === 0) && (
+                    <div style={{ opacity: 0.8, fontSize: 14 }}>
+                      No acceptances yet — you can wait, or end the trade.
+                    </div>
+                  )}
+              </div>
+            </div>
+
+            {/* Confirm / End */}
+            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+              <button
+                className="btn-accent"
+                style={{ ["--accent" as any]: "#22c55e", padding: "10px 14px", borderRadius: 10 }}
+                disabled={
+                  !pendingTrade.accepted_by || pendingTrade.accepted_by.length === 0 || selectedTradePartner === null
+                }
+                onClick={() => {
+                  if (selectedTradePartner != null) {
+                    // Confirm (include target as well for backends that expect it here)
+                    sendAction({
+                      type: "confirm_trade",
+                      target: selectedTradePartner,
+                    });
+                  }
+                }}
+                title="Complete the trade with the selected player"
+              >
+                Confirm Trade
+              </button>
+
+              <button
+                className="btn-accent"
+                style={{ ["--accent" as any]: "#ef4444", padding: "10px 14px", borderRadius: 10 }}
+                onClick={() => sendAction({ type: "end_trade" })}
+                title="Cancel this trade proposal"
+              >
+                End Trade
+              </button>
             </div>
           </div>
         </div>
       )}
+
 
 
       {/* LEFT HUD */}

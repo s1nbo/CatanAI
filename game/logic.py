@@ -156,7 +156,7 @@ class Game:
         
 
         # If a forced action is active, restrict what the current player can do.
-        if self.forced_action and action_type not in ["discard_resources", "move_robber", "robber_steal", "Year of Plenty", "Monopoly", "place_road", "Trade Pending", "accept_trade", "decline_trade"]:
+        if self.forced_action and action_type not in ["discard_resources", "move_robber", "robber_steal", "Year of Plenty", "Monopoly", "place_road", "Trade Pending", "accept_trade", "decline_trade", "confirm_trade", "end_trade"]:
             return False
         if self.pending_trade and player_id == self.current_turn and action_type == "end_turn":
             return False
@@ -412,7 +412,8 @@ class Game:
                     "request": request,
                     "awaiting": set(recipients),
                     "declined": set(),
-                    "accepted_by": None,
+                    "accepted_by": set(),
+                    "target": None
                 }
                 # keep the current player's flow "locked" until resolved
                 self.forced_action = self.forced_action or "Trade Pending"
@@ -433,20 +434,38 @@ class Game:
                 if partner not in self.players:
                     return False
        
-                # Only one acceptance finalizes; if already accepted, ignore
-                if self.pending_trade["accepted_by"] is not None:
-                    return False
-      
+            
                 # Validate partner can pay request now
                 if not can_do_trade_player(partner, request, self.players):
                     return False
    
+                self.pending_trade["accepted_by"].add(partner)
+                if player_id in self.pending_trade["awaiting"]:
+                    self.pending_trade["awaiting"].remove(partner)
+                elif player_id in self.pending_trade["declined"]:
+                    self.pending_trade["declined"].remove(partner)
 
-                # Execute and clear
-                if not complete_trade_player(trader_id=trader, partner_id=partner, offer=offer, request=request, players=self.players):
+                return True
+
+            case "confirm_trade":
+                if self.pending_trade is None:
+                    return False
+                if player_id != self.pending_trade["trader_id"]:
+                    return False
+                if not self.pending_trade["accepted_by"]:
+                    return False
+                
+                partner = action.get("target")
+                if partner not in self.pending_trade["accepted_by"]:
                     return False
 
-                self.pending_trade["accepted_by"] = partner
+                trader = self.pending_trade["trader_id"]
+                offer = self.pending_trade["offer"]
+                request = self.pending_trade["request"]
+
+                if not complete_trade_player(trader_id=trader, partner_id=partner, offer=offer, request=request, players=self.players):
+                    return False
+                
                 self.pending_trade = None
                 if self.forced_action == "Trade Pending":
                     self.forced_action = None
@@ -463,13 +482,21 @@ class Game:
                 if partner in self.pending_trade["awaiting"]:
                     self.pending_trade["awaiting"].remove(partner)
                     self.pending_trade["declined"].add(partner)
+                
+                elif partner in self.pending_trade["accepted_by"]:
+                    self.pending_trade["accepted_by"].remove(partner)
+                    self.pending_trade["declined"].add(partner)
 
-                # if everyone declined, clear and notify the trader
-                if not self.pending_trade["awaiting"] and self.pending_trade["accepted_by"] is None:
-                    self.pending_trade = None
-                    if self.forced_action == "Trade Pending":
-                        self.forced_action = None
-                    self.no_partner[trader] = {"trade_all_declined": True}
+                return True
+            
+            case "end_trade":
+                if self.pending_trade is None:
+                    return False
+                if player_id != self.pending_trade["trader_id"]:
+                    return False
+                self.pending_trade = None
+                if self.forced_action == "Trade Pending":
+                    self.forced_action = None
                 return True
 
 
@@ -494,7 +521,8 @@ class Game:
                 "request": self.pending_trade["request"],
                 "awaiting": sorted(list(self.pending_trade["awaiting"])),
                 "declined": sorted(list(self.pending_trade["declined"])),
-                "accepted_by": self.pending_trade["accepted_by"],
+                "accepted_by": sorted(list(self.pending_trade["accepted_by"])),
+                "target": self.pending_trade["target"],
             }
 
         result = {}
@@ -552,6 +580,3 @@ class Game:
                 "current_turn": pdata["current_turn"]
             }
         return player_id_public_state
-
-
-        
