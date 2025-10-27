@@ -266,7 +266,7 @@ export default function App() {
 
 
   // Dynamic UI sizing mix
-  const [uiMix, setUiMix] = useState(50);          // 0..100 (0 = big HUDs, small board; 100 = big board, slim HUDs)
+  const [uiMix] = useState(50);          // 0..100 (0 = big HUDs, small board; 100 = big board, slim HUDs)
   const zoom = useMemo(() => 0.8 + (0.6 * uiMix) / 100, [uiMix]);          // 0.8x → 1.4x
 
 
@@ -1449,15 +1449,11 @@ export default function App() {
             ).map(([type, count]) => {
               const isVP = type === "VP";
               const disabled = !canPlayDevCards || isVP;
-              const title =
-                isVP ? "Victory Point (kept secret; not playable)"
-                  : !canPlayDevCards ? "You can't play a dev card right now"
-                    : `Play ${type}`;
               return (
                 <button
                   key={type}
                   className="dev-card"
-                  title={title}
+                  title={type === "VP" ? "Victory Point" : String(type)}
                   onClick={() => playDevCard(type)}
                   disabled={disabled}
                   style={{ cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1 }}
@@ -1524,7 +1520,7 @@ export default function App() {
           >
             End Turn
           </button>
-
+          {/*
           <div style={{ marginTop: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, opacity: 0.8, marginBottom: 6 }}>
               <span>Board Zoom: {(zoom).toFixed(2)}×</span>
@@ -1539,6 +1535,7 @@ export default function App() {
               aria-label="Resize Board"
             />
           </div>
+          */}
         </div>
       </div>
 

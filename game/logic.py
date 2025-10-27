@@ -319,6 +319,9 @@ class Game:
                 return place_city(board = self.board, vertex_id = int(action.get("vertex_id")), player_id = player_id, players = self.players, bank = self.bank)
             
             case "buy_development_card":
+                self.players[player_id]["hand"]["sheep"] += 1
+                self.players[player_id]["hand"]["wheat"] += 1
+                self.players[player_id]["hand"]["ore"] += 1
                 card = buy_development_card(player_id= player_id, development_cards = self.development_cards, players = self.players, bank = self.bank)
                 if not card:
                     return False

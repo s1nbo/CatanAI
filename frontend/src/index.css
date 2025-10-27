@@ -221,7 +221,7 @@ button {
 /* ---------- Dev row / tokens ---------- */
 .dev-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: nowrap;
   overflow-x: auto;
   padding-bottom: 2px;
