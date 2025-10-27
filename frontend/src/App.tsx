@@ -734,7 +734,7 @@ export default function App() {
 
           <div style={{ display: "grid", gap: 12 }}>
             <button onClick={createLobby} className="btn primary" style={{ padding: 12, borderRadius: 10 }}>
-              <UserPlus size={18} /> Create new lobby
+              <UserPlus size={18} /> Create new Lobby
             </button>
 
             <div style={{ display: "flex", gap: 8 }}>
