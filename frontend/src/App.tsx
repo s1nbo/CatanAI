@@ -265,9 +265,6 @@ export default function App() {
   const [joinCode, setJoinCode] = useState<string>("");
 
 
-  // Dynamic UI sizing mix
-  const [uiMix] = useState(50);          // 0..100 (0 = big HUDs, small board; 100 = big board, slim HUDs)
-  const zoom = useMemo(() => 0.8 + (0.6 * uiMix) / 100, [uiMix]);          // 0.8x → 1.4x
 
 
   // Observed players in lobby (server only sends join/leave events pre-start)
@@ -1520,22 +1517,6 @@ export default function App() {
           >
             End Turn
           </button>
-          {/*
-          <div style={{ marginTop: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, opacity: 0.8, marginBottom: 6 }}>
-              <span>Board Zoom: {(zoom).toFixed(2)}×</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={500}
-              value={uiMix}
-              onChange={(e) => setUiMix(Number(e.target.value))}
-              style={{ width: "100%" }}
-              aria-label="Resize Board"
-            />
-          </div>
-          */}
         </div>
       </div>
 
@@ -1552,8 +1533,6 @@ export default function App() {
       >
         <div className="board-viewport"
           style={{
-            transform: `scale(${zoom})`,   // <-- was scale
-            transformOrigin: "center center",
             width: "100%",
             height: "100%",
           }}
