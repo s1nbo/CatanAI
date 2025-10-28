@@ -333,7 +333,7 @@ export default function App() {
     victoryPoints: 0,
     resources: { wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 },
     devList: [],
-    ports: [],
+    ports: [],  
   });
 
   const isMyTurn = players.find(p => p.id === self.id)?.isCurrent ?? false;
@@ -677,30 +677,6 @@ export default function App() {
     setObservedPlayers(new Set([data.player_id]));
   }
 
-  async function startGame() {
-    if (!gameId) return;
-    const res = await fetch(`${API_URL}/game/${gameId}/start`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ game_id: gameId }),
-    });
-    const data = await res.json();
-    if (data.message && /already started|Not enough/.test(data.message)) {
-      alert(data.message);
-    }
-  }
-
-  async function addBot() {
-    if (!gameId) return;
-    const res = await fetch(`${API_URL}/game/${gameId}/add_bot`, { method: "POST" });
-    if (!res.ok) alert("add_bot not implemented on server yet.");
-  }
-
-  async function removeBot() {
-    if (!gameId) return;
-    const res = await fetch(`${API_URL}/game/${gameId}/remove_bot`, { method: "POST" });
-    if (!res.ok) alert("remove_bot not implemented on server yet.");
-  }
 
   /** ----- Dev helper: manual snapshot injection that also updates self ----- */
   useEffect(() => {
