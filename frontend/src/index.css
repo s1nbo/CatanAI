@@ -585,7 +585,7 @@ button:focus-visible {
 .board-viewport svg,
 .board>svg {
   display: block;
-  transform: scale(1.5);
+  /*transform: scale(1.5);
   /* scale up board size */
   transform-origin: center center;
 
@@ -613,7 +613,7 @@ button:focus-visible {
   .board-viewport svg,
   .board>svg,
   .board-viewport>svg {
-    transform: scale(4);
+    /*transform: scale(4);
     transform-origin: center center !important;
     /* Ensure it doesn't exceed viewport horizontally */
     max-width: 100vw;
