@@ -541,10 +541,11 @@ button {
 
 
 
-@media only screen and (max-width : 1920px) {
+@media only screen and (max-width : 1440px) {
   .board-viewport svg,
   .board > svg,
   .board-viewport > svg {
+    transform: scale(4);
     transform-origin: center center !important;
     /* Ensure it doesn't exceed viewport horizontally */
     max-width: 100vw;
