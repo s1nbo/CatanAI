@@ -630,22 +630,19 @@ button:focus-visible {
     .board-viewport {
       height: 100svh;
       overflow: visible;
-      transform-box: view-box;
-      /* ← key for Safari */
       backface-visibility: hidden;
-      /* avoid odd compositing bugs */
       will-change: transform;
     }
 
-    /* unclip + stable viewport */
+    /* You currently only disable the SVG transform.
+      Disable the container’s transform too: */
+    .board-viewport {
+      transform: none !important;
+    }
 
-    /* Turn off SVG transform just on iOS; container scaling still applies */
-    .board-viewport svg,
-    .board>svg,
-    .board-viewport>svg {
+    .board-viewport svg {
       transform: none !important;
       max-height: 90svh;
-      /* was 90–95vh in your code */
     }
   }
 }
