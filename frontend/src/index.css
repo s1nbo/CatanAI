@@ -13,13 +13,16 @@
   --hud-left: 300px;
   --hud-right: 300px;
 }
+
 .hud-left {
   width: var(--hud-left);
 }
+
 /* was a fixed width */
 .hud-right {
   width: var(--hud-right);
 }
+
 /* was a fixed width */
 
 
@@ -41,26 +44,32 @@ body,
   margin: 0;
   padding: 0;
 }
+
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
+
 a {
   font-weight: 500;
   color: #646cff;
   text-decoration: inherit;
 }
+
 a:hover {
   color: #535bf2;
 }
+
 body {
   min-width: 320px;
 }
+
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
+
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -72,32 +81,39 @@ button {
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
 button:hover {
   border-color: #646cff;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
+
 @media (prefers-color-scheme: light) {
-:root {
-  color: #213547;
-  background-color: #e0f2fe;
-}
-a:hover {
-  color: #747bff;
-}
-button {
-  background-color: #f9f9f9;
-}
+  :root {
+    color: #213547;
+    background-color: #e0f2fe;
+  }
+
+  a:hover {
+    color: #747bff;
+  }
+
+  button {
+    background-color: #f9f9f9;
+  }
 
 }
+
 /* ---------- Page Layout ---------- */
 .layout {
   display: flex;
   height: 100%;
   min-height: 100vh;
 }
+
 /* Board (main canvas) */
 .board {
   /* Main board container */
@@ -121,6 +137,7 @@ button {
   width: 100%;
   height: 100%;
 }
+
 /* Right pane: hud-right */
 .hud-right {
   /* Right HUD shared defaults - concrete positioning applied later */
@@ -132,12 +149,14 @@ button {
   gap: 14px;
   overflow: visible;
 }
+
 .section-title {
   color: #fff;
   font-weight: 800;
   font-size: 1.25rem;
   margin: 4px 0;
 }
+
 /* ---------- Cards / UI ---------- */
 .card {
   background: #fff;
@@ -147,11 +166,13 @@ button {
   padding: 12px;
   color: #0f172a;
 }
+
 .card-title {
   margin: 0 0 8px 0;
   font-weight: 800;
   font-size: 1.1rem;
 }
+
 /* Bank grid */
 .bank-grid {
   display: grid;
@@ -159,6 +180,7 @@ button {
   gap: 6px 12px;
   font-size: 0.95rem;
 }
+
 /* Player header */
 .player-header {
   display: flex;
@@ -166,33 +188,39 @@ button {
   gap: 8px;
   margin-bottom: 8px;
 }
+
 .player-name {
   font-weight: 700;
 }
+
 .dot {
   width: 14px;
   height: 14px;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.2);
 }
+
 /* Stats grid */
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px 12px;
 }
+
 .stat {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 0.95rem;
 }
+
 .stat svg {
   width: 16px;
   height: 16px;
   color: #334155;
   flex-shrink: 0;
 }
+
 /* ---------- HUD (in-board, left) ---------- */
 .hud-left {
   position: absolute;
@@ -204,6 +232,7 @@ button {
   z-index: 10;
   pointer-events: auto;
 }
+
 .hud-card {
   background: #ffffffcc;
   backdrop-filter: blur(4px);
@@ -213,11 +242,13 @@ button {
   padding: 12px;
   color: #0f172a;
 }
+
 .hud-title {
   margin: 0 0 8px 0;
   font-weight: 800;
   font-size: 1.05rem;
 }
+
 /* ---------- Dev row / tokens ---------- */
 .dev-row {
   display: flex;
@@ -226,6 +257,7 @@ button {
   overflow-x: auto;
   padding-bottom: 2px;
 }
+
 .dev-card {
   position: relative;
   min-width: 64px;
@@ -244,14 +276,17 @@ button {
   user-select: none;
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
+
 .dev-card:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
+
 .dev-emoji {
   font-size: 1.6rem;
   line-height: 1;
 }
+
 .dev-badge {
   position: absolute;
   top: -6px;
@@ -269,12 +304,14 @@ button {
   justify-content: center;
   border: 2px solid #fff;
 }
+
 /* ---------- Resources ---------- */
 .vp-stack {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .vp-badge {
   width: 36px;
   height: 48px;
@@ -286,11 +323,13 @@ button {
   justify-content: center;
   font-weight: 800;
 }
+
 .resource-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
+
 .resource-card {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -301,14 +340,17 @@ button {
   justify-content: space-between;
   font-weight: 700;
 }
+
 .resource-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 .resource-emoji {
   font-size: 1.1rem;
 }
+
 .count-pill {
   min-width: 28px;
   padding: 2px 8px;
@@ -318,15 +360,18 @@ button {
   text-align: center;
   font-weight: 800;
 }
+
 /* ---------- Buttons / Actions ---------- */
 .btn-accent {
   border: 1px solid transparent;
   transition: box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease;
 }
+
 .btn-accent:hover {
   box-shadow: 0 0 0 3px var(--accent, currentColor);
   border-color: var(--accent, currentColor);
 }
+
 .btn-accent:disabled,
 .btn-accent[disabled] {
   box-shadow: none;
@@ -334,12 +379,14 @@ button {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
 /* 3 equal buttons layout */
 .actions-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
+
 /* Roll number pill */
 .roll-badge {
   display: inline-block;
@@ -354,6 +401,7 @@ button {
   color: #fff;
   padding: 4px 10px;
 }
+
 /* ---------- Board Sizing Helpers ---------- */
 .board-wrapper {
   width: 100%;
@@ -362,6 +410,7 @@ button {
   justify-content: center;
   align-items: center;
 }
+
 .board-svg {
   width: 100%;
   height: 100%;
@@ -369,6 +418,7 @@ button {
   max-height: 100vh;
   object-fit: contain;
 }
+
 /* ---------- Main Board Viewport ---------- */
 /* Final cascade uses flex centering, 100vh height, and current padding defaults */
 .board-viewport {
@@ -386,14 +436,16 @@ button {
   min-height: 0;
   overflow: hidden;
 }
+
 /* Final SVG sizing used by the last ruleset */
 .board-viewport svg,
-.board > svg {
+.board>svg {
   width: min(100%, 1800px);
   height: auto;
   max-height: 95vh;
   display: block;
 }
+
 /* ---------- Right HUD ---------- */
 .hud-right {
   /* positioned HUD on the right - overrides earlier defaults */
@@ -406,6 +458,7 @@ button {
   gap: 16px;
   padding: 12px;
 }
+
 /* ---------- Responsive ---------- */
 
 
@@ -416,7 +469,8 @@ button {
   height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center; /* center vertically too */
+  align-items: center;
+  /* center vertically too */
   background: #2A66A0;
   overflow: hidden;
 
@@ -425,8 +479,8 @@ button {
   padding-right: var(--rightPane, 0px);
 }
 
-.board > svg,
-.board-viewport > svg {
+.board>svg,
+.board-viewport>svg {
   width: min(100%, 1800px);
   height: auto;
   max-height: 95vh;
@@ -458,8 +512,10 @@ button {
   flex: 1;
   height: 100vh;
   display: flex;
-  justify-content: center;      /* keep horizontal centering if needed */
-  align-items: stretch;         /* <— revert from center to stretch */
+  justify-content: center;
+  /* keep horizontal centering if needed */
+  align-items: stretch;
+  /* <— revert from center to stretch */
   background: #2A66A0;
   overflow: hidden;
 }
@@ -467,16 +523,18 @@ button {
 /* New/confirmed inner container that handles centering + padding */
 .board-viewport {
   width: 100%;
-  height: 100%;                 /* fill the .board */
+  height: 100%;
+  /* fill the .board */
   display: flex;
   justify-content: center;
-  align-items: center;          /* center your SVG/content */
+  align-items: center;
+  /* center your SVG/content */
   padding-left: var(--leftHud, 0px);
   padding-right: var(--rightPane, 0px);
 }
 
 /* Your board graphics/content */
-.board-viewport > svg {
+.board-viewport>svg {
   width: min(100%, 2800px);
   height: auto;
   max-height: 95vh;
@@ -525,26 +583,36 @@ button {
 }
 
 .board-viewport svg,
-.board > svg {
-  /*width: min(100%, 2000px); /* make the board larger */
-  height: auto;
-  width: auto;
+.board>svg {
   display: block;
-  transform: scale(1.5);   /* scale up board size */
+  transform: scale(1.5);
+  /* scale up board size */
   transform-origin: center center;
+
+
+
 }
 
 
 
-.board { overflow: visible; }        /* was hidden */
-.board-viewport { overflow: visible; }  /* was hidden in a few places */
+.board {
+  overflow: visible;
+}
+
+/* was hidden */
+.board-viewport {
+  overflow: visible;
+}
+
+/* was hidden in a few places */
 
 
 
 @media only screen and (max-width : 1440px) {
+
   .board-viewport svg,
-  .board > svg,
-  .board-viewport > svg {
+  .board>svg,
+  .board-viewport>svg {
     transform: scale(4);
     transform-origin: center center !important;
     /* Ensure it doesn't exceed viewport horizontally */
@@ -554,7 +622,30 @@ button {
 }
 
 /* Tablet */
+/* iOS Safari (touch + coarse pointer + WebKit) */
+@supports (-webkit-touch-callout: none) {
+  @media (hover: none) and (pointer: coarse) {
 
+    .board,
+    .board-viewport {
+      height: 100svh;
+      overflow: visible;
+      transform-box: view-box;
+      /* ← key for Safari */
+      backface-visibility: hidden;
+      /* avoid odd compositing bugs */
+      will-change: transform;
+    }
 
+    /* unclip + stable viewport */
 
-
+    /* Turn off SVG transform just on iOS; container scaling still applies */
+    .board-viewport svg,
+    .board>svg,
+    .board-viewport>svg {
+      transform: none !important;
+      max-height: 90svh;
+      /* was 90–95vh in your code */
+    }
+  }
+}
