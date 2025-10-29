@@ -1,3 +1,5 @@
+/* Played around with this, but works better without */
+
 
 
 .board {
@@ -145,6 +147,7 @@
   width: min(100%, 1800px);
   height: auto;
   max-height: 95vh;
+}
 
 /* Desktop */
 @media only screen and (max-width : 1440px) {
