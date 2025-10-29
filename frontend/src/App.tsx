@@ -254,7 +254,9 @@ function toOverlayFromServer(server: any): {
   return { overlay, players, bank };
 }
 
-``
+
+
+
 
 /** ================== Component ================== */
 export default function App() {
@@ -263,7 +265,6 @@ export default function App() {
   const [gameId, setGameId] = useState<number | null>(null);
   const [playerId, setPlayerId] = useState<number | null>(null);
   const [joinCode, setJoinCode] = useState<string>("");
-
 
 
 
@@ -333,7 +334,7 @@ export default function App() {
     victoryPoints: 0,
     resources: { wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 },
     devList: [],
-    ports: [],  
+    ports: [],
   });
 
   const isMyTurn = players.find(p => p.id === self.id)?.isCurrent ?? false;
@@ -647,6 +648,24 @@ export default function App() {
 
 
 
+  // at the top of your component
+  const DEV_MODE = true
+
+  // your static pack
+  const TEST_DEV_CARDS = [
+    "Knight",
+    "Knight",
+    "Road Building",
+    "Year of Plenty",
+    "Monopoly",
+    "VP",
+  ] as const;
+
+  // use this instead of self.devList in the UI below
+  const visibleDevList =
+    DEV_MODE ? [...self.devList, ...TEST_DEV_CARDS] : self.devList;
+
+
 
 
   /** ----- REST helpers (same endpoints as in board.html) ----- */
@@ -720,8 +739,8 @@ export default function App() {
   }, [self.id]);
 
   /** ================== UI ================== */
-  
-  
+
+
   // ====== GAME PHASE (your existing HUD/board UI) ======
   return (
     <div
@@ -1282,7 +1301,15 @@ export default function App() {
 
 
       {/* LEFT HUD */}
-      <div className="hud-left">
+      <div className="hud-left"
+        style={{
+          zIndex: 1,
+          overflowY: "auto",
+          height: "100vh",
+          paddingRight: 8,
+          WebkitOverflowScrolling: "touch",
+          overscrollBehavior: "contain",
+        }}>
         {/* Actions */}
         <div className="hud-card">
           <h3 className="hud-title">Actions</h3>
@@ -1364,9 +1391,9 @@ export default function App() {
 
         {/* Development Cards (playable) */}
         <div className="dev-row">
-          {self.devList.length > 0 ? (
+          {visibleDevList.length > 0 ? (
             Object.entries(
-              self.devList.reduce((acc: Record<string, number>, name) => {
+              visibleDevList.reduce((acc: Record<string, number>, name) => {
                 acc[name] = (acc[name] ?? 0) + 1;
                 return acc;
               }, {})
@@ -1398,7 +1425,7 @@ export default function App() {
           )}
         </div>
 
-        {/* Resources (your hand) */}
+         {/* Resources (your hand) */}
         <div className="hud-card">
           <h3 className="hud-title">Your Hand</h3>
           <div className="resource-grid">
@@ -1485,43 +1512,43 @@ export default function App() {
         }}
       >
         {/* Right hud-right: Bank + Players */}
-            {/* RIGHT HUD (match left style) */}
-              {/* Bank */}
-              <div className="hud-card">
-                <h3 className="hud-title">Bank</h3>
-                <div className="resource-grid">
-                  <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌲</span></div><div className="count-pill">{bank.wood}</div></div>
-                  <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🧱</span></div><div className="count-pill">{bank.brick}</div></div>
-                  <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🐑</span></div><div className="count-pill">{bank.sheep}</div></div>
-                  <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌾</span></div><div className="count-pill">{bank.wheat}</div></div>
-                  <div className="resource-card"><div className="resource-left"><span className="resource-emoji">⛰️</span></div><div className="count-pill">{bank.ore}</div></div>
-                  <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🎴</span></div><div className="count-pill">{bank.devCards}</div></div>
-                </div>
-              </div>
+        {/* RIGHT HUD (match left style) */}
+        {/* Bank */}
+        <div className="hud-card">
+          <h3 className="hud-title">Bank</h3>
+          <div className="resource-grid">
+            <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌲</span></div><div className="count-pill">{bank.wood}</div></div>
+            <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🧱</span></div><div className="count-pill">{bank.brick}</div></div>
+            <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🐑</span></div><div className="count-pill">{bank.sheep}</div></div>
+            <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🌾</span></div><div className="count-pill">{bank.wheat}</div></div>
+            <div className="resource-card"><div className="resource-left"><span className="resource-emoji">⛰️</span></div><div className="count-pill">{bank.ore}</div></div>
+            <div className="resource-card"><div className="resource-left"><span className="resource-emoji">🎴</span></div><div className="count-pill">{bank.devCards}</div></div>
+          </div>
+        </div>
 
-              {/* Player Stats */}
-              {players.map((p) => (
-                <div
-                  key={p.id}
-                  className="hud-card"
-                  style={{
-                    outline: p.isCurrent ? `6px solid ${p.color}` : undefined,
-                  }}
-                >
-                  <div className="player-header">
-                    <div className="dot" style={{ backgroundColor: p.color }} />
-                    <span className="player-name">{p.name}</span>
-                  </div>
+        {/* Player Stats */}
+        {players.map((p) => (
+          <div
+            key={p.id}
+            className="hud-card"
+            style={{
+              outline: p.isCurrent ? `6px solid ${p.color}` : undefined,
+            }}
+          >
+            <div className="player-header">
+              <div className="dot" style={{ backgroundColor: p.color }} />
+              <span className="player-name">{p.name}</span>
+            </div>
 
-                  <div className="stats-grid">
-                    <div className="stat" title="Victory points"><Trophy /> {p.victoryPoints}</div>
-                    <div className="stat" title="Knights played"><Swords /><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
-                    <div className="stat" title="Cards in hand"><Hand /> {p.handSize}</div>
-                    <div className="stat" title="Road length"><Route /> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
-                    <div className="stat" title="Development cards"><Layers /> {p.devCards}</div>
-                  </div>
-                </div>
-              ))}
+            <div className="stats-grid">
+              <div className="stat" title="Victory points"><Trophy /> {p.victoryPoints}</div>
+              <div className="stat" title="Knights played"><Swords /><span style={{ color: p.largestArmy ? 'red' : 'inherit' }}> {p.played_knights}</span></div>
+              <div className="stat" title="Cards in hand"><Hand /> {p.handSize}</div>
+              <div className="stat" title="Road length"><Route /> <span style={{ color: p.longestRoad ? 'red' : 'inherit' }}>{p.longest_road_length}</span></div>
+              <div className="stat" title="Development cards"><Layers /> {p.devCards}</div>
+            </div>
+          </div>
+        ))}
 
       </aside>
 
