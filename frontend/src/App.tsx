@@ -1446,19 +1446,20 @@ export default function App() {
         </div>
       </div>
 
-
       {/* Right hud-right: Bank + Players */}
       <aside className="hud-right"
         style={{
           position: "relative",   // create stacking context
           zIndex: 1,
+          overflowY: "auto",
+          height: "100vh",
+          paddingRight: 8,
+          WebkitOverflowScrolling: "touch",
+          overscrollBehavior: "contain",
         }}
       >
         {/* Right hud-right: Bank + Players */}
-        {(
-          <aside className="hud-right">
             {/* RIGHT HUD (match left style) */}
-            <div className="hud-right">
               {/* Bank */}
               <div className="hud-card">
                 <h3 className="hud-title">Bank</h3>
@@ -1495,13 +1496,9 @@ export default function App() {
                   </div>
                 </div>
               ))}
-            </div>
-
-          </aside>
-        )}
 
       </aside>
 
-    </div >
+    </div>
   );
 }
