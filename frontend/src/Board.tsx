@@ -62,6 +62,7 @@ const VERTEX_ROW_COUNTS = [7, 9, 11, 11, 9, 7];
 const SNAP_K = 1000;
 const EDGE_STROKE = 6;
 const EDGE_HIT_EXTRA = 14;
+const VERTEX_HIT_EXTRA = 10;
 
 // Darker, dimmed tile colors for better eye comfort
 const RESOURCE_COLORS = {
@@ -429,7 +430,7 @@ export default function HexBoard({
                   <rect
                     x={v.x - 8} y={v.y - 8} width={16} height={16}
                     fill={isSel ? "#fde68a" : fillColor}
-                    stroke={strokeColor} strokeWidth={2}
+                    stroke={strokeColor} strokeWidth={VERTEX_HIT_EXTRA}
                     onClick={(ev) => { ev.stopPropagation(); handleVertexClick(v); }}
                     style={{ cursor: "pointer" }}
                   />
