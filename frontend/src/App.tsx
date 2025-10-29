@@ -254,10 +254,6 @@ function toOverlayFromServer(server: any): {
   return { overlay, players, bank };
 }
 
-
-
-
-
 /** ================== Component ================== */
 export default function App() {
   /** ----- Phase & Lobby state ----- */
@@ -648,24 +644,6 @@ export default function App() {
 
 
 
-  // at the top of your component
-  const DEV_MODE = true
-
-  // your static pack
-  const TEST_DEV_CARDS = [
-    "Knight",
-    "Knight",
-    "Road Building",
-    "Year of Plenty",
-    "Monopoly",
-    "VP",
-  ] as const;
-
-  // use this instead of self.devList in the UI below
-  const visibleDevList =
-    DEV_MODE ? [...self.devList, ...TEST_DEV_CARDS] : self.devList;
-
-
 
 
   /** ----- REST helpers (same endpoints as in board.html) ----- */
@@ -739,7 +717,80 @@ export default function App() {
   }, [self.id]);
 
   /** ================== UI ================== */
+  if (phase === "lobby") {
+    const count = observedPlayers.size;
+    return (
+      <div className="lobby-wrap" style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "linear-gradient(180deg,#0f172a,#1e293b)" }}>
+        <div className="lobby-card" style={{ width: 520, background: "grey", borderRadius: 16, padding: 20, boxShadow: "0 10px 30px rgba(0,0,0,.25)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <KeyRound /> <h2 style={{ margin: 0 }}>Catan</h2>
+          </div>
 
+          <div style={{ display: "grid", gap: 12 }}>
+            <button onClick={createLobby} className="btn primary" style={{ padding: 12, borderRadius: 10 }}>
+              <UserPlus size={18} /> Create new Lobby
+            </button>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value)}
+                placeholder="Enter lobby code"
+                className="input"
+                style={{ flex: 1, padding: 10, borderRadius: 10, border: "1px solid #e2e8f0" }}
+              />
+              <button onClick={joinLobby} className="btn" style={{ padding: "10px 14px", borderRadius: 10 }}>
+                Join
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gap: 8, marginTop: 6, background: "grey", padding: 12, borderRadius: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Users size={18} /> <strong>Players connected:</strong> {count}/4
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 6 }}>
+                <button onClick={startGame} disabled={(count < 2) || !gameId} className="btn success" style={{ padding: 10, borderRadius: 10 }}>
+                  <Play size={16} /> Start Game
+                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={addBot} disabled={!gameId} className="btn" title="Add bot" style={{ padding: 10, borderRadius: 10 }}>
+                    <Bot size={16} /> Add Bot
+                  </button>
+                  <button onClick={removeBot} disabled={!gameId} className="btn" title="Remove bot" style={{ padding: 10, borderRadius: 10 }}>
+                    <UserMinus size={16} /> Remove Bot
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: 4, marginTop: 4, fontSize: 14 }}>
+                <div>
+                  <strong>Lobby code:</strong>{" "}
+                  {gameId !== undefined && gameId !== null && String(gameId).trim() !== "" ? (
+                    <span style={{ fontWeight: 800, fontSize: 20, letterSpacing: 0.5 }}>
+                      {String(gameId)}
+                    </span>
+                  ) : (
+                    <span>--</span>
+                  )}
+                </div>
+
+                <div>
+                  <strong>You are:</strong>{" "}
+                  {playerId !== undefined && playerId !== null && String(playerId).trim() !== "" ? (
+                    <span style={{ fontWeight: 700, fontSize: 18 }}>
+                      {`Player ${playerId}`}
+                    </span>
+                  ) : (
+                    <span>--</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ====== GAME PHASE (your existing HUD/board UI) ======
   return (
@@ -1391,9 +1442,9 @@ export default function App() {
 
         {/* Development Cards (playable) */}
         <div className="dev-row">
-          {visibleDevList.length > 0 ? (
+          {self.devList.length > 0 ? (
             Object.entries(
-              visibleDevList.reduce((acc: Record<string, number>, name) => {
+              self.devList.reduce((acc: Record<string, number>, name) => {
                 acc[name] = (acc[name] ?? 0) + 1;
                 return acc;
               }, {})
