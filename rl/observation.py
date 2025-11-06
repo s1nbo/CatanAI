@@ -109,26 +109,43 @@ class ObservationEncoder:
         for edge in board['edges']: # 72 edges
             self.edge_features.append(torch.tensor(self.encode_edge(edge), dtype=torch.float32))
         
-        tile_stack = torch.stack(self.tile_features)  # Shape: [19, 21]
-        vertex_stack = torch.stack(self.vertex_features) # Shape: [54, 18])
-        edge_stack = torch.stack(self.edge_features) # Shape: [72, 21])
+        self.tile = torch.stack(self.tile_features)  # Shape: [19, 21]
+        self.vertex = torch.stack(self.vertex_features) # Shape: [54, 18])
+        self.edge = torch.stack(self.edge_features) # Shape: [72, 21])
 
-        # Store for later HeteroData construction
-        self.tile = tile_stack
-        self.vertex = vertex_stack
-        self.edge = edge_stack
-
-        print(f"Tiles - Shape: {tile_stack.shape}, Dtype: {tile_stack.dtype}")
-        print(f"Vertices - Shape: {vertex_stack.shape}, Dtype: {vertex_stack.dtype}")
-        print(f"Edges - Shape: {edge_stack.shape}, Dtype: {edge_stack.dtype}")
 
     def to_heterodata(self):
         """Return a torch_geometric HeteroData graph from the current buffers."""
         return self.hetero_data(
-            self.tile, self.vertex, self.edge,
             self.tiles_tiles, self.tiles_vertices, self.tiles_edges,
             self.vertices_vertices, self.vertices_edges, self.edges_edges
         )
+    
+    def hetero_data(self):
+        data = HeteroData()
+        data['tile'].x   = self.tile            # [19, F_t]
+        data['vertex'].x = self.vertex          # [54, F_v]
+        data['edge'].x   = self.edge            # [72, F_r]
+
+        def ei(pairs):                       # pairs: List[Tuple[int,int]]
+            return torch.tensor(pairs, dtype=torch.long).t().contiguous()
+
+        # add both directions for undirected behavior
+        data['tile','adjacent','tile'].edge_index     = ei(self.tiles_tiles + [(j,i) for i,j in self.tiles_tiles])
+        data['tile','touches','vertex'].edge_index    = ei(self.tiles_vertices)
+        data['vertex','touched_by','tile'].edge_index = ei([(v,t) for t,v in self.tiles_vertices])
+
+        data['tile','borders','edge'].edge_index      = ei(self.tiles_edges)
+        data['edge','bordered_by','tile'].edge_index  = ei([(r,t) for t,r in self.tiles_edges])
+
+        data['vertex','incident','edge'].edge_index   = ei(self.vertices_edges)
+        data['edge','incident_to','vertex'].edge_index= ei([(r,v) for v,r in self.vertices_edges])
+
+        data['vertex','adjacent','vertex'].edge_index = ei(self.vertices_vertices + [(j,i) for i,j in self.vertices_vertices])
+        data['edge','adjacent','edge'].edge_index     = ei(self.edges_edges + [(j,i) for i,j in self.edges_edges])
+
+        return data
+
 
     def build_graph(self, board: dict):
         tile, vertex, edge = self.encode_board(board)
@@ -171,12 +188,14 @@ class ObservationEncoder:
         print(f"Edge Index Vertices - Shape: {edge_index_vertices.shape}, Dtype: {edge_index_vertices.dtype}")
         print(f"Edge Index Edges - Shape: {edge_index_edges.shape}, Dtype: {edge_index_edges.dtype}")
 
+
+
+
     def observe(self, state: dict) -> np.ndarray:
         '''We take the json as it is send to the other players in a multiplayer game 
         and convert it to a state representation'''
         json_board = state['board']
         json_players = state['players']
-        json_bank = state['bank']
         # rest that is not in the other categories
         json_misc = None
         
@@ -187,34 +206,14 @@ class ObservationEncoder:
                 self.player_id = int(pid)
                 break
 
+        # board encoding
         self.build_graph(json_board)
 
-    def hetero_data(self, tile_x, vertex_x, edge_x, 
-                    tile_tile, tile_vertex, tile_edge, 
-                    vertex_vertex, vertex_road, road_road):
-        data = HeteroData()
-        data['tile'].x   = tile_x            # [19, F_t]
-        data['vertex'].x = vertex_x          # [54, F_v]
-        data['edge'].x   = edge_x            # [72, F_r]
+        # player encoding
 
-        def ei(pairs):                       # pairs: List[Tuple[int,int]]
-            return torch.tensor(pairs, dtype=torch.long).t().contiguous()
+        # rest encoding
 
-        # add both directions for undirected behavior
-        data['tile','adjacent','tile'].edge_index     = ei(tile_tile + [(j,i) for i,j in tile_tile])
-        data['tile','touches','vertex'].edge_index    = ei(tile_vertex)
-        data['vertex','touched_by','tile'].edge_index = ei([(v,t) for t,v in tile_vertex])
-
-        data['tile','borders','edge'].edge_index      = ei(tile_edge)
-        data['edge','bordered_by','tile'].edge_index  = ei([(r,t) for t,r in tile_edge])
-
-        data['vertex','incident','edge'].edge_index   = ei(vertex_road)
-        data['edge','incident_to','vertex'].edge_index= ei([(r,v) for v,r in vertex_road])
-
-        data['vertex','adjacent','vertex'].edge_index = ei(vertex_vertex + [(j,i) for i,j in vertex_vertex])
-        data['edge','adjacent','edge'].edge_index     = ei(road_road + [(j,i) for i,j in road_road])
-
-        return data
+   
 
 class CatanGNN(nn.Module):
     def __init__(self, in_t, in_v, in_r, hid=128, out=128, heads=2):
@@ -242,39 +241,6 @@ class CatanGNN(nn.Module):
         self.gnn1 = layer()
         self.gnn2 = layer()
 
-        # Action heads (examples)
-        self.head_settlement = nn.Linear(hid, 1)  # per-vertex
-        self.head_city       = nn.Linear(hid, 1)  # per-vertex
-        self.head_road       = nn.Linear(hid, 1)  # per-road
-        self.head_robber     = nn.Linear(hid, 1)  # per-tile
-
-        # optional global head (e.g., end turn / buy dev card)
-        self.global_head = nn.Sequential(nn.Linear(3*hid, hid), nn.ReLU(), nn.Linear(hid, 2))  # [end_turn, buy_dev]
-
-    def forward(self, data, batch=None):
-        x = {
-            k: F.relu(self.in_proj[k](data[k].x))
-            for k in ['tile','vertex','edge']
-        }
-        x = self.gnn1(x, data.edge_index_dict)
-        x = {k: F.relu(v) for k,v in x.items()}
-        x = self.gnn2(x, data.edge_index_dict)
-
-        # global context (fake batch of size 1 -> use mean over nodes)
-        g = torch.cat([
-            x['tile'].mean(dim=0, keepdim=True),
-            x['vertex'].mean(dim=0, keepdim=True),
-            x['edge'].mean(dim=0, keepdim=True),
-        ], dim=-1)
-
-        logits = {
-            'settlement': self.head_settlement(x['vertex']).squeeze(-1),  # [54]
-            'city':       self.head_city(x['vertex']).squeeze(-1),        # [54]
-            'road':       self.head_road(x['edge']).squeeze(-1),          # [72]
-            'robber':     self.head_robber(x['tile']).squeeze(-1),        # [19]
-            'global':     self.global_head(g).squeeze(0)                  # [2]
-        }
-        return logits, x, g
     
 
 if __name__ == '__main__':
