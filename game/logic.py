@@ -530,7 +530,7 @@ class Game:
 
         result = {}
         for player in self.players.keys():
-            player_data = {player: json.dumps(self.players[player])}
+            player_data = {player: self.players[player]}
             public_player_data = self.public_player_state(player)
             players = {**player_data, **public_player_data}
             must_discard = self.pending_discard.get(player, 0) if self.forced_action == "Discard" else 0

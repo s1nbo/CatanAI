@@ -10,6 +10,7 @@ import os
 from game.logic import Game
 from game.action import *
 
+import json
 
 app = FastAPI()
 
@@ -138,6 +139,8 @@ async def websocket_endpoint(ws: WebSocket, game_id: int, player_id: int):
             await asyncio.sleep(2)
     
         game_instance = GAMES[game_id]["game_instance"]
+        json.dump(game_instance.get_multiplayer_game_state()[player_id], open("player_state.json", "w"), indent=4)
+
         await ws.send_json(game_instance.get_multiplayer_game_state()[player_id])
 
         # Main Game Loop
