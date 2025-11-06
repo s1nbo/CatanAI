@@ -6,9 +6,6 @@ from torch_geometric.data import Data, HeteroData
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import HeteroConv, GATv2Conv, global_mean_pool
-
-
-
 class ObservationEncoder:
     def __init__(self):
         self.state = None
@@ -116,12 +113,22 @@ class ObservationEncoder:
         vertex_stack = torch.stack(self.vertex_features) # Shape: [54, 18])
         edge_stack = torch.stack(self.edge_features) # Shape: [72, 21])
 
+        # Store for later HeteroData construction
+        self.tile = tile_stack
+        self.vertex = vertex_stack
+        self.edge = edge_stack
+
         print(f"Tiles - Shape: {tile_stack.shape}, Dtype: {tile_stack.dtype}")
         print(f"Vertices - Shape: {vertex_stack.shape}, Dtype: {vertex_stack.dtype}")
         print(f"Edges - Shape: {edge_stack.shape}, Dtype: {edge_stack.dtype}")
 
-
-        return tile_stack, vertex_stack, edge_stack
+    def to_heterodata(self):
+        """Return a torch_geometric HeteroData graph from the current buffers."""
+        return self.hetero_data(
+            self.tile, self.vertex, self.edge,
+            self.tiles_tiles, self.tiles_vertices, self.tiles_edges,
+            self.vertices_vertices, self.vertices_edges, self.edges_edges
+        )
 
     def build_graph(self, board: dict):
         tile, vertex, edge = self.encode_board(board)
@@ -129,10 +136,10 @@ class ObservationEncoder:
         # tiles
         for t in board['tiles']:
             t_id = t['id']
-            for v_id in t['tiles']:
+            for v_id in (t.get('tiles') or t.get('neighbors') or t.get('neighbours') or []):
                 self.tiles_tiles.append((t_id, v_id))
-            for e_id in t['vertices']:
-                self.tiles_vertices.append((t_id, e_id))
+            for v_id in t.get('vertices', []):
+                self.tiles_vertices.append((t_id, v_id))
             for n_id in t['edges']:
                 self.tiles_edges.append((t_id, n_id))
 
@@ -156,9 +163,9 @@ class ObservationEncoder:
             for n_id in e['edges']:
                 self.edges_edges.append((e_id, n_id))
         
-        edge_index_tiles = torch.tensor(self.tiles_tiles + self.vertices_tiles + self.edges_tiles, dtype=torch.float32).t().contiguous()
-        edge_index_vertices = torch.tensor(self.tiles_vertices + self.vertices_vertices + self.edges_vertices, dtype=torch.float32).t().contiguous()
-        edge_index_edges = torch.tensor(self.tiles_edges + self.vertices_edges + self.edges_edges, dtype=torch.float32).t().contiguous()
+        edge_index_tiles = torch.tensor(self.tiles_tiles + self.vertices_tiles + self.edges_tiles, dtype=torch.long).t().contiguous()
+        edge_index_vertices = torch.tensor(self.tiles_vertices + self.vertices_vertices + self.edges_vertices, dtype=torch.long).t().contiguous()
+        edge_index_edges = torch.tensor(self.tiles_edges + self.vertices_edges + self.edges_edges, dtype=torch.long).t().contiguous()
         
         print(f"Edge Index Tiles - Shape: {edge_index_tiles.shape}, Dtype: {edge_index_tiles.dtype}")
         print(f"Edge Index Vertices - Shape: {edge_index_vertices.shape}, Dtype: {edge_index_vertices.dtype}")
@@ -182,34 +189,32 @@ class ObservationEncoder:
 
         self.build_graph(json_board)
 
+    def hetero_data(self, tile_x, vertex_x, edge_x, 
+                    tile_tile, tile_vertex, tile_edge, 
+                    vertex_vertex, vertex_road, road_road):
+        data = HeteroData()
+        data['tile'].x   = tile_x            # [19, F_t]
+        data['vertex'].x = vertex_x          # [54, F_v]
+        data['edge'].x   = edge_x            # [72, F_r]
 
-def hetero_data(tile_x, vertex_x, road_x, 
-                   tile_tile, tile_vertex, tile_edge, 
-                   vertex_vertex, vertex_road, road_road):
-    data = HeteroData()
-    data['tile'].x   = tile_x            # [19, F_t]
-    data['vertex'].x = vertex_x          # [54, F_v]
-    data['road'].x   = road_x            # [72, F_r]
+        def ei(pairs):                       # pairs: List[Tuple[int,int]]
+            return torch.tensor(pairs, dtype=torch.long).t().contiguous()
 
-    def ei(pairs):                       # pairs: List[Tuple[int,int]]
-        return torch.tensor(pairs, dtype=torch.long).t().contiguous()
+        # add both directions for undirected behavior
+        data['tile','adjacent','tile'].edge_index     = ei(tile_tile + [(j,i) for i,j in tile_tile])
+        data['tile','touches','vertex'].edge_index    = ei(tile_vertex)
+        data['vertex','touched_by','tile'].edge_index = ei([(v,t) for t,v in tile_vertex])
 
-    # add both directions for undirected behavior
-    data['tile','adjacent','tile'].edge_index     = ei(tile_tile + [(j,i) for i,j in tile_tile])
-    data['tile','touches','vertex'].edge_index    = ei(tile_vertex)
-    data['vertex','touched_by','tile'].edge_index = ei([(v,t) for t,v in tile_vertex])
+        data['tile','borders','edge'].edge_index      = ei(tile_edge)
+        data['edge','bordered_by','tile'].edge_index  = ei([(r,t) for t,r in tile_edge])
 
-    data['tile','borders','road'].edge_index      = ei(tile_edge)
-    data['road','bordered_by','tile'].edge_index  = ei([(r,t) for t,r in tile_edge])
+        data['vertex','incident','edge'].edge_index   = ei(vertex_road)
+        data['edge','incident_to','vertex'].edge_index= ei([(r,v) for v,r in vertex_road])
 
-    data['vertex','incident','road'].edge_index   = ei(vertex_road)
-    data['road','incident_to','vertex'].edge_index= ei([(r,v) for v,r in vertex_road])
+        data['vertex','adjacent','vertex'].edge_index = ei(vertex_vertex + [(j,i) for i,j in vertex_vertex])
+        data['edge','adjacent','edge'].edge_index     = ei(road_road + [(j,i) for i,j in road_road])
 
-    data['vertex','adjacent','vertex'].edge_index = ei(vertex_vertex + [(j,i) for i,j in vertex_vertex])
-    data['road','adjacent','road'].edge_index     = ei(road_road + [(j,i) for i,j in road_road])
-
-    return data
-
+        return data
 
 class CatanGNN(nn.Module):
     def __init__(self, in_t, in_v, in_r, hid=128, out=128, heads=2):
@@ -217,21 +222,22 @@ class CatanGNN(nn.Module):
         self.in_proj = nn.ModuleDict({
             'tile':   nn.Linear(in_t, hid),
             'vertex': nn.Linear(in_v, hid),
-            'road':   nn.Linear(in_r, hid),
+            'edge':   nn.Linear(in_r, hid),
         })
 
         def layer():
             return HeteroConv({
-                ('tile','adjacent','tile'):   GATv2Conv(hid, hid//heads, heads=heads),
-                ('tile','touches','vertex'):  GATv2Conv(hid, hid//heads, heads=heads),
-                ('vertex','touched_by','tile'):GATv2Conv(hid, hid//heads, heads=heads),
-                ('tile','borders','road'):    GATv2Conv(hid, hid//heads, heads=heads),
-                ('road','bordered_by','tile'):GATv2Conv(hid, hid//heads, heads=heads),
-                ('vertex','incident','road'): GATv2Conv(hid, hid//heads, heads=heads),
-                ('road','incident_to','vertex'):GATv2Conv(hid, hid//heads, heads=heads),
-                ('vertex','adjacent','vertex'):GATv2Conv(hid, hid//heads, heads=heads),
-                ('road','adjacent','road'):   GATv2Conv(hid, hid//heads, heads=heads),
+                ('tile','adjacent','tile'):    GATv2Conv(hid, hid//heads, heads=heads, add_self_loops=False),
+                ('tile','touches','vertex'):   GATv2Conv(hid, hid//heads, heads=heads, add_self_loops=False),
+                ('vertex','touched_by','tile'):GATv2Conv(hid, hid//heads, heads=heads, add_self_loops=False),
+                ('tile','borders','edge'):     GATv2Conv(hid, hid//heads, heads=heads, add_self_loops=False),
+                ('edge','bordered_by','tile'): GATv2Conv(hid, hid//heads, heads=heads, add_self_loops=False),
+                ('vertex','incident','edge'):  GATv2Conv(hid, hid//heads, heads=heads, add_self_loops=False),
+                ('edge','incident_to','vertex'):GATv2Conv(hid, hid//heads, heads=heads, add_self_loops=False),
+                ('vertex','adjacent','vertex'):GATv2Conv(hid, hid//heads, heads=heads, add_self_loops=False),
+                ('edge','adjacent','edge'):    GATv2Conv(hid, hid//heads, heads=heads, add_self_loops=False),
             }, aggr='sum')
+
 
         self.gnn1 = layer()
         self.gnn2 = layer()
@@ -248,7 +254,7 @@ class CatanGNN(nn.Module):
     def forward(self, data, batch=None):
         x = {
             k: F.relu(self.in_proj[k](data[k].x))
-            for k in ['tile','vertex','road']
+            for k in ['tile','vertex','edge']
         }
         x = self.gnn1(x, data.edge_index_dict)
         x = {k: F.relu(v) for k,v in x.items()}
@@ -258,27 +264,29 @@ class CatanGNN(nn.Module):
         g = torch.cat([
             x['tile'].mean(dim=0, keepdim=True),
             x['vertex'].mean(dim=0, keepdim=True),
-            x['road'].mean(dim=0, keepdim=True),
+            x['edge'].mean(dim=0, keepdim=True),
         ], dim=-1)
 
         logits = {
             'settlement': self.head_settlement(x['vertex']).squeeze(-1),  # [54]
             'city':       self.head_city(x['vertex']).squeeze(-1),        # [54]
-            'road':       self.head_road(x['road']).squeeze(-1),          # [72]
+            'road':       self.head_road(x['edge']).squeeze(-1),          # [72]
             'robber':     self.head_robber(x['tile']).squeeze(-1),        # [19]
             'global':     self.global_head(g).squeeze(0)                  # [2]
         }
         return logits, x, g
-
-
-
-test = ObservationEncoder()
-with open('player_state.json', 'r') as f:
-    state_json = f.read()
-    test.handle_state_from_server(state_json)
     
 
+if __name__ == '__main__':
+    test = ObservationEncoder()
+    with open('player_state.json', 'r') as f:
+        state_json = f.read()
+    test.handle_state_from_server(state_json)
+    print('State handled successfully.')
 
+    hetero_data = test.to_heterodata()
+    print('HeteroData constructed successfully.')
 
-
-
+    model = CatanGNN(in_t=21, in_v=18, in_r=8)
+    logits, x, g = model(hetero_data)
+    print('Model forward pass successful.')
