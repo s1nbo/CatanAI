@@ -4,20 +4,7 @@ import numpy as np
 
 class Agent:
     def __init__(self):
-
-
-    
-
-    
-
-        
-
-
-
-
-
-            
-
+        pass
     def action(self):
         '''Return an action based on the current policy and state'''
         pass
