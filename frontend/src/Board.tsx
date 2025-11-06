@@ -430,7 +430,7 @@ export default function HexBoard({
                   <rect
                     x={v.x - 8} y={v.y - 8} width={16} height={16}
                     fill={isSel ? "#fde68a" : fillColor}
-                    stroke={strokeColor} strokeWidth={VERTEX_HIT_EXTRA}
+                    stroke={strokeColor} strokeWidth={2}
                     onClick={(ev) => { ev.stopPropagation(); handleVertexClick(v); }}
                     style={{ cursor: "pointer" }}
                   />
