@@ -6,6 +6,8 @@ from torch_geometric.data import Data, HeteroData
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import HeteroConv, GATv2Conv, global_mean_pool
+
+torch.manual_seed(42)
 class ObservationEncoder:
     def __init__(self):
 
@@ -138,7 +140,6 @@ class ObservationEncoder:
         self.data['edge', 'E2E', 'edge'].edge_index = torch.tensor(edges_edges, dtype=torch.long).t().contiguous()
         self.data['edge','E2E','edge'].edge_index   = _symmetrize(self.data['edge','E2E','edge'].edge_index)
 
-
         self._topology_built = True
 
 
@@ -213,6 +214,8 @@ class ObservationEncoder:
         self._encode_board(json_board)
 
         # player encoding
+        
+
 
         # rest encoding
 
@@ -230,8 +233,6 @@ class CatanGNN(nn.Module):
         'edge': nn.Embedding(72, 16),
         })
         
-
-
         def make_layer():
             return HeteroConv({
                 ('tile', 'T2T', 'tile'): GATv2Conv((-1, -1), hidden_channels, add_self_loops=True),
@@ -251,24 +252,19 @@ class CatanGNN(nn.Module):
         self.conv1 = make_layer()
         self.conv2 = make_layer()
 
-
-        # project per-type to a common size before pooling
         self.proj = nn.ModuleDict({
             'tile':   nn.Linear(hidden_channels, out_channels),
             'vertex': nn.Linear(hidden_channels, out_channels),
             'edge':   nn.Linear(hidden_channels, out_channels),
         })
 
-        # graph-level readout (board embedding)
         self.readout = nn.Sequential(
-            nn.Linear(out_channels *3, out_channels),
+            nn.Linear(out_channels * 3, out_channels),
             nn.ReLU(),
             nn.Linear(out_channels, out_channels)
         )
 
     def forward(self, data: HeteroData):
-        x = {k: v.x for k, v in data.node_items()}
-
         ids = {
             'tile':   torch.arange(data['tile'].num_nodes,   device=data['tile'].x.device),
             'vertex': torch.arange(data['vertex'].num_nodes, device=data['vertex'].x.device),
@@ -289,22 +285,21 @@ class CatanGNN(nn.Module):
         pooled = []
         for ntype in ['tile','vertex','edge']:
             h = self.proj[ntype](x[ntype])
-            batch = torch.zeros(h.size(0), dtype=torch.long, device=h.device)
+            batch = getattr(data[ntype], 'batch', None)
             pooled.append(global_mean_pool(h, batch))
         board_emb = torch.cat(pooled, dim=-1)
         return self.readout(board_emb)  # [1, out_channels]
 
-
-
-    
 
 if __name__ == '__main__':
     test = ObservationEncoder()
     with open('player_state.json', 'r') as f:
         state_json = f.read()
     data = test.observe(state_json)
+    print(data)
 
     catan = CatanGNN(hidden_channels=64, out_channels=128)
+    print(catan)
     out = catan.forward(data)
     print(out)
 

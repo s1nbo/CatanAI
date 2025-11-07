@@ -85,7 +85,7 @@
             },
             {
                 "id": 3,
-                "resource": "wood",
+                "resource": "ore",
                 "number": 12,
                 "robber": false,
                 "tiles": [
