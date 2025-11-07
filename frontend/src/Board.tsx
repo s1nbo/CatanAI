@@ -62,7 +62,7 @@ const VERTEX_ROW_COUNTS = [7, 9, 11, 11, 9, 7];
 const SNAP_K = 1000;
 const EDGE_STROKE = 6;
 const EDGE_HIT_EXTRA = 14;
-const VERTEX_HIT_EXTRA = 10;
+
 
 // Darker, dimmed tile colors for better eye comfort
 const RESOURCE_COLORS = {
