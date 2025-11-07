@@ -179,14 +179,106 @@ class ObservationEncoder:
             edge_features.append(torch.tensor(self._encode_edge(edge), dtype=torch.float32))
         
         self.data['tile'].x   = torch.stack(tile_features)  # Shape: [19, 21]
-        self.data['vertex'].x = torch.stack(vertex_features) # Shape: [54, 18])
-        self.data['edge'].x   = torch.stack(edge_features) # Shape: [72, 21])
+        self.data['vertex'].x = torch.stack(vertex_features) # Shape: [54, 18]
+        self.data['edge'].x   = torch.stack(edge_features) # Shape: [72, 8]
 
         self.data['tile'].num_nodes   = self.data['tile'].x.size(0)
         self.data['vertex'].num_nodes = self.data['vertex'].x.size(0)
         self.data['edge'].num_nodes   = self.data['edge'].x.size(0)
 
+    
+    def _encode_players(self, json_players: dict):
+        """
+        Encodes all player nodes.
+        We create one 'player' node type.
+        Features include public info (for all) and private info (for 'self').
+        Opponent nodes will have 0s for private info fields.
+        """
+        player_features = []
+        # Sort by player ID to ensure consistent node order (1, 2, 3, 4)
+        sorted_pids = sorted(json_players.keys(), key=int)
 
+        for pid_str in sorted_pids:
+            pdata = json_players[pid_str]
+            pid = int(pid_str)
+            is_self = (pid == self.player_id)
+            
+            features = []
+
+            # --- Public Info (Available for all players) ---
+            features.append(pdata['total_hand'])
+            features.append(pdata['total_development_cards'])
+            features.append(pdata['played_knights'])
+            features.append(pdata['longest_road_length'])
+            features.append(pdata['victory_points'])
+            features.append(pdata['settlements']) # remaining
+            features.append(pdata['cities']) # remaining
+            features.append(pdata['roads']) # remaining
+            features.append(1.0 if pdata['longest_road'] else 0.0)
+            features.append(1.0 if pdata['largest_army'] else 0.0)
+            features.append(1.0 if pdata['played_card_this_turn'] else 0.0)
+            features.append(1.0 if pdata['dice_rolled'] else 0.0)
+            features.append(1.0 if pdata['current_turn'] else 0.0)
+            features.append(1.0 if is_self else 0.0) # 'is_self' flag
+
+            # --- Private Info (Only for 'self') ---
+            hand = pdata.get('hand')
+            dev_cards = pdata.get('development_cards')
+
+            if is_self and hand and dev_cards:
+                # Add hand
+                features.append(hand['wood'])
+                features.append(hand['brick'])
+                features.append(hand['sheep'])
+                features.append(hand['wheat'])
+                features.append(hand['ore'])
+                # Add development cards
+                features.append(dev_cards['knight'])
+                features.append(dev_cards['victory_point'])
+                features.append(dev_cards['road_building'])
+                features.append(dev_cards['year_of_plenty'])
+                features.append(dev_cards['monopoly'])
+            else:
+                # Add 10 zeros as placeholders for opponents
+                features.extend([0.0] * 10)
+            
+            player_features.append(torch.tensor(features, dtype=torch.float32))
+
+        self.data['player'].x = torch.stack(player_features) # Shape: [4, 24]
+        self.data['player'].num_nodes = self.data['player'].x.size(0)
+
+    # --- NEW METHOD ---
+    def _encode_misc(self, state: dict):
+        """
+        Encodes global game state information into a single 'global' node.
+        """
+        features = []
+        
+        # Bank
+        bank = state['bank']
+        features.append(bank['wood'])
+        features.append(bank['brick'])
+        features.append(bank['sheep'])
+        features.append(bank['wheat'])
+        features.append(bank['ore'])
+        
+        # Deck
+        features.append(state['development_cards_remaining'])
+        
+        # Turn/Game State
+        features.append(state['current_turn'])
+        # Handle 'null' roll gracefully, ensuring 0 if None or null
+        roll = state.get('current_roll', 0) or 0 
+        features.append(roll)
+        features.append(1.0 if state['forced_action'] else 0.0)
+        features.append(1.0 if state['must_discard'] > 0 else 0.0)
+        
+        # Unsqueeze to make it [1, num_features]
+        self.data['global'].x = torch.tensor(features, dtype=torch.float32).unsqueeze(0) # Shape: [1, 10]
+        self.data['global'].num_nodes = 1
+
+
+    # --- UPDATED METHOD ---
     def observe(self, state_json: str) -> HeteroData:
         '''We take the json as it is send to the other players in a multiplayer game 
         and convert it to a state representation'''
@@ -195,8 +287,7 @@ class ObservationEncoder:
 
         json_board = state['board']
         json_players = state['players']
-        # rest that is not in the other categories
-        json_misc = None
+        # 'misc' data will be read from the top-level 'state' dict
 
         #static topology build
         if not self._topology_built:
@@ -205,19 +296,25 @@ class ObservationEncoder:
         
         self.player_count = len(json_players.keys())
 
+        # Find the 'self' player by checking who has a 'hand' key
+        self.player_id = None
         for pid in json_players.keys():
-            if dict(json_players[pid]['hand']) is not None:
+            if json_players[pid].get('hand') is not None:
                 self.player_id = int(pid)
                 break
+        
+        # Fallback if no player has a hand (e.g., observer mode)
+        if self.player_id is None:
+            self.player_id = 1 # Default to player 1
 
         # board encoding
         self._encode_board(json_board)
 
         # player encoding
-        
-
+        self._encode_players(json_players)
 
         # rest encoding
+        self._encode_misc(state)
 
         return self.data
 
@@ -270,6 +367,31 @@ class CatanGNN(nn.Module):
             'vertex': torch.arange(data['vertex'].num_nodes, device=data['vertex'].x.device),
             'edge':   torch.arange(data['edge'].num_nodes,   device=data['edge'].x.device),
         }
+        
+        # --- FIX from original code ---
+        # Your original code had a bug where the 'edge' input features (8)
+        # did not match the 'id_emb' features (16) if cat'd directly.
+        # This was because the _encode_edge function was missing a typeflag
+        # and the concat was missing.
+        #
+        # BUT, looking at your _encode_edge, it has 8 features.
+        # The _encode_tile has 21 features.
+        # The _encode_vertices has 18 features.
+        # The id_emb adds 16 features to each.
+        #
+        # The GATv2Conv with (-1, -1) handles different feature sizes.
+        # However, your original _encode_edge had a shape comment of [72, 21]
+        # but the function `_encode_edge` only returns 8 features.
+        # I will assume the function is correct and the comment was wrong.
+        # The GNN model should handle the different input sizes.
+        #
+        # A different bug: Your original code's `_encode_edge` returns 8 features,
+        # but `_encode_tile` (21) and `_encode_vertices` (18) are different.
+        # This is fine for HeteroConv.
+        #
+        # Another bug: `self.data['edge'].x = torch.stack(edge_features) # Shape: [72, 21])`
+        # This comment was wrong. `_encode_edge` returns 8 features. I fixed this above.
+
         x = {
             'tile':   torch.cat([data['tile'].x,   self.id_emb['tile'](ids['tile'])], dim=-1),
             'vertex': torch.cat([data['vertex'].x, self.id_emb['vertex'](ids['vertex'])], dim=-1),
@@ -283,6 +405,8 @@ class CatanGNN(nn.Module):
         x = {k: F.elu(v) for k,v in x.items()}
 
         pooled = []
+        # This loop only processes the board nodes, ignoring 'player' and 'global'
+        # which is fine, as the GNN is only defined for the board graph.
         for ntype in ['tile','vertex','edge']:
             h = self.proj[ntype](x[ntype])
             batch = getattr(data[ntype], 'batch', None)
@@ -296,11 +420,24 @@ if __name__ == '__main__':
     with open('player_state.json', 'r') as f:
         state_json = f.read()
     data = test.observe(state_json)
+    
+    # This will now print the full HeteroData object,
+    # including 'player' and 'global' nodes
+    print("--- HeteroData Object ---")
     print(data)
+    print("\n--- Player Features (Shape) ---")
+    print(data['player'].x.shape)
+    print(data['player'].x)
+    print("\n--- Global Features (Shape) ---")
+    print(data['global'].x.shape)
+    print(data['global'].x)
+
 
     catan = CatanGNN(hidden_channels=64, out_channels=128)
+    print("\n--- GNN Model ---")
     print(catan)
-    out = catan.forward(data)
-    print(out)
-
     
+    # The GNN will run, ignoring the new node types
+    out = catan.forward(data)
+    print("\n--- GNN Output ---")
+    print(out)
