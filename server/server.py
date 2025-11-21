@@ -79,6 +79,11 @@ def add_bot(game_id: str):
 def remove_bot(game_id: int):
     pass # TODO
 
+# spectate game with 4 bots
+@app.post("/spectate")
+def spectate_game():
+    pass # TODO
+
 
 @app.post("/game/{game_id}/start")
 async def start_game(req: GameIdRequest):
