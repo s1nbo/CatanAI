@@ -1,7 +1,7 @@
 import torch
 from torch_geometric.data import HeteroData
 
-from game import static_board
+from game.static_board import *
 
 class CatanData(HeteroData):
     def __init__(self):
@@ -69,18 +69,17 @@ class CatanData(HeteroData):
                     dst.append(n)
             return torch.tensor([src, dst], dtype=torch.long)
     
-        self['tile', 'T2T', 'tile'].edge_index = build_edge_index(static_board.TILE_TILE)
-        self['tile', 'T2V', 'vertex'].edge_index = build_edge_index(static_board.TILE_VERTEX)
-        self['tile', 'T2E', 'edge'].edge_index = build_edge_index(static_board.TILE_EDGE)
+        self['tile', 'T2T', 'tile'].edge_index = build_edge_index(TILE_TILE)
+        self['tile', 'T2V', 'vertex'].edge_index = build_edge_index(TILE_VERTEX)
+        self['tile', 'T2E', 'edge'].edge_index = build_edge_index(TILE_EDGE)
 
-        self['vertex', 'V2T', 'tile'].edge_index = build_edge_index(static_board.VERTEX_TILE)
-        self['vertex', 'V2V', 'vertex'].edge_index = build_edge_index(static_board.VERTEX_VERTEX)
-        self['vertex', 'V2E', 'edge'].edge_index = build_edge_index(static_board.VERTEX_EDGE)
+        self['vertex', 'V2T', 'tile'].edge_index = build_edge_index(VERTEX_TILE)
+        self['vertex', 'V2V', 'vertex'].edge_index = build_edge_index(VERTEX_VERTEX)
+        self['vertex', 'V2E', 'edge'].edge_index = build_edge_index(VERTEX_EDGE)
 
-        self['edge', 'E2T', 'tile'].edge_index = build_edge_index(static_board.EDGE_TILE)
-        self['edge', 'E2V', 'vertex'].edge_index = build_edge_index(static_board.EDGE_VERTEX)
-        self['edge', 'E2E', 'edge'].edge_index = build_edge_index(static_board.EDGE_EDGE)
-
+        self['edge', 'E2T', 'tile'].edge_index = build_edge_index(EDGE_TILE)
+        self['edge', 'E2V', 'vertex'].edge_index = build_edge_index(EDGE_VERTEX)
+        self['edge', 'E2E', 'edge'].edge_index = build_edge_index(EDGE_EDGE)
 
     def update_from_state(self):
         
@@ -142,3 +141,4 @@ class CatanData(HeteroData):
         owner = self.owner_map[e['player']]
 
         return typeflag + owner
+    
