@@ -1,7 +1,7 @@
 # Game Flow
 import server.server as server
 
-from rl.data import CatanData
+from rl.observation import CatanData
 
 # For testing purposes only
 

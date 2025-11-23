@@ -1,7 +1,7 @@
 import functools
 from pettingzoo import AECEnv
 from pettingzoo.utils import agent_selector
-from data import CatanGraphDat
+from rl.observation import CatanGraphDat
 
 
 class CatanEnv(AECEnv):
