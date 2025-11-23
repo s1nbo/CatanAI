@@ -3,6 +3,7 @@ from pettingzoo import AECEnv
 from pettingzoo.utils import agent_selector
 from rl.observation import CatanGraphDat
 
+# This Communicates with the Catan Game Server and provides an Environment for RL agents
 
 class CatanEnv(AECEnv):
     def __init__(self):

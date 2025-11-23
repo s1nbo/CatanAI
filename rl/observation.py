@@ -3,6 +3,12 @@ from torch_geometric.data import HeteroData
 import copy
 from game.static_board import *
 
+# Takes in the game state dict and converts it to a graph data structure suitable for GNNs
+
+# TODO: Normalize features, add more features if necessary (log) (Transformer), Add the player state as a node in the graph
+# TODO: Add validate method
+# TODO: Action mask method
+
 class CatanData(HeteroData):
     def __init__(self):
         super().__init__()
@@ -30,12 +36,13 @@ class CatanData(HeteroData):
         }
 
         self.building_map = {
+            None: [0, 0],
             'Settlement': [1, 0],
             'City': [0, 1],
         }
 
         self.owner_map = {
-            'None': [0, 0, 0, 0],
+            None: [0, 0, 0, 0],
             1: [1, 0, 0, 0], # SELF 
             2: [0, 1, 0, 0],
             3: [0, 0, 1, 0],
@@ -43,7 +50,7 @@ class CatanData(HeteroData):
         }
 
         self.port_map = {
-            'None': [0, 0, 0, 0, 0, 0],
+            None: [0, 0, 0, 0, 0, 0],
             '3:1': [1, 0, 0, 0, 0, 0],
             '2:1 Wood': [0, 1, 0, 0, 0, 0],
             '2:1 Brick': [0, 0, 1, 0, 0, 0],
@@ -78,7 +85,7 @@ class CatanData(HeteroData):
 
     def update_data(self, game_state: dict, current_pid: int, total_players: int):
         
-        game_state = copy.deepcopy(game_state)
+        game_state = copy.deepcopy(game_state) # TODO instead of deep copy we only create a mapping and call that everywhere
         # so we don't modify the original game_state, can be changed for efficiency later
         
         # Convert to relative ids
@@ -92,6 +99,9 @@ class CatanData(HeteroData):
 
         # update misc state
         self._update_misc_state(game_state)
+
+        # update action mask
+        self.action_mask(game_state)
 
 
     def _update_player_state(self, game_state: dict, total_players: int):
@@ -135,7 +145,7 @@ class CatanData(HeteroData):
             player_features.append(features)
             features = [0]*10 # padding for opponent players
         
-        self.player_state = torch.tensor(player_features, dtype=torch.float)
+        self['player'].x = torch.tensor(player_features, dtype=torch.float)
 
 
 
@@ -174,10 +184,10 @@ class CatanData(HeteroData):
         features.append(1.0 if game_state['must_discard'] > 0 else 0.0)
 
         # safe the features in the global observation tensor 
-        self.misc_state = torch.tensor(features, dtype=torch.float).unsqueeze(0)
+        self['misc'].x = torch.tensor(features, dtype=torch.float).unsqueeze(0)
     
 
-    def action_mask(self, mask: dict):
+    def action_mask(self, mask: dict): # TODO
         pass # we will get a action mask from the environment directly and then convert into tensor here
 
     # Placeholder for future version TODO
@@ -187,7 +197,7 @@ class CatanData(HeteroData):
 
     # --- HELPER FUNCTIONS ---
 
-    def validate(self):
+    def validate(self): # TODO
         pass
 
     def _encode_tile(self, t): # 20 features

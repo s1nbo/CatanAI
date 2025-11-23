@@ -3,6 +3,9 @@ import torch.optim as optim
 from torch.distributions import Categorical
 from model import CatanAgentNetwork
 
+# Gets the encoded dict from observation and outputs actions
+# Connects model to enviornment
+
 class CatanAgent:
     def __init__(self, model_path: str):
         pass  # TODO: Load the model from the given path
