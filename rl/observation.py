@@ -82,8 +82,7 @@ class CatanData(HeteroData):
         # so we don't modify the original game_state, can be changed for efficiency later
         
         # Convert to relative ids
-        if current_pid != 1:
-            game_state = self._convert_to_relative_ids(game_state, current_pid, total_players)
+        game_state = self._convert_to_relative_ids(game_state, current_pid, total_players)
 
         # _update player states
         self._update_player_state(game_state, total_players)
@@ -134,7 +133,7 @@ class CatanData(HeteroData):
                     features.append(0.0)
             
             player_features.append(features)
-            features = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # padding for opponent players
+            features = [0]*10 # padding for opponent players
         
         self.player_state = torch.tensor(player_features, dtype=torch.float)
 
